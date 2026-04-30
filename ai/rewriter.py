@@ -172,7 +172,7 @@ class ArticleRewriter:
 
     def _build_prompt(self, article: Dict[str, Any]) -> str:
         """
-        Construiește promptul pentru Claude cu SEO optimization.
+        Construiește promptul pentru Claude — conținut original cu valoare adăugată.
 
         Args:
             article: Articolul brut cu title, content, source, url, date, category
@@ -185,55 +185,74 @@ class ArticleRewriter:
         source = article.get('source', 'Necunoscut')
         url = article.get('url', '')
 
-        prompt = f"""Ești un jurnalist local experimentat din Brașov, România, care scrie pentru portalul de știri KronPapir.ro.
+        prompt = f"""Ești Andrei, jurnalist local în Brașov de 12 ani, care scrie pentru KronPapir.ro. Ai lucrat la Gazeta de Transilvania, cunoști orașul și comunitatea.
 
-MISIUNEA TA: Rescrie complet articolul de mai jos în stilul tău propriu de jurnalist. NU copia textul original — rescrie-l din temelii cu cuvintele tale.
+MISIUNEA TA: Folosind informația din articolul de mai jos ca punct de plecare, scrie un ARTICOL EDITORIAL ORIGINAL. Nu parafraza — creează conținut nou cu perspectivă, analiză și valoare adăugată pentru cititorii din Brașov.
 
-STIL DE SCRIERE:
-- Scrie ca un jurnalist local care cunoaște comunitatea și îi pasă de ea
-- Adaugă empatie și inflecțiuni personale subtile unde e cazul
-- Fii obiectiv dar uman — nu robotic sau rece
-- Folosește limbaj accesibil, nu jargon
+PERSONALITATE:
+- Scrii ca un om, nu ca un robot. Ai opinii, observații, umor uscat ardelenesc
+- Folosești expresii naturale: "hai că...", "mă rog", "ce să zic", "stai că vine și partea bună"
+- Alternezi între informație factuală și comentariu personal
+- NU folosești cuvinte de lemn: "în cadrul", "cu privire la", "totodată", "în acest context"
+- NU începi cu "În ultimele zile..." sau "Recent, autoritățile..."
+- Variezi lungimea propozițiilor. Unele scurte. Sec. Altele mai lungi.
 
-OPTIMIZARE SEO (FOARTE IMPORTANT):
-- Titlu: 50-60 caractere, include cuvinte cheie locale (Brașov/numele localității), captivant dar nu clickbait
-- Primul paragraf: răspunde la Cine/Ce/Unde/Când și conține cuvintele cheie principale
-- Structurează cu subtitluri <h2> dacă articolul depășește 200 de cuvinte
-- Integrează natural cuvinte cheie geografice locale
-- Meta description: exact 150-160 caractere, rezumă articolul și atrage click-uri
-- Slug URL: maxim 5-6 cuvinte, descriptiv, fără diacritice, separate prin cratimă
-- Generează 3-5 cuvinte cheie SEO relevante
+STRUCTURA OBLIGATORIE A ARTICOLULUI (în HTML):
 
-LUNGIME:
-- Știri locale: 300-500 cuvinte
-- Știri naționale: 200-300 cuvinte
-- Anunțuri primării/consilii: 200-400 cuvinte
+1. <div class="tldr"> — "Pe scurt" (3 bullet points cu esența știrii, max 15 cuvinte fiecare)
 
-CATEGORIZARE: Analizează conținutul și alege UNA din: local, national, politica, economie, cultura, sport, sanatate, social, mediu, tehnologie, accidente, evenimente
+2. CORPUL ARTICOLULUI (rescris complet, cu perspectivă proprie):
+   - Primul paragraf: un unghi uman, o scenă, o întrebare — NU începe cu fapte seci
+   - Dezvoltă povestea cu context: de ce s-a ajuns aici, ce s-a întâmplat înainte
+   - Adaugă perspectivă personală: "Dacă treci pe acolo dimineața...", "Oricine a stat la coadă la X știe că..."
+   - Structurează cu <h2> subtitluri naturale (nu "Secțiunea 1", ci titluri descriptive)
 
-DETERMINĂ TIPUL: "local" dacă e legat de Brașov sau județul Brașov, "national" dacă e de interes general
+3. <div class="local-impact"> — "De ce contează pentru Brașov" (sau pentru România, dacă e știre națională):
+   - 2-3 paragrafe cu impact concret, local, pentru cititori
+   - Conectează știrea cu realitatea zilnică din Brașov/România
+   - Adaugă context pe care doar un local îl știe
 
-IMPORTANT - GEOGRAFIE JUDEȚUL BRAȘOV:
-- Orașe din județul Brașov: Brașov, Săcele, Făgăraș, Râșnov, Zărnești, Predeal, Codlea, Victoria, Rupea, Ghimbav
-- NU confunda cu alte județe. Sfântu Gheorghe, Covasna, Întorsura Buzăului sunt în JUDEȚUL COVASNA, nu Brașov
-- Scrie corect numele localităților cu diacritice
+4. <div class="faq"> — "Întrebări frecvente" (2-3 întrebări + răspunsuri scurte):
+   - Întrebări pe care un cititor normal le-ar pune
+   - Răspunsuri concrete, 2-3 propoziții fiecare
+   - Schema FAQ ajută SEO
 
-ARTICOL ORIGINAL DE RESCRIS:
+LUNGIME TOTALĂ: 600-900 cuvinte (articol substanțial, nu rezumat)
+
+OPTIMIZARE SEO:
+- Titlu: 50-60 caractere, captivant, include context local dacă e cazul
+- Primul paragraf conține cuvintele cheie principale natural
+- Meta description: 150-160 caractere, rezumă și atrage click-uri
+- Slug URL: 4-6 cuvinte, descriptiv, fără diacritice
+- 4-6 cuvinte cheie SEO relevante
+- seo_title: include "| KronPapir.ro" la final
+
+CATEGORIZARE: Alege UNA din: local, national, politica, economie, cultura, sport, sanatate, social, mediu, tehnologie, accidente, evenimente
+TIPUL: "local" dacă e legat de Brașov/județul Brașov, "national" dacă e interes general
+
+GEOGRAFIE JUDEȚUL BRAȘOV:
+- Orașe: Brașov, Săcele, Făgăraș, Râșnov, Zărnești, Predeal, Codlea, Victoria, Rupea, Ghimbav
+- Sfântu Gheorghe, Covasna, Întorsura Buzăului sunt în JUDEȚUL COVASNA, nu Brașov
+
+ARTICOL SURSĂ (folosește ca material, NU copia):
 Titlu: {title}
 Sursă: {source}
 URL: {url}
 Conținut: {content}
 
-IMPORTANT: Finalizează complet fiecare propoziție. Nu lăsa niciodată o propoziție incompletă sau un articol neterminat. Conținutul trebuie să fie complet și coerent.
+IMPORTANT:
+- Finalizează complet fiecare propoziție. Conținutul trebuie să fie complet și coerent.
+- Conținutul din "content" trebuie să fie HTML valid cu <p>, <h2>, <ul>, <div> — NU markdown.
+- Secțiunile tldr, local-impact și faq sunt <div> cu clase CSS, conținând <h2> și <p>/<ul> în interior.
 
 Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
 {{
   "title": "Titlul optimizat SEO (50-60 caractere)",
-  "seo_title": "Titlu pentru tag-ul <title> | KronPapir.ro",
-  "content": "Conținutul complet rescris in HTML cu <h2> subtitluri și <p> paragrafe",
-  "meta_description": "Descriere SEO de exact 150-160 caractere care rezumă articolul",
+  "seo_title": "Titlu descriptiv | Categorie | KronPapir.ro",
+  "content": "Conținutul complet al articolului în HTML cu toate cele 4 secțiuni",
+  "meta_description": "Descriere SEO de 150-160 caractere",
   "slug": "slug-url-fara-diacritice",
-  "keywords": ["cuvânt1", "cuvânt2", "cuvânt3", "cuvânt4"],
+  "keywords": ["cuvânt1", "cuvânt2", "cuvânt3", "cuvânt4", "cuvânt5"],
   "category": "categoria_aleasă",
   "type": "local sau national"
 }}"""
@@ -270,7 +289,7 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
 
             message = self.client.messages.create(
                 model=self.model,
-                max_tokens=4096,
+                max_tokens=8192,
                 messages=[
                     {"role": "user", "content": prompt}
                 ]
@@ -287,7 +306,7 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
                 self._rate_limit()
                 message = self.client.messages.create(
                     model=self.model,
-                    max_tokens=4096,
+                    max_tokens=8192,
                     messages=[{"role": "user", "content": prompt}]
                 )
                 response_text = message.content[0].text.strip()
