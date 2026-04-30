@@ -3,16 +3,20 @@
    =================================== */
 
 :root {
-  /* Color Scheme - Kindle Sepia/Warm Reading */
-  --primary: #5b7a3a;        /* Olive Green (warm, earthy) */
-  --secondary: #6d8a4a;      /* Medium Olive */
-  --accent: #b5533e;         /* Warm Terracotta Red */
-  --background: #f4ecd8;     /* Kindle Sepia Background */
-  --surface: #faf6eb;        /* Warm Cream Surface */
-  --text-primary: #3b3128;   /* Warm Dark Brown Ink */
-  --text-secondary: #7a6b5a; /* Warm Brown-Gray */
-  --border: #e0d5be;         /* Warm Sepia Border */
-  --divider: #d4c9b0;        /* Warm Sepia Divider */
+  /* Color Scheme - Cetate Heraldic Brașov */
+  --primary: #a4242b;        /* Roșu Cetate (heraldic Brașov) */
+  --secondary: #c2424a;      /* Roșu deschis (hover) */
+  --accent: #c9a84c;         /* Auriu coroană */
+  --background: #fbf8f3;     /* Cream cald */
+  --surface: #ffffff;        /* Alb pur pentru carduri */
+  --text-primary: #1a1d2e;   /* Bleumarin profund (cerneală) */
+  --text-secondary: #5a5e72; /* Bleumarin diluat */
+  --border: #e8e2d5;         /* Bej cald */
+  --divider: #d8d2c5;        /* Bej mai închis */
+  --header-bg: #1a1d2e;      /* Bleumarin profund pentru header */
+  --header-ink: #fbf8f3;     /* Cream pe bleumarin */
+  --footer-bg: #1a1d2e;
+  --footer-ink: #fbf8f3;
 
   /* Typography */
   --font-serif: 'Playfair Display', Georgia, serif;
@@ -38,15 +42,19 @@
 /* Dark Mode - Kindle Night */
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #6a8a4a;        /* Warm olive for dark bg */
-    --secondary: #7a9a5a;      /* Light olive accent */
-    --accent: #c4645a;         /* Muted warm terracotta */
-    --background: #1c1814;     /* Deep warm brown */
-    --surface: #2a2420;        /* Warm dark surface */
-    --text-primary: #d8cfc0;   /* Warm cream text */
-    --text-secondary: #a09282; /* Muted warm secondary */
-    --border: #3a322a;         /* Warm dark border */
-    --divider: #4a4038;        /* Warm dark divider */
+    --primary: #c2424a;
+    --secondary: #d65a62;
+    --accent: #e0c060;
+    --background: #14151f;
+    --surface: #1f2233;
+    --text-primary: #ece6d6;
+    --text-secondary: #9a9ab0;
+    --border: #2a2d40;
+    --divider: #353850;
+    --header-bg: #0d0f18;
+    --header-ink: #ece6d6;
+    --footer-bg: #0d0f18;
+    --footer-ink: #ece6d6;
   }
 }
 
@@ -164,7 +172,7 @@ pre code {
    =================================== */
 
 header {
-  background-color: var(--surface);
+  background-color: var(--header-bg);
   border-bottom: 1px solid var(--border);
   position: sticky;
   top: 0;
@@ -180,8 +188,10 @@ header {
 
 /* Header Top - Logo & Tagline */
 .header-top {
-  padding: var(--space-lg) 0;
+  background-color: var(--header-bg);
+  padding: 22px 0 20px;
   text-align: center;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
   border-bottom: 1px solid var(--divider);
   background-color: var(--surface);
 }
@@ -671,14 +681,14 @@ nav.main-nav {
   color: #fff;
 }
 
-.category-tag.local { background-color: var(--primary); }
-.category-tag.politica { background-color: #b5651d; }
-.category-tag.economie { background-color: #00695c; }
-.category-tag.cultura { background-color: #6a1b9a; }
-.category-tag.sport { background-color: #0277bd; }
-.category-tag.sanatate { background-color: #c62828; }
-.category-tag.social { background-color: #f57f17; }
-.category-tag.mediu { background-color: #33691e; }
+.category-tag.local      { background-color: #a4242b; }  /* Roșu Cetate */
+.category-tag.politica   { background-color: #1a1d2e; }  /* Bleumarin */
+.category-tag.economie   { background-color: #0d6e5e; }  /* Verde închis */
+.category-tag.cultura    { background-color: #6b3aa0; }  /* Mov */
+.category-tag.sport      { background-color: #1d5fb5; }  /* Albastru */
+.category-tag.sanatate   { background-color: #a4242b; }  /* Roșu */
+.category-tag.social     { background-color: #c97a18; }  /* Portocaliu */
+.category-tag.mediu      { background-color: #3a6b2a; }  /* Verde */
 
 /* ===================================
    Article Page
@@ -859,11 +869,13 @@ nav.main-nav {
    =================================== */
 
 footer {
-  background-color: var(--primary);
-  color: #fff;
+  background-color: var(--footer-bg);
+  color: var(--footer-ink);
   margin-top: var(--space-2xl);
-  padding: var(--space-2xl) 0;
-  border-top: 2px solid var(--secondary);
+  padding: 0;
+  border-top: none;
+  position: relative;
+  overflow: hidden;
 }
 
 .footer-content {
@@ -1439,4 +1451,135 @@ footer {
   .pagination a {
     color: var(--text-primary);
   }
+}
+
+/* ===================================
+   KronPapir — Cetate Heraldic
+   Heritage strip + Logo bloc + Footer ECG
+   =================================== */
+
+/* Heritage strip (Brașov · Kronstadt · Brassó · Corona) */
+.heritage-strip {
+  background: var(--primary);
+  color: #fff;
+  padding: 6px 0;
+  font-size: 0.66rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-align: center;
+}
+.heritage-strip-inner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.heritage-strip .dot { opacity: 0.5; }
+.heritage-corona { color: var(--accent); }
+
+/* Logo bloc: stema + wordmark */
+.logo-block {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  text-decoration: none;
+}
+.stema-brasov {
+  flex-shrink: 0;
+  filter: drop-shadow(0 1px 2px rgba(0,0,0,0.25));
+}
+.wordmark { text-align: left; }
+.wordmark-name {
+  font-family: var(--font-serif);
+  font-size: 3rem;
+  font-weight: 800;
+  color: var(--header-ink);
+  line-height: 0.95;
+}
+.wordmark-name span { color: var(--accent); }
+.wordmark-tagline {
+  font-family: var(--font-serif);
+  font-size: 0.7rem;
+  font-weight: 600;
+  letter-spacing: 0.28em;
+  color: var(--header-ink);
+  opacity: 0.7;
+  margin-top: 6px;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.wordmark-tagline .rule {
+  width: 18px;
+  height: 1px;
+  background: var(--accent);
+  display: inline-block;
+}
+.wordmark-sub {
+  margin-top: 4px;
+  font-size: 0.66rem;
+  color: var(--header-ink);
+  opacity: 0.5;
+  font-style: italic;
+  letter-spacing: 0.05em;
+}
+
+/* Nav rămâne pe surface deschis */
+nav.main-nav { background-color: var(--surface); border-bottom: 1px solid var(--border); }
+.nav-links a { color: var(--text-primary); }
+.nav-links a:hover, .nav-links a.active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+/* Footer ECG + munte */
+.footer-heartbeat {
+  display: flex;
+  justify-content: center;
+  padding: 32px 0 16px;
+}
+.footer-heartbeat svg {
+  width: 280px;
+  height: 240px;
+  overflow: visible;
+}
+.footer-heartbeat .heart-line-1 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 800;
+  fill: var(--footer-ink);
+  letter-spacing: 0.02em;
+}
+.footer-heartbeat .heart-line-2 {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: 800;
+  fill: var(--accent);
+  letter-spacing: 0.04em;
+}
+.footer-mountains {
+  display: block;
+  width: 100%;
+  height: 56px;
+}
+footer .container { padding-top: 24px; padding-bottom: 28px; }
+footer .footer-section h3 { color: #fff; }
+footer .footer-section a { color: rgba(255,255,255,0.85); }
+footer .footer-section a:hover { color: var(--accent); }
+footer .footer-bottom {
+  border-top: 1px solid rgba(255,255,255,0.12);
+  padding-top: var(--space-lg);
+}
+
+/* Mobile */
+@media (max-width: 640px) {
+  .stema-brasov { width: 56px; height: 66px; }
+  .wordmark-name { font-size: 2rem; }
+  .wordmark-tagline { font-size: 0.6rem; letter-spacing: 0.2em; }
+  .heritage-strip-inner { font-size: 0.58rem; gap: 8px; }
+  .footer-heartbeat svg { width: 220px; height: 190px; }
 }
