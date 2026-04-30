@@ -1,0 +1,144 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.title }} - KronPapir{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ article.title }}">
+<meta property="og:description" content="{{ article.excerpt or article.content[:100] }}">
+<meta property="og:type" content="article">
+{% if article.image %}
+<meta property="og:image" content="{{ article.image }}">
+{% endif %}
+<meta property="og:url" content="https://kronpapir.ro/articol/{{ article.id }}">
+<meta property="article:published_time" content="{{ article.date }}">
+{% if article.category %}
+<meta property="article:section" content="{{ article.category }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <article style="max-width: 800px;">
+    <!-- Article Header -->
+    <header class="article-header">
+      {% if article.category %}
+      <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+      {% endif %}
+      <h1 class="article-title">{{ article.title }}</h1>
+      <div class="article-meta">
+        <span class="article-meta-item">📅 {{ article.date }}</span>
+        {% if article.source %}
+        <span class="article-meta-item">📰 Sursa: <strong>{{ article.source }}</strong></span>
+        {% endif %}
+        {% if article.author %}
+        <span class="article-meta-item">✍️ {{ article.author }}</span>
+        {% endif %}
+      </div>
+    </header>
+
+    <!-- Featured Image -->
+    {% if article.image %}
+    <figure class="article-featured-image">
+      <img src="{{ article.image }}" alt="{{ article.title }}" loading="eager">
+    </figure>
+    {% endif %}
+
+    <!-- Article Body -->
+    <div class="article-body">
+      {% if article.excerpt %}
+      <p><strong>{{ article.excerpt }}</strong></p>
+      {% endif %}
+      {{ article.content | safe }}
+    </div>
+
+    <!-- Source Attribution -->
+    <div class="article-source-info">
+      <strong>Notă de transparență:</strong> Această știre a fost agregată automat de KronPapir din sursa indicată mai sus.
+      {% if article.url %}
+      <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">Citește versiunea originală →</a>
+      {% endif %}
+    </div>
+
+    <!-- Share Buttons -->
+    <div class="share-buttons">
+      <span class="share-label">Distribuie:</span>
+      <button class="share-btn" title="Distribuie pe Facebook" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), 'facebook', 'width=600,height=400'); return false;">f</button>
+      <button class="share-btn" title="Distribuie pe Twitter" onclick="window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(window.location.href) + '&text={{ article.title|urlencode }}', 'twitter', 'width=600,height=400'); return false;">𝕏</button>
+      <button class="share-btn" title="Copiază linkul" onclick="navigator.clipboard.writeText(window.location.href); alert('Link copiat!');">🔗</button>
+      <button class="share-btn" title="Tipărește" onclick="window.print();">🖨️</button>
+    </div>
+
+    <!-- Related Articles -->
+    {% if related %}
+    <section class="related-articles">
+      <h3>Articole Conexe</h3>
+      <div class="articles-grid" style="margin-top: var(--space-lg);">
+        {% for rel_article in related %}
+        <article class="article-card">
+          {% if rel_article.image %}
+          <div class="article-card-image">
+            <img src="{{ rel_article.image }}" alt="{{ rel_article.title }}" loading="lazy">
+          </div>
+          {% else %}
+          <div class="article-card-image no-image">
+            <span>Fără imagine</span>
+          </div>
+          {% endif %}
+          <div class="article-card-content">
+            {% if rel_article.category %}
+            <span class="category-tag {{ rel_article.category }}">{{ rel_article.category }}</span>
+            {% endif %}
+            <h3><a href="/articol/{{ rel_article.id }}">{{ rel_article.title }}</a></h3>
+            <p class="excerpt">{{ rel_article.excerpt or rel_article.content[:80] + '...' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ rel_article.date }}</span>
+              {% if rel_article.source %}
+              <span class="article-source">{{ rel_article.source }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+  </article>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📌 Informații</h3>
+      <p style="margin-bottom: var(--space-md); color: var(--text-secondary);">KronPapir agregează automat știri locale din diverse surse. Articolele sunt prezentate pentru informare.</p>
+      <a href="/despre" style="color: var(--primary); font-weight: 600;">Mai multe detalii →</a>
+    </div>
+
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📂 Categorii</h3>
+      {% for cat_key, cat_name in categories.items() %}
+      <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="/categorie/{{ cat_key }}" style="font-weight: 500; color: var(--primary);">{{ cat_name }}</a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="sidebar-box" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--surface);">
+      <h3 style="color: var(--surface); border-bottom-color: rgba(255,255,255,0.3);">📍 Brașov Live</h3>
+      <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Rămâi la curent cu ultimele noutăți din regiunea Brașov-Covasna.</p>
+      <a href="/local" style="display: inline-block; margin-top: var(--space-md); padding: var(--space-sm) var(--space-md); background-color: var(--accent); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none;">Toate știrile locale →</a>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Simple analytics - track article views
+document.addEventListener('DOMContentLoaded', function() {
+  // Optional: Add page view tracking here
+  console.log('Article viewed: {{ article.id }}');
+});
+</script>
+{% endblock %}

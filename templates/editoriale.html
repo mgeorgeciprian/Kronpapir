@@ -1,0 +1,183 @@
+{% extends "base.html" %}
+
+{% block title %}Editoriale - Andrei Varga | KronPapir{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="https://kronpapir.ro/editoriale">
+{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="Editoriale KronPapir - Andrei Varga">
+<meta property="og:description" content="Editoriale zilnice de Andrei Varga: analize, perspective și opinii despre ce contează în Brașov, România și lume.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kronpapir.ro/editoriale">
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <div>
+    <!-- Editorial Header -->
+    <section class="section">
+      <div class="editorial-page-header">
+        <h1 class="section-title" style="font-size: 2rem; margin-bottom: var(--space-sm);">Editoriale</h1>
+        <div class="editorial-author-intro">
+          <div class="editorial-avatar">AV</div>
+          <div>
+            <h2 style="font-family: var(--font-serif); font-size: 1.2rem; margin-bottom: var(--space-xs);">Andrei Varga</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">Editorialist-șef KronPapir. 15 ani de experiență în presă locală și națională. Brașovean prin adopție, analizez ce contează pentru comunitatea noastră.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Featured Editorial -->
+      {% if featured_editorial %}
+      <div class="editorial-featured">
+        <div class="editorial-featured-content">
+          <div class="editorial-type-badges">
+            {% if featured_editorial.editorial_type == 'national' %}
+            <span class="editorial-type-badge editorial-type-national">Editorial Național</span>
+            {% elif featured_editorial.editorial_type == 'international' %}
+            <span class="editorial-type-badge editorial-type-international">Radar European</span>
+            {% elif featured_editorial.editorial_type == 'tematic' %}
+            <span class="editorial-type-badge editorial-type-tematic">{{ featured_editorial.editorial_tema or 'Editorial Tematic' }}</span>
+            {% else %}
+            <span class="editorial-type-badge">Editorial</span>
+            {% endif %}
+          </div>
+          <h2 style="font-family: var(--font-serif); font-size: 1.6rem; line-height: 1.3; margin-bottom: var(--space-md);">
+            <a href="{{ featured_editorial|article_url }}" style="color: var(--text-primary); text-decoration: none;">{{ featured_editorial.title }}</a>
+          </h2>
+          <p style="color: var(--text-secondary); font-size: 1rem; line-height: 1.6; margin-bottom: var(--space-md);">{{ featured_editorial.excerpt or featured_editorial.content[:250] + '...' }}</p>
+          <div style="display: flex; align-items: center; gap: var(--space-md); font-size: 0.85rem; color: var(--text-secondary);">
+            <span>✍️ Andrei Varga</span>
+            <span>📅 {{ featured_editorial.date[:10] if featured_editorial.date else '' }}</span>
+          </div>
+          <a href="{{ featured_editorial|article_url }}" class="read-more" style="display: inline-block; margin-top: var(--space-md);">Citește editorialul complet →</a>
+        </div>
+      </div>
+      {% endif %}
+
+      <!-- Editorial Archive -->
+      {% if articles %}
+      <h2 class="section-title" style="margin-top: var(--space-xl); font-size: 1.3rem;">Editoriale anterioare</h2>
+      <div class="editorial-list">
+        {% for article in articles %}
+        <article class="editorial-card">
+          <div class="editorial-card-meta">
+            <span class="editorial-date">{{ article.date[:10] if article.date else '' }}</span>
+            {% if article.editorial_type == 'national' %}
+            <span class="editorial-type-badge editorial-type-national" style="font-size: 0.7rem;">Național</span>
+            {% elif article.editorial_type == 'international' %}
+            <span class="editorial-type-badge editorial-type-international" style="font-size: 0.7rem;">European</span>
+            {% elif article.editorial_type == 'tematic' %}
+            <span class="editorial-type-badge editorial-type-tematic" style="font-size: 0.7rem;">{{ article.editorial_tema or 'Tematic' }}</span>
+            {% else %}
+            <span class="editorial-type-badge" style="font-size: 0.7rem;">Editorial</span>
+            {% endif %}
+          </div>
+          <h3 class="editorial-card-title">
+            <a href="{{ article|article_url }}">{{ article.title }}</a>
+          </h3>
+          <p class="editorial-card-excerpt">{{ article.excerpt or article.content[:180] + '...' }}</p>
+          <div class="editorial-card-footer">
+            <span style="color: var(--text-secondary); font-size: 0.8rem;">✍️ Andrei Varga</span>
+            <a href="{{ article|article_url }}" style="color: var(--primary); font-weight: 600; font-size: 0.85rem;">Citește →</a>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="pagination">
+        {% if page > 1 %}
+          <a href="?page=1">&laquo; Prima</a>
+          <a href="?page={{ page - 1 }}">&lsaquo; Anterior</a>
+        {% endif %}
+
+        {% for p in range([1, page - 2]|max, [total_pages + 1, page + 3]|min) %}
+          {% if p == page %}
+            <span class="current">{{ p }}</span>
+          {% else %}
+            <a href="?page={{ p }}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+          <a href="?page={{ page + 1 }}">Următor &rsaquo;</a>
+          <a href="?page={{ total_pages }}">Ultima &raquo;</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% elif not featured_editorial %}
+      <div style="background-color: var(--surface); padding: var(--space-2xl); border-radius: var(--radius-lg); text-align: center; margin-top: var(--space-lg);">
+        <h3 style="color: var(--text-secondary); margin-bottom: var(--space-md);">Editorialele vor apărea în curând</h3>
+        <p>Andrei Varga pregătește primele editoriale. Reveniți mâine dimineață!</p>
+        <a href="/" style="display: inline-block; margin-top: var(--space-lg); padding: var(--space-md) var(--space-lg); background-color: var(--primary); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none;">Înapoi la acasă</a>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- About the editorialist -->
+    <div class="sidebar-box" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--surface);">
+      <div style="text-align: center; margin-bottom: var(--space-md);">
+        <div class="editorial-avatar" style="margin: 0 auto var(--space-sm); width: 64px; height: 64px; font-size: 1.3rem; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4);">AV</div>
+        <h3 style="color: var(--surface); border-bottom: none; margin-bottom: var(--space-xs); font-size: 1.1rem;">Andrei Varga</h3>
+        <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-bottom: 0;">Editorialist-șef</p>
+      </div>
+      <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; line-height: 1.5;">Zilnic, trei perspective: ce se întâmplă în România, ce se întâmplă în lume, și un editorial tematic care variază de la cultură la politică, de la tehnologie la finanțe.</p>
+    </div>
+
+    <!-- Editorial Schedule -->
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📅 Programul editorialelor</h3>
+      <div style="font-size: 0.85rem; color: var(--text-secondary); line-height: 1.8;">
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between;">
+          <span>Luni</span><span style="color: var(--primary); font-weight: 500;">Retrospectiva weekend</span>
+        </div>
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between; border-top: 1px solid var(--border);">
+          <span>Marți</span><span style="color: var(--primary); font-weight: 500;">Cultură & Educație</span>
+        </div>
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between; border-top: 1px solid var(--border);">
+          <span>Miercuri</span><span style="color: var(--primary); font-weight: 500;">Politică</span>
+        </div>
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between; border-top: 1px solid var(--border);">
+          <span>Joi</span><span style="color: var(--primary); font-weight: 500;">Tehnologie</span>
+        </div>
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between; border-top: 1px solid var(--border);">
+          <span>Vineri</span><span style="color: var(--primary); font-weight: 500;">Economie & Finanțe</span>
+        </div>
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between; border-top: 1px solid var(--border);">
+          <span>Sâmbătă</span><span style="color: var(--primary); font-weight: 500;">Social & Comunitate</span>
+        </div>
+        <div style="padding: var(--space-xs) 0; display: flex; justify-content: space-between; border-top: 1px solid var(--border);">
+          <span>Duminică</span><span style="color: var(--primary); font-weight: 500;">Retrospectiva săptămânii</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Back to local news -->
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">🏠 Navigare</h3>
+      <a href="/" style="display: block; padding: var(--space-md); background-color: var(--primary); color: var(--surface); text-align: center; border-radius: var(--radius); font-weight: 600; transition: background-color var(--transition); text-decoration: none; margin-bottom: var(--space-sm);">← Știri Locale</a>
+      <a href="/national" style="display: block; padding: var(--space-md); background-color: var(--surface); color: var(--primary); text-align: center; border-radius: var(--radius); font-weight: 600; border: 1px solid var(--primary); transition: background-color var(--transition); text-decoration: none;">Știri Naționale →</a>
+    </div>
+
+    <!-- Categories -->
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📂 Categorii</h3>
+      {% for cat_key, cat_name in categories.items() %}
+      <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="/categorie/{{ cat_key }}" style="font-weight: 500; color: var(--primary);">{{ cat_name }}</a>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

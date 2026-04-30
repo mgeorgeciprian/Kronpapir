@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Știri Locale - KronPapir{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <div>
+    <section class="section">
+      <h1 class="section-title">Știri Locale din Brașov și Covasna</h1>
+      <p style="margin-bottom: var(--space-lg); color: var(--text-secondary);">Total {{ total }} articole</p>
+
+      {% if articles %}
+      <div class="articles-grid">
+        {% for article in articles %}
+        <article class="article-card">
+          {% if article.image %}
+          <div class="article-card-image">
+            <img src="{{ article.image }}" alt="{{ article.title }}" loading="lazy">
+          </div>
+          {% else %}
+          <div class="article-card-image no-image">
+            <span>Fără imagine</span>
+          </div>
+          {% endif %}
+          <div class="article-card-content">
+            {% if article.category %}
+            <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+            {% endif %}
+            <h3><a href="/articol/{{ article.id }}">{{ article.title }}</a></h3>
+            <p class="excerpt">{{ article.excerpt or article.content[:100] + '...' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ article.date }}</span>
+              {% if article.source %}
+              <span class="article-source">{{ article.source }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="pagination">
+        {% if page > 1 %}
+          <a href="?page=1">« Prima</a>
+          <a href="?page={{ page - 1 }}">‹ Anterior</a>
+        {% endif %}
+
+        {% for p in range(max(1, page - 2), min(total_pages + 1, page + 3)) %}
+          {% if p == page %}
+            <span class="current">{{ p }}</span>
+          {% else %}
+            <a href="?page={{ p }}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+          <a href="?page={{ page + 1 }}">Următor ›</a>
+          <a href="?page={{ total_pages }}">Ultima »</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div style="background-color: var(--surface); padding: var(--space-2xl); border-radius: var(--radius-lg); text-align: center;">
+        <h3 style="color: var(--text-secondary); margin-bottom: var(--space-md);">Nu au fost găsite articole</h3>
+        <p>Revin mai târziu pentru mai multe știri locale.</p>
+        <a href="/" style="display: inline-block; margin-top: var(--space-lg); padding: var(--space-md) var(--space-lg); background-color: var(--primary); color: var(--surface); border-radius: var(--radius); font-weight: 600;">Înapoi la acasă</a>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">ℹ️ Informații</h3>
+      <p style="margin-bottom: var(--space-md);">Acest agregator colectează și afișează automat știri locale din Brașov și Covasna.</p>
+      <a href="/despre" style="color: var(--primary); font-weight: 600;">Citește mai mult →</a>
+    </div>
+
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📂 Alte Categorii</h3>
+      {% for cat_key, cat_name in categories.items() %}
+      <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="/categorie/{{ cat_key }}" style="font-weight: 500; color: var(--primary);">{{ cat_name }}</a>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

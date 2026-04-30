@@ -1,0 +1,22 @@
+{% extends "base.html" %}
+
+{% block title %}Eroare de server - KronPapir{% endblock %}
+
+{% block content %}
+
+<div style="max-width: 600px; margin: var(--space-2xl) auto; text-align: center; background-color: var(--surface); padding: var(--space-2xl); border-radius: var(--radius-lg);">
+  <h1 style="font-size: 4rem; margin: 0; color: var(--accent);">500</h1>
+  <h2 style="margin-bottom: var(--space-lg);">Eroare de server</h2>
+  <p style="color: var(--text-secondary); margin-bottom: var(--space-xl);">
+    A apărut o problemă neașteptată pe serverul nostru. Echipa noastră tehnică a fost notificată și se lucrează la rezolvare.
+  </p>
+  <p style="color: var(--text-secondary); margin-bottom: var(--space-xl);">
+    Te rugăm să încerc din nou mai târziu.
+  </p>
+  <div style="display: flex; gap: var(--space-lg); justify-content: center; flex-wrap: wrap;">
+    <a href="/" style="padding: var(--space-md) var(--space-xl); background-color: var(--primary); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none; transition: background-color var(--transition); display: inline-block;">🏠 Acasă</a>
+    <button onclick="location.reload();" style="padding: var(--space-md) var(--space-xl); background-color: var(--secondary); color: var(--surface); border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; transition: background-color var(--transition); display: inline-block;">🔄 Reîncarcă Pagina</button>
+  </div>
+</div>
+
+{% endblock %}

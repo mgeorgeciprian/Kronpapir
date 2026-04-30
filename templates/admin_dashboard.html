@@ -1,0 +1,609 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard Admin - KronPapir{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Panou Admin</h1>
+    <a href="{{ url_for('admin_logout') }}" class="btn btn-secondary btn-small">
+      Logout
+    </a>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link active">Dashboard</a>
+    <a href="{{ url_for('admin_write') }}" class="admin-nav-link">Scrie Articol</a>
+    <a href="{{ url_for('admin_raw_articles') }}" class="admin-nav-link">Articole Brute</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link">Toate Articolele</a>
+    <a href="{{ url_for('admin_contributors') }}" class="admin-nav-link">Colaboratori{% if contributor_pending_count %} <span style="display:inline-block;background:#e65100;color:white;font-size:0.75rem;padding:2px 6px;border-radius:10px;font-weight:600;margin-left:4px;">{{ contributor_pending_count }}</span>{% endif %}</a>
+  </div>
+</div>
+
+<div class="admin-content">
+  <div class="dashboard-stats">
+    <div class="stat-card">
+      <div class="stat-number">{{ total_articles }}</div>
+      <div class="stat-label">Total Articole</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-number">{{ today_articles }}</div>
+      <div class="stat-label">Articole Azi</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-number">{{ recent_articles|length }}</div>
+      <div class="stat-label">Articole Recente</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-number">{{ raw_unprocessed }}/{{ raw_total }}</div>
+      <div class="stat-label">Brute Neprocesate</div>
+    </div>
+  </div>
+
+  <!-- Analytics Stats -->
+  <div class="dashboard-stats">
+    <div class="stat-card" style="background: linear-gradient(135deg, #1a3a5c 0%, #2d5a8c 100%);">
+      <div class="stat-number">{{ views_today }}</div>
+      <div class="stat-label">Vizite Azi</div>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #3a1a5c 0%, #5a2d8c 100%);">
+      <div class="stat-number">{{ views_yesterday }}</div>
+      <div class="stat-label">Vizite Ieri</div>
+    </div>
+    <div class="stat-card" style="background: linear-gradient(135deg, #5c3a1a 0%, #8c5a2d 100%);">
+      <div class="stat-number" style="font-size: 1.4rem;">{{ top_referrer_name }}</div>
+      <div class="stat-label">Sursa #1 Azi</div>
+    </div>
+  </div>
+
+  <!-- Weekly Sparkline -->
+  {% if analytics_week %}
+  <div class="dashboard-section">
+    <h2>Vizite - Ultimele 7 Zile</h2>
+    <div class="sparkline-container">
+      {% set max_views = analytics_week|map(attribute='views')|max if analytics_week else 1 %}
+      {% for day in analytics_week %}
+      <div class="sparkline-bar-wrapper">
+        <div class="sparkline-value">{{ day.views }}</div>
+        <div class="sparkline-bar" style="height: {{ (day.views / (max_views if max_views > 0 else 1) * 120)|int }}px;"></div>
+        <div class="sparkline-label">{{ day.date[5:] }}</div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Analytics Tables -->
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);">
+    <!-- Top Referrers -->
+    <div class="dashboard-section">
+      <h2>Surse Trafic (Azi)</h2>
+      {% if top_referrers %}
+      <table class="analytics-table">
+        <thead><tr><th>Sursa</th><th>Vizite</th><th>%</th></tr></thead>
+        <tbody>
+          {% for ref, count in top_referrers %}
+          <tr>
+            <td>{{ ref }}</td>
+            <td><strong>{{ count }}</strong></td>
+            <td>{{ (count / views_today * 100)|round(1) if views_today > 0 else 0 }}%</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty-message">Nicio vizita inregistrata azi</p>
+      {% endif %}
+    </div>
+
+    <!-- Top Pages -->
+    <div class="dashboard-section">
+      <h2>Pagini Populare (Azi)</h2>
+      {% if top_pages %}
+      <table class="analytics-table">
+        <thead><tr><th>Pagina</th><th>Vizite</th></tr></thead>
+        <tbody>
+          {% for page, count in top_pages %}
+          <tr>
+            <td style="max-width:250px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ page }}</td>
+            <td><strong>{{ count }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="empty-message">Nicio vizita inregistrata azi</p>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- UTM Data -->
+  {% if utm_sources or utm_campaigns %}
+  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: var(--space-lg);">
+    {% if utm_sources %}
+    <div class="dashboard-section">
+      <h2>Surse UTM (Azi)</h2>
+      <table class="analytics-table">
+        <thead><tr><th>Sursa</th><th>Vizite</th></tr></thead>
+        <tbody>
+          {% for source, count in utm_sources %}
+          <tr>
+            <td>{{ source }}</td>
+            <td><strong>{{ count }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+
+    {% if utm_campaigns %}
+    <div class="dashboard-section">
+      <h2>Campanii UTM (Azi)</h2>
+      <table class="analytics-table">
+        <thead><tr><th>Campanie</th><th>Sursa</th><th>Vizite</th></tr></thead>
+        <tbody>
+          {% for camp in utm_campaigns %}
+          <tr>
+            <td>{{ camp.name }}</td>
+            <td>{{ camp.source }}</td>
+            <td><strong>{{ camp.count }}</strong></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+  {% endif %}
+
+  <!-- UTM Link Generator -->
+  <div class="dashboard-section">
+    <h2>Generator Link UTM</h2>
+    <div class="utm-generator">
+      <div class="utm-row">
+        <label for="utm-article">Articol:</label>
+        <select id="utm-article">
+          <option value="">-- Alege un articol --</option>
+          {% for article in recent_articles %}
+          <option value="/stiri/{{ article.slug or '' }}">{{ article.title[:70] }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="utm-row">
+        <label for="utm-custom-url">sau URL custom:</label>
+        <input type="text" id="utm-custom-url" placeholder="https://kronpapir.ro/stiri/...">
+      </div>
+      <div class="utm-fields">
+        <div>
+          <label for="utm-source-input">UTM Source:</label>
+          <input type="text" id="utm-source-input" value="facebook" placeholder="facebook">
+        </div>
+        <div>
+          <label for="utm-medium-input">UTM Medium:</label>
+          <input type="text" id="utm-medium-input" value="social" placeholder="social">
+        </div>
+        <div>
+          <label for="utm-campaign-input">UTM Campaign:</label>
+          <input type="text" id="utm-campaign-input" placeholder="grup-brasov, grup-sacele...">
+        </div>
+      </div>
+      <button onclick="generateUtmLink()" class="action-button" style="display:inline-flex;flex-direction:row;padding:var(--space-sm) var(--space-lg);margin-top:var(--space-md);">
+        <span class="text">Genereaza Link</span>
+      </button>
+      <div id="utm-result" style="display:none;margin-top:var(--space-md);">
+        <label>Link generat:</label>
+        <div style="display:flex;gap:var(--space-sm);">
+          <input type="text" id="utm-output" readonly style="flex:1;background:#f5f5f5;border:1px solid #ddd;padding:var(--space-sm);border-radius:4px;font-size:0.85rem;">
+          <button onclick="copyUtmLink()" class="action-button" style="display:inline-flex;flex-direction:row;padding:var(--space-sm) var(--space-md);min-width:auto;">
+            <span class="text" id="copy-btn-text">Copiaza</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="dashboard-section">
+    <h2>Acțiuni Rapide</h2>
+    <div class="quick-actions">
+      <a href="{{ url_for('admin_write') }}" class="action-button">
+        <span class="icon">+</span>
+        <span class="text">Scrie Articol Nou</span>
+      </a>
+      <a href="{{ url_for('admin_articles') }}" class="action-button">
+        <span class="icon">📋</span>
+        <span class="text">Vizualizează Articole</span>
+      </a>
+      <a href="{{ url_for('admin_raw_articles') }}" class="action-button">
+        <span class="icon">⚙</span>
+        <span class="text">Procesează Brute</span>
+      </a>
+    </div>
+  </div>
+
+  <div class="dashboard-section">
+    <h2>Ultimele 10 Articole</h2>
+    {% if recent_articles %}
+    <div class="articles-list">
+      {% for article in recent_articles %}
+      <div class="article-item">
+        <div class="article-info">
+          <h3>{{ article.title[:60] }}{% if article.title|length > 60 %}...{% endif %}</h3>
+          <p class="article-meta">
+            <span class="category">{{ article.category }}</span>
+            <span class="date">{{ article.date[:10] if article.date else 'N/A' }}</span>
+            <span class="source">{{ article.source or 'Admin' }}</span>
+          </p>
+        </div>
+        <div class="article-actions">
+          <a href="{{ url_for('article', article_id=article.id) }}" class="link-button" target="_blank">
+            Vizualizează
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <p class="empty-message">Nu sunt articole disponibile</p>
+    {% endif %}
+  </div>
+</div>
+
+<style>
+.admin-header {
+  background: white;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--space-xl);
+  border-radius: 4px;
+}
+
+.admin-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.admin-title-bar h1 {
+  margin: 0;
+  color: #1a472a;
+}
+
+.admin-nav {
+  display: flex;
+  gap: var(--space-lg);
+  border-top: 1px solid #f0f0f0;
+  padding-top: var(--space-lg);
+}
+
+.admin-nav-link {
+  color: #666;
+  text-decoration: none;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.admin-nav-link:hover {
+  color: #1a472a;
+}
+
+.admin-nav-link.active {
+  color: #1a472a;
+  border-bottom-color: #1a472a;
+}
+
+.admin-content {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xl);
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-lg);
+}
+
+.stat-card {
+  background: linear-gradient(135deg, #1a472a 0%, #2d6a42 100%);
+  color: white;
+  padding: var(--space-xl);
+  border-radius: 8px;
+  text-align: center;
+  box-shadow: 0 2px 8px rgba(26, 71, 42, 0.2);
+}
+
+.stat-number {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: var(--space-md);
+}
+
+.stat-label {
+  font-size: 0.95rem;
+  opacity: 0.9;
+}
+
+.dashboard-section {
+  background: white;
+  padding: var(--space-xl);
+  border-radius: 8px;
+  border: 1px solid #e0e0e0;
+}
+
+.dashboard-section h2 {
+  margin-top: 0;
+  color: #1a472a;
+  margin-bottom: var(--space-lg);
+}
+
+.quick-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-lg);
+}
+
+.action-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-xl);
+  background: linear-gradient(135deg, #f0f9f4 0%, #e8f5f0 100%);
+  border: 2px solid #1a472a;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #1a472a;
+  transition: all 0.3s;
+  cursor: pointer;
+}
+
+.action-button:hover {
+  background: linear-gradient(135deg, #1a472a 0%, #2d6a42 100%);
+  color: white;
+  transform: translateY(-2px);
+}
+
+.action-button .icon {
+  font-size: 2rem;
+  margin-bottom: var(--space-md);
+}
+
+.action-button .text {
+  font-weight: 500;
+}
+
+.articles-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+}
+
+.article-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-md);
+  border: 1px solid #f0f0f0;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.article-item:hover {
+  background: #f9f9f9;
+  border-color: #e0e0e0;
+}
+
+.article-info h3 {
+  margin: 0 0 var(--space-sm) 0;
+  color: #333;
+  font-size: 1rem;
+}
+
+.article-meta {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #999;
+  display: flex;
+  gap: var(--space-md);
+}
+
+.article-meta span {
+  display: inline-block;
+  background: #f5f5f5;
+  padding: 2px 8px;
+  border-radius: 3px;
+}
+
+.article-actions {
+  flex-shrink: 0;
+  margin-left: var(--space-lg);
+}
+
+.link-button {
+  color: #1a472a;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.3s;
+}
+
+.link-button:hover {
+  text-decoration: underline;
+}
+
+.empty-message {
+  text-align: center;
+  color: #999;
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.btn-small {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9rem;
+}
+
+/* Analytics tables */
+.analytics-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+
+.analytics-table th {
+  text-align: left;
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 2px solid #1a472a;
+  color: #1a472a;
+  font-weight: 600;
+}
+
+.analytics-table td {
+  padding: var(--space-sm) var(--space-md);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.analytics-table tr:hover td {
+  background: #f9f9f9;
+}
+
+/* Sparkline */
+.sparkline-container {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--space-md);
+  padding: var(--space-md) 0;
+  height: 160px;
+}
+
+.sparkline-bar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  gap: 4px;
+}
+
+.sparkline-bar {
+  width: 100%;
+  max-width: 60px;
+  background: linear-gradient(180deg, #1a472a 0%, #2d6a42 100%);
+  border-radius: 4px 4px 0 0;
+  min-height: 2px;
+}
+
+.sparkline-value {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #1a472a;
+}
+
+.sparkline-label {
+  font-size: 0.7rem;
+  color: #999;
+}
+
+/* UTM Generator */
+.utm-generator label {
+  display: block;
+  font-weight: 500;
+  margin-bottom: 4px;
+  color: #333;
+  font-size: 0.9rem;
+}
+
+.utm-generator select,
+.utm-generator input[type="text"] {
+  width: 100%;
+  padding: var(--space-sm);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.utm-row {
+  margin-bottom: var(--space-md);
+}
+
+.utm-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: var(--space-md);
+}
+
+@media (max-width: 768px) {
+  .admin-title-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .admin-nav {
+    flex-wrap: wrap;
+  }
+
+  .article-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .article-actions {
+    margin-left: 0;
+    align-self: flex-start;
+  }
+
+  .utm-fields {
+    grid-template-columns: 1fr;
+  }
+}
+</style>
+
+<script>
+function generateUtmLink() {
+  var articleSelect = document.getElementById('utm-article');
+  var customUrl = document.getElementById('utm-custom-url').value.trim();
+  var source = document.getElementById('utm-source-input').value.trim();
+  var medium = document.getElementById('utm-medium-input').value.trim();
+  var campaign = document.getElementById('utm-campaign-input').value.trim();
+
+  var baseUrl = '';
+  if (customUrl) {
+    baseUrl = customUrl;
+  } else if (articleSelect.value) {
+    baseUrl = 'https://kronpapir.ro' + articleSelect.value;
+  } else {
+    alert('Selecteaza un articol sau introdu un URL.');
+    return;
+  }
+
+  var params = [];
+  if (source) params.push('utm_source=' + encodeURIComponent(source));
+  if (medium) params.push('utm_medium=' + encodeURIComponent(medium));
+  if (campaign) params.push('utm_campaign=' + encodeURIComponent(campaign));
+
+  var separator = baseUrl.indexOf('?') !== -1 ? '&' : '?';
+  var fullUrl = baseUrl + (params.length ? separator + params.join('&') : '');
+
+  document.getElementById('utm-output').value = fullUrl;
+  document.getElementById('utm-result').style.display = 'block';
+  document.getElementById('copy-btn-text').textContent = 'Copiaza';
+}
+
+function copyUtmLink() {
+  var output = document.getElementById('utm-output');
+  output.select();
+  output.setSelectionRange(0, 99999);
+  navigator.clipboard.writeText(output.value).then(function() {
+    document.getElementById('copy-btn-text').textContent = 'Copiat!';
+    setTimeout(function() {
+      document.getElementById('copy-btn-text').textContent = 'Copiaza';
+    }, 2000);
+  });
+}
+</script>
+{% endblock %}

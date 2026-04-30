@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}Scrie Articol - KronPapir{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Scrie Articol</h1>
+    <a href="{{ url_for('contributor_dashboard') }}" class="btn btn-secondary btn-small">Inapoi</a>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('contributor_dashboard') }}" class="admin-nav-link">Panoul Meu</a>
+    <a href="{{ url_for('contributor_write') }}" class="admin-nav-link active">Scrie Articol</a>
+  </div>
+</div>
+
+<div class="write-container">
+  {% if error %}
+  <div class="alert alert-error">{{ error }}</div>
+  {% endif %}
+
+  {% if success %}
+  <div class="alert alert-success">{{ success }}</div>
+  {% endif %}
+
+  <div class="write-content">
+    <div class="form-section">
+      <form method="POST" id="articleForm" class="article-form">
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="title">Titlu *</label>
+            <input type="text" id="title" name="title" placeholder="Titlul articolului" required maxlength="300">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="category">Categorie *</label>
+            <select id="category" name="category" required>
+              <option value="">-- Selecteaza --</option>
+              {% for cat in article_categories %}
+              <option value="{{ cat }}">{{ categories.get(cat, cat|capitalize) }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="image_url">URL Imagine (optional)</label>
+            <input type="url" id="image_url" name="image_url" placeholder="https://exemplu.ro/imagine.jpg">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="content">Continut *</label>
+            <textarea id="content" name="content" placeholder="Scrie continutul articolului..." required rows="15" class="content-textarea"></textarea>
+            <div class="char-count">
+              <span id="charCount">0</span> caractere
+            </div>
+          </div>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" name="action" value="draft" class="btn btn-secondary btn-large">
+            Salveaza Ciorna
+          </button>
+          <button type="submit" name="action" value="submit" class="btn btn-primary btn-large">
+            Trimite spre Aprobare
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<style>
+.admin-header {
+  background: white;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--space-xl);
+  border-radius: 4px;
+}
+
+.admin-title-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); }
+.admin-title-bar h1 { margin: 0; color: #1a472a; }
+
+.admin-nav { display: flex; gap: var(--space-lg); border-top: 1px solid #f0f0f0; padding-top: var(--space-lg); }
+.admin-nav-link { color: #666; text-decoration: none; padding: var(--space-md) var(--space-lg); border-bottom: 3px solid transparent; transition: all 0.3s; }
+.admin-nav-link:hover { color: #1a472a; }
+.admin-nav-link.active { color: #1a472a; border-bottom-color: #1a472a; }
+
+.write-container { display: grid; grid-template-columns: 1fr; gap: var(--space-xl); }
+
+.write-content { display: grid; grid-template-columns: 1fr; gap: var(--space-xl); }
+
+.form-section {
+  background: white;
+  padding: var(--space-xl);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.article-form { display: flex; flex-direction: column; gap: var(--space-lg); }
+
+.form-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: var(--space-lg); }
+.form-group { display: flex; flex-direction: column; }
+.form-group.full-width { grid-column: 1 / -1; }
+
+.form-group label { margin-bottom: var(--space-sm); color: #333; font-weight: 500; font-size: 0.95rem; }
+
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  font-family: inherit;
+  transition: border-color 0.3s, box-shadow 0.3s;
+}
+
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  outline: none;
+  border-color: #1a472a;
+  box-shadow: 0 0 0 3px rgba(26, 71, 42, 0.1);
+}
+
+.content-textarea {
+  resize: vertical;
+  min-height: 400px;
+}
+
+.char-count { font-size: 0.85rem; color: #999; margin-top: var(--space-sm); }
+
+.form-actions {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid #f0f0f0;
+}
+
+.btn { padding: var(--space-sm) var(--space-lg); border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 500; text-decoration: none; display: inline-block; transition: all 0.3s; }
+.btn-primary { background: #1a472a; color: white; }
+.btn-primary:hover { background: #2d6a42; }
+.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-secondary:hover { background: #e0e0e0; }
+.btn-small { padding: var(--space-sm) var(--space-md); font-size: 0.9rem; }
+.btn-large { padding: var(--space-md) var(--space-xl); font-size: 1rem; flex: 1; min-width: 150px; }
+
+.alert { padding: var(--space-md) var(--space-lg); border-radius: 4px; margin-bottom: var(--space-lg); }
+.alert-error { background: #fee; color: #c33; border: 1px solid #fcc; }
+.alert-success { background: #efe; color: #3c3; border: 1px solid #cfc; }
+
+@media (max-width: 768px) {
+  .form-row { grid-template-columns: 1fr; }
+  .form-actions { flex-direction: column; }
+  .btn-large { width: 100%; }
+}
+</style>
+
+<script>
+document.getElementById('content').addEventListener('input', function() {
+  document.getElementById('charCount').textContent = this.value.length;
+});
+</script>
+{% endblock %}

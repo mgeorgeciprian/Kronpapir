@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 120" width="400" height="120">
+  <!-- Modern minimalist - bold K overlapping P -->
+  <text x="5" y="95" font-family="'Playfair Display', Georgia, serif" font-size="96" font-weight="900" fill="#1a1a2e" letter-spacing="-8">K</text>
+  <text x="52" y="95" font-family="'Playfair Display', Georgia, serif" font-size="96" font-weight="900" fill="#C9A84C" opacity="0.9" letter-spacing="-8">P</text>
+  <line x1="128" y1="18" x2="128" y2="102" stroke="#ddd" stroke-width="1"/>
+  <text x="145" y="50" font-family="'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="700" fill="#1a1a2e" letter-spacing="6">KRON</text>
+  <text x="145" y="82" font-family="'Helvetica Neue', Arial, sans-serif" font-size="28" font-weight="300" fill="#1a1a2e" letter-spacing="6">PAPIR</text>
+  <text x="145" y="102" font-family="'Helvetica Neue', Arial, sans-serif" font-size="10" fill="#999" letter-spacing="3">BRAȘOV · ȘTIRI LOCALE</text>
+</svg>

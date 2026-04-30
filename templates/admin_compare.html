@@ -1,0 +1,341 @@
+{% extends "base.html" %}
+
+{% block title %}Comparare Articol - KronPapir Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Comparare Articol</h1>
+    <a href="{{ url_for('admin_articles') }}" class="btn btn-secondary btn-small">
+      Inapoi
+    </a>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
+    <a href="{{ url_for('admin_write') }}" class="admin-nav-link">Scrie Articol</a>
+    <a href="{{ url_for('admin_raw_articles') }}" class="admin-nav-link">Articole Brute</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link active">Toate Articolele</a>
+  </div>
+</div>
+
+<div class="compare-header">
+  <div class="compare-meta">
+    <h2>{{ processed.title }}</h2>
+    <div class="compare-badges">
+      {% if processed.processed %}
+        <span class="status-badge status-ai">AI</span>
+      {% else %}
+        <span class="status-badge status-copie">Copie</span>
+      {% endif %}
+      <span class="meta-item">Sursa: {{ processed.source or 'N/A' }}</span>
+      <span class="meta-item">Data: {{ processed.date[:10] if processed.date else 'N/A' }}</span>
+    </div>
+  </div>
+  <div class="compare-actions">
+    <a href="{{ url_for('admin_edit', article_id=processed.id) }}" class="btn btn-primary btn-small">
+      Editeaza
+    </a>
+    {% if raw %}
+    <button type="button" class="btn btn-warning btn-small" id="reprocessBtn" onclick="reprocessArticle()">
+      Reproceseaza cu AI
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<div class="compare-panels">
+  <div class="compare-panel panel-raw">
+    <h3>Articol Brut (Original)</h3>
+    {% if raw %}
+      <div class="panel-title">{{ raw.title or 'Fara titlu' }}</div>
+      <div class="panel-content">{{ (raw.content or raw.text or 'Fara continut')[:2000] }}</div>
+    {% else %}
+      <div class="panel-empty">Articolul brut original nu a fost gasit.</div>
+    {% endif %}
+  </div>
+
+  <div class="compare-panel panel-processed">
+    <h3>Articol Procesat</h3>
+    <div class="panel-title">{{ processed.title }}</div>
+    <div class="panel-content">{{ processed.content|safe }}</div>
+  </div>
+</div>
+
+<!-- Spinner overlay for reprocessing -->
+<div class="reprocess-overlay" id="reprocessOverlay" style="display:none;">
+  <div class="reprocess-spinner">
+    <div class="spinner"></div>
+    <p>Se reproceseaza articolul cu AI...</p>
+  </div>
+</div>
+
+<style>
+.admin-header {
+  background: white;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--space-xl);
+  border-radius: 4px;
+}
+
+.admin-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.admin-title-bar h1 {
+  margin: 0;
+  color: #1a472a;
+}
+
+.admin-nav {
+  display: flex;
+  gap: var(--space-lg);
+  border-top: 1px solid #f0f0f0;
+  padding-top: var(--space-lg);
+}
+
+.admin-nav-link {
+  color: #666;
+  text-decoration: none;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.admin-nav-link:hover {
+  color: #1a472a;
+}
+
+.admin-nav-link.active {
+  color: #1a472a;
+  border-bottom-color: #1a472a;
+}
+
+.compare-header {
+  background: white;
+  padding: var(--space-lg) var(--space-xl);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  margin-bottom: var(--space-xl);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: var(--space-lg);
+}
+
+.compare-meta h2 {
+  margin: 0 0 var(--space-md) 0;
+  color: #1a472a;
+  font-size: 1.2rem;
+}
+
+.compare-badges {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-ai {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-copie {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.meta-item {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.compare-actions {
+  display: flex;
+  gap: var(--space-md);
+  flex-shrink: 0;
+}
+
+.btn-warning {
+  background: #ff9800;
+  color: white;
+  border: none;
+  padding: var(--space-sm) var(--space-md);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.3s;
+}
+
+.btn-warning:hover {
+  background: #f57c00;
+}
+
+.btn-small {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9rem;
+}
+
+.compare-panels {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-xl);
+}
+
+.compare-panel {
+  background: white;
+  border: 2px solid #e0e0e0;
+  border-radius: 8px;
+  padding: var(--space-xl);
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.panel-raw {
+  border-color: #ff9800;
+}
+
+.panel-processed {
+  border-color: #4caf50;
+}
+
+.compare-panel h3 {
+  margin: 0 0 var(--space-lg) 0;
+  padding-bottom: var(--space-md);
+  border-bottom: 1px solid #f0f0f0;
+  font-size: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.panel-raw h3 {
+  color: #e65100;
+}
+
+.panel-processed h3 {
+  color: #2e7d32;
+}
+
+.panel-title {
+  font-weight: 600;
+  font-size: 1.1rem;
+  margin-bottom: var(--space-lg);
+  color: #333;
+}
+
+.panel-content {
+  line-height: 1.7;
+  color: #444;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.panel-processed .panel-content {
+  white-space: normal;
+}
+
+.panel-empty {
+  color: #999;
+  font-style: italic;
+  padding: var(--space-xl);
+  text-align: center;
+}
+
+.reprocess-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.reprocess-spinner {
+  background: white;
+  padding: var(--space-xl) 48px;
+  border-radius: 12px;
+  text-align: center;
+}
+
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #e0e0e0;
+  border-top-color: #1a472a;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto var(--space-lg);
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 768px) {
+  .compare-panels {
+    grid-template-columns: 1fr;
+  }
+
+  .compare-header {
+    flex-direction: column;
+  }
+
+  .compare-actions {
+    width: 100%;
+  }
+
+  .compare-actions .btn {
+    flex: 1;
+    text-align: center;
+  }
+}
+</style>
+
+<script>
+function reprocessArticle() {
+  if (!confirm('Reproceseaza acest articol cu AI? Versiunea actuala va fi inlocuita.')) return;
+
+  document.getElementById('reprocessOverlay').style.display = 'flex';
+  document.getElementById('reprocessBtn').disabled = true;
+
+  fetch("{{ url_for('admin_reprocess', processed_filename=processed_filename) }}", {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' }
+  })
+  .then(r => r.json())
+  .then(data => {
+    document.getElementById('reprocessOverlay').style.display = 'none';
+    if (data.success) {
+      alert(data.message);
+      location.reload();
+    } else {
+      alert('Eroare: ' + data.message);
+      document.getElementById('reprocessBtn').disabled = false;
+    }
+  })
+  .catch(err => {
+    document.getElementById('reprocessOverlay').style.display = 'none';
+    alert('Eroare la reproceseaza: ' + err);
+    document.getElementById('reprocessBtn').disabled = false;
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,136 @@
+{% extends "base.html" %}
+
+{% block title %}Devino Colaborator - KronPapir{% endblock %}
+
+{% block content %}
+<div class="admin-login-container">
+  <div class="login-box" style="max-width: 500px;">
+    <h1>Devino Colaborator</h1>
+    <p class="login-subtitle">Înregistrează-te pentru a scrie articole pe KronPapir</p>
+
+    {% if error %}
+    <div class="alert alert-error">
+      {{ error }}
+    </div>
+    {% endif %}
+
+    <form method="POST" class="login-form">
+      <div class="form-group">
+        <label for="name">Nume complet *</label>
+        <input type="text" id="name" name="name" placeholder="Numele tău" required autofocus>
+      </div>
+
+      <div class="form-group">
+        <label for="email">Email *</label>
+        <input type="email" id="email" name="email" placeholder="email@exemplu.ro" required>
+      </div>
+
+      <div class="form-group">
+        <label for="password">Parolă * (minim 6 caractere)</label>
+        <input type="password" id="password" name="password" placeholder="Alege o parolă" required minlength="6">
+      </div>
+
+      <div class="form-group">
+        <label for="bio">Scurtă descriere (opțional)</label>
+        <textarea id="bio" name="bio" rows="3" placeholder="Câteva cuvinte despre tine..." style="width:100%;padding:var(--space-md) var(--space-lg);border:1px solid #ddd;border-radius:4px;font-size:1rem;font-family:inherit;resize:vertical;"></textarea>
+      </div>
+
+      <button type="submit" class="btn btn-primary btn-large">
+        Creează cont
+      </button>
+    </form>
+
+    <p class="login-info">
+      <small>Ai deja un cont? <a href="{{ url_for('contributor_login') }}" style="color:#1a472a;font-weight:600;">Conectează-te</a></small>
+    </p>
+  </div>
+</div>
+
+<style>
+.admin-login-container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: calc(100vh - 200px);
+  padding: var(--space-xl) var(--space-lg);
+}
+
+.login-box {
+  background: white;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: var(--space-xl);
+  width: 100%;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.login-box h1 {
+  text-align: center;
+  margin-bottom: var(--space-md);
+  color: #1a472a;
+  font-size: 1.8rem;
+}
+
+.login-subtitle {
+  text-align: center;
+  color: #666;
+  margin-bottom: var(--space-lg);
+}
+
+.login-form {
+  margin: var(--space-lg) 0;
+}
+
+.form-group {
+  margin-bottom: var(--space-lg);
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: var(--space-sm);
+  color: #333;
+  font-weight: 500;
+}
+
+.form-group input[type="text"],
+.form-group input[type="email"],
+.form-group input[type="password"] {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.3s;
+}
+
+.form-group input:focus {
+  outline: none;
+  border-color: #1a472a;
+  box-shadow: 0 0 0 3px rgba(26, 71, 42, 0.1);
+}
+
+.btn-large {
+  width: 100%;
+  padding: var(--space-md) var(--space-lg);
+  font-size: 1rem;
+}
+
+.login-info {
+  text-align: center;
+  color: #999;
+  margin-top: var(--space-lg);
+}
+
+.alert {
+  padding: var(--space-md) var(--space-lg);
+  border-radius: 4px;
+  margin-bottom: var(--space-lg);
+}
+
+.alert-error {
+  background: #fee;
+  color: #c33;
+  border: 1px solid #fcc;
+}
+</style>
+{% endblock %}

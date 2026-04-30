@@ -1,0 +1,355 @@
+{% extends "base.html" %}
+
+{% block title %}Articole Colaboratori - KronPapir Admin{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Articole Colaboratori</h1>
+    <a href="{{ url_for('admin_contributors') }}" class="btn btn-secondary btn-small">Inapoi</a>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
+    <a href="{{ url_for('admin_write') }}" class="admin-nav-link">Scrie Articol</a>
+    <a href="{{ url_for('admin_raw_articles') }}" class="admin-nav-link">Articole Brute</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link">Toate Articolele</a>
+    <a href="{{ url_for('admin_contributors') }}" class="admin-nav-link active">Colaboratori{% if contributor_pending_count %} <span class="nav-badge">{{ contributor_pending_count }}</span>{% endif %}</a>
+  </div>
+</div>
+
+<div class="articles-admin-container">
+  <div class="filter-bar">
+    <a href="{{ url_for('admin_contributor_articles') }}" class="filter-btn {% if not status_filter %}active{% endif %}">Toate</a>
+    <a href="{{ url_for('admin_contributor_articles', status='pending') }}" class="filter-btn {% if status_filter == 'pending' %}active{% endif %}">In Asteptare</a>
+    <a href="{{ url_for('admin_contributor_articles', status='approved') }}" class="filter-btn {% if status_filter == 'approved' %}active{% endif %}">Aprobate</a>
+    <a href="{{ url_for('admin_contributor_articles', status='rejected') }}" class="filter-btn {% if status_filter == 'rejected' %}active{% endif %}">Respinse</a>
+    <a href="{{ url_for('admin_contributor_articles', status='draft') }}" class="filter-btn {% if status_filter == 'draft' %}active{% endif %}">Ciorne</a>
+  </div>
+
+  <div class="articles-header">
+    <h2>{{ articles|length }} articole{% if status_filter %} ({{ status_filter }}){% endif %}</h2>
+  </div>
+
+  {% if articles %}
+  <div class="table-responsive">
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th>Titlu</th>
+          <th>Autor</th>
+          <th>Categorie</th>
+          <th>Status</th>
+          <th>Data</th>
+          <th>Actiuni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+        <tr>
+          <td class="title-cell">
+            <strong>{{ article.title[:70] }}{% if article.title|length > 70 %}...{% endif %}</strong>
+          </td>
+          <td>
+            <span style="color:#666;font-size:0.9rem;">{{ article.contributor_name }}</span>
+          </td>
+          <td>
+            <span class="category-badge">{{ article.category }}</span>
+          </td>
+          <td>
+            {% if article.status == 'draft' %}
+            <span class="status-badge status-draft">Ciorna</span>
+            {% elif article.status == 'pending' %}
+            <span class="status-badge status-pending">In Asteptare</span>
+            {% elif article.status == 'approved' %}
+            <span class="status-badge status-approved">Aprobat</span>
+            {% elif article.status == 'rejected' %}
+            <span class="status-badge status-rejected">Respins</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="date-cell">{{ article.date[:10] if article.date else 'N/A' }}</span>
+          </td>
+          <td class="actions-cell">
+            {% if article.status == 'pending' %}
+            <button onclick="approveArticle('{{ article.id }}')" class="action-btn approve" title="Aproba">Aproba</button>
+            <button onclick="showRejectModal('{{ article.id }}')" class="action-btn reject" title="Respinge">Respinge</button>
+            {% endif %}
+            <button onclick="showPreview('{{ article.id }}')" class="action-btn preview" title="Previzualizare">👁️</button>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <p>Nu sunt articole {% if status_filter %}cu status "{{ status_filter }}"{% endif %}.</p>
+  </div>
+  {% endif %}
+</div>
+
+<!-- Preview Modal -->
+<div class="modal-overlay" id="previewModal" style="display:none;">
+  <div class="modal-box" style="max-width: 700px;">
+    <div class="modal-header">
+      <h3 id="previewTitle">Previzualizare</h3>
+      <button onclick="closeModal('previewModal')" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+    <div class="modal-footer" id="previewFooter"></div>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class="modal-overlay" id="rejectModal" style="display:none;">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>Respinge Articol</h3>
+      <button onclick="closeModal('rejectModal')" class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <label for="rejectNotes" style="display:block;margin-bottom:var(--space-sm);font-weight:500;">Feedback pentru colaborator:</label>
+      <textarea id="rejectNotes" rows="4" placeholder="Explica ce trebuie modificat..." style="width:100%;padding:var(--space-md);border:1px solid #ddd;border-radius:4px;font-size:0.95rem;font-family:inherit;resize:vertical;"></textarea>
+    </div>
+    <div class="modal-footer">
+      <button onclick="submitReject()" class="btn btn-accent">Respinge cu Feedback</button>
+      <button onclick="closeModal('rejectModal')" class="btn btn-secondary">Anuleaza</button>
+    </div>
+  </div>
+</div>
+
+<style>
+.admin-header {
+  background: white;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--space-xl);
+  border-radius: 4px;
+}
+
+.admin-title-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-lg); }
+.admin-title-bar h1 { margin: 0; color: #1a472a; }
+
+.admin-nav { display: flex; gap: var(--space-lg); border-top: 1px solid #f0f0f0; padding-top: var(--space-lg); flex-wrap: wrap; }
+.admin-nav-link { color: #666; text-decoration: none; padding: var(--space-md) var(--space-lg); border-bottom: 3px solid transparent; transition: all 0.3s; }
+.admin-nav-link:hover { color: #1a472a; }
+.admin-nav-link.active { color: #1a472a; border-bottom-color: #1a472a; }
+
+.nav-badge { display: inline-block; background: #e65100; color: white; font-size: 0.75rem; padding: 2px 6px; border-radius: 10px; font-weight: 600; margin-left: 4px; }
+
+.articles-admin-container { background: white; padding: var(--space-xl); border: 1px solid #e0e0e0; border-radius: 8px; }
+
+.filter-bar {
+  display: flex;
+  gap: var(--space-sm);
+  margin-bottom: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.filter-btn {
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid #ddd;
+  border-radius: 20px;
+  text-decoration: none;
+  color: #666;
+  font-size: 0.9rem;
+  transition: all 0.3s;
+}
+
+.filter-btn:hover { background: #f5f5f5; color: #333; }
+.filter-btn.active { background: #1a472a; color: white; border-color: #1a472a; }
+
+.articles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.articles-header h2 { margin: 0; color: #333; font-size: 1.2rem; }
+
+.table-responsive { overflow-x: auto; }
+.articles-table { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.articles-table thead { background: #f9f9f9; border-bottom: 2px solid #e0e0e0; }
+.articles-table th { padding: var(--space-md) var(--space-lg); text-align: left; font-weight: 600; color: #333; }
+.articles-table td { padding: var(--space-md) var(--space-lg); border-bottom: 1px solid #f0f0f0; }
+.articles-table tbody tr:hover { background-color: #f9f9f9; }
+
+.title-cell { max-width: 300px; word-break: break-word; }
+.date-cell { color: #999; font-size: 0.9rem; }
+.category-badge { display: inline-block; background: #e8f5f0; color: #1a472a; padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; font-weight: 500; }
+
+.status-badge { display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600; text-transform: uppercase; }
+.status-draft { background: #f5f5f5; color: #666; }
+.status-pending { background: #fff3e0; color: #e65100; }
+.status-approved { background: #e8f5e9; color: #2e7d32; }
+.status-rejected { background: #ffebee; color: #c62828; }
+
+.actions-cell { display: flex; gap: var(--space-sm); align-items: center; }
+
+.action-btn {
+  padding: 4px 12px;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  transition: all 0.3s;
+}
+
+.action-btn.approve { background: #e8f5e9; color: #2e7d32; }
+.action-btn.approve:hover { background: #2e7d32; color: white; }
+.action-btn.reject { background: #ffebee; color: #c62828; }
+.action-btn.reject:hover { background: #c62828; color: white; }
+.action-btn.preview { background: #f5f5f5; color: #333; }
+.action-btn.preview:hover { background: #e0e0e0; }
+
+.empty-state { text-align: center; padding: var(--space-xl); color: #999; }
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0.5);
+  z-index: 9999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal-box {
+  background: white;
+  border-radius: 8px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+}
+
+.modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.modal-header h3 { margin: 0; color: #1a472a; }
+.modal-close { background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #999; }
+.modal-close:hover { color: #333; }
+
+.modal-body { padding: var(--space-lg); }
+
+.modal-footer {
+  padding: var(--space-lg);
+  border-top: 1px solid #e0e0e0;
+  display: flex;
+  gap: var(--space-md);
+  justify-content: flex-end;
+}
+
+.btn { padding: var(--space-sm) var(--space-lg); border: none; border-radius: 4px; cursor: pointer; font-size: 0.9rem; font-weight: 500; text-decoration: none; display: inline-block; transition: all 0.3s; }
+.btn-primary { background: #1a472a; color: white; }
+.btn-primary:hover { background: #2d6a42; }
+.btn-accent { background: #e65100; color: white; }
+.btn-accent:hover { background: #f57c00; }
+.btn-secondary { background: #f5f5f5; color: #333; border: 1px solid #ddd; }
+.btn-small { padding: var(--space-sm) var(--space-md); font-size: 0.9rem; }
+</style>
+
+<script>
+var articlesData = {{ articles|tojson }};
+var currentRejectId = null;
+
+function showPreview(articleId) {
+  var article = articlesData.find(function(a) { return a.id === articleId; });
+  if (!article) return;
+
+  document.getElementById('previewTitle').textContent = article.title;
+  document.getElementById('previewBody').innerHTML =
+    '<p style="color:#666;font-size:0.9rem;margin-bottom:var(--space-md);">' +
+    '<strong>Autor:</strong> ' + (article.contributor_name || '') +
+    ' | <strong>Categorie:</strong> ' + (article.category || '') +
+    ' | <strong>Data:</strong> ' + (article.date || '').substring(0, 10) +
+    '</p>' +
+    '<div style="line-height:1.7;white-space:pre-wrap;">' + escapeHtml(article.content || '') + '</div>';
+
+  var footer = document.getElementById('previewFooter');
+  if (article.status === 'pending') {
+    footer.innerHTML =
+      '<button onclick="approveArticle(\'' + article.id + '\')" class="btn btn-primary">Aproba</button>' +
+      '<button onclick="closeModal(\'previewModal\');showRejectModal(\'' + article.id + '\')" class="btn btn-accent">Respinge</button>' +
+      '<button onclick="closeModal(\'previewModal\')" class="btn btn-secondary">Inchide</button>';
+  } else {
+    footer.innerHTML = '<button onclick="closeModal(\'previewModal\')" class="btn btn-secondary">Inchide</button>';
+  }
+
+  document.getElementById('previewModal').style.display = 'flex';
+}
+
+function showRejectModal(articleId) {
+  currentRejectId = articleId;
+  document.getElementById('rejectNotes').value = '';
+  document.getElementById('rejectModal').style.display = 'flex';
+}
+
+function closeModal(modalId) {
+  document.getElementById(modalId).style.display = 'none';
+}
+
+function approveArticle(articleId) {
+  if (!confirm('Aproba si publica acest articol?')) return;
+
+  var formData = new FormData();
+  fetch('/admin/colaborator/aproba/' + articleId, {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      alert('Articol aprobat si publicat!');
+      location.reload();
+    } else {
+      alert('Eroare: ' + data.message);
+    }
+  })
+  .catch(function(err) { alert('Eroare: ' + err); });
+}
+
+function submitReject() {
+  if (!currentRejectId) return;
+  var notes = document.getElementById('rejectNotes').value.trim();
+
+  var formData = new FormData();
+  formData.append('notes', notes);
+
+  fetch('/admin/colaborator/respinge/' + currentRejectId, {
+    method: 'POST',
+    body: formData
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (data.success) {
+      alert('Articol respins.');
+      location.reload();
+    } else {
+      alert('Eroare: ' + data.message);
+    }
+  })
+  .catch(function(err) { alert('Eroare: ' + err); });
+}
+
+function escapeHtml(text) {
+  var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+  return text.replace(/[&<>"']/g, function(m) { return map[m]; });
+}
+</script>
+{% endblock %}

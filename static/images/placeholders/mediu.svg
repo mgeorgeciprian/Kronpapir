@@ -1,0 +1,45 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="400" fill="#1a1a2e"/>
+
+  <!-- Tree left -->
+  <g transform="translate(150, 120)">
+    <!-- Trunk -->
+    <rect x="-10" y="40" width="20" height="90" fill="#8B6F47"/>
+    <!-- Foliage - upper circle -->
+    <circle cx="0" cy="-10" r="45" fill="#2E7D32"/>
+    <!-- Foliage - middle circle -->
+    <circle cx="-25" cy="15" r="40" fill="#2E7D32" opacity="0.9"/>
+    <circle cx="25" cy="15" r="40" fill="#2E7D32" opacity="0.9"/>
+    <!-- Foliage - lower circle -->
+    <circle cx="-30" cy="45" r="35" fill="#2E7D32" opacity="0.85"/>
+    <circle cx="30" cy="45" r="35" fill="#2E7D32" opacity="0.85"/>
+  </g>
+
+  <!-- Leaf forms (floating) -->
+  <g transform="translate(320, 100)">
+    <!-- Leaf shape 1 -->
+    <ellipse cx="0" cy="0" rx="30" ry="50" fill="none" stroke="#2E7D32" stroke-width="2.5" opacity="0.8" transform="rotate(25)"/>
+    <line x1="-2" y1="-50" x2="2" y2="50" stroke="#2E7D32" stroke-width="1.5" opacity="0.8"/>
+  </g>
+
+  <g transform="translate(380, 170)">
+    <!-- Leaf shape 2 -->
+    <ellipse cx="0" cy="0" rx="28" ry="48" fill="none" stroke="#2E7D32" stroke-width="2.5" opacity="0.7" transform="rotate(-30)"/>
+    <line x1="-1.5" y1="-48" x2="1.5" y2="48" stroke="#2E7D32" stroke-width="1.5" opacity="0.7"/>
+  </g>
+
+  <!-- Water/wave element -->
+  <g transform="translate(200, 280)">
+    <path d="M 0,0 Q 15,10 30,0 T 60,0 T 90,0" fill="none" stroke="#2E7D32" stroke-width="2.5" opacity="0.6"/>
+    <path d="M 0,15 Q 15,25 30,15 T 60,15 T 90,15" fill="none" stroke="#2E7D32" stroke-width="2.5" opacity="0.5"/>
+  </g>
+
+  <!-- Small accent circles -->
+  <circle cx="100" cy="100" r="4" fill="#2E7D32" opacity="0.4"/>
+  <circle cx="480" cy="200" r="5" fill="#2E7D32" opacity="0.5"/>
+  <circle cx="520" cy="320" r="3" fill="#2E7D32" opacity="0.6"/>
+
+  <!-- Category label -->
+  <text x="300" y="370" font-family="Arial, sans-serif" font-size="16" font-weight="300" fill="white" opacity="0.7" text-anchor="middle">Mediu</text>
+</svg>

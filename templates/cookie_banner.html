@@ -1,0 +1,90 @@
+<!-- GDPR Cookie Consent Banner -->
+<div id="cookie-banner" class="cookie-banner">
+  <div class="cookie-banner-inner">
+    <div>
+      <p style="margin: 0 0 10px 0;"><strong>Cookies si Confidentialitate</strong></p>
+      <p class="cookie-text-muted" style="margin: 0;">KronPapir.ro utilizeaza cookies pentru analiza (Google Analytics), publicitate (Google AdSense) si functionalitati esentiale. Citeste <a href="/confidentialitate">Politica de Confidentialitate</a> pentru detalii complete.</p>
+    </div>
+    <div style="display: flex; gap: 10px; white-space: nowrap;">
+      <button id="cookie-accept" class="cookie-btn-accept">Accepta Toate</button>
+      <button id="cookie-reject" class="cookie-btn-reject">Doar Esentiale</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  // Cookie Banner Handler
+  (function() {
+    const banner = document.getElementById('cookie-banner');
+    const acceptBtn = document.getElementById('cookie-accept');
+    const rejectBtn = document.getElementById('cookie-reject');
+    const cookieName = 'kronpapir_cookies_accepted';
+
+    // Check if user already made a choice
+    function getCookie(name) {
+      const nameEQ = name + "=";
+      const cookies = document.cookie.split(';');
+      for(let cookie of cookies) {
+        cookie = cookie.trim();
+        if (cookie.indexOf(nameEQ) === 0) {
+          return cookie.substring(nameEQ.length);
+        }
+      }
+      return null;
+    }
+
+    function setCookie(name, value, days = 365) {
+      const date = new Date();
+      date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+      const expires = "expires=" + date.toUTCString();
+      document.cookie = name + "=" + value + ";" + expires + ";path=/;SameSite=Lax";
+    }
+
+    function hideBanner() {
+      if (banner) {
+        banner.style.display = 'none';
+      }
+    }
+
+    function loadAnalytics() {
+      // Google Analytics
+      if (window.gtag === undefined) {
+        const script = document.createElement('script');
+        script.async = true;
+        script.src = 'https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX'; // Replace with actual GA ID
+        document.head.appendChild(script);
+
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', 'G-XXXXXXXXXX'); // Replace with actual GA ID
+      }
+    }
+
+    // Check if banner should be shown
+    const cookieAccepted = getCookie(cookieName);
+    if (cookieAccepted) {
+      hideBanner();
+      if (cookieAccepted === 'all') {
+        loadAnalytics();
+      }
+    }
+
+    // Accept All Cookies
+    if (acceptBtn) {
+      acceptBtn.addEventListener('click', function() {
+        setCookie(cookieName, 'all');
+        loadAnalytics();
+        hideBanner();
+      });
+    }
+
+    // Accept Only Essential
+    if (rejectBtn) {
+      rejectBtn.addEventListener('click', function() {
+        setCookie(cookieName, 'essential');
+        hideBanner();
+      });
+    }
+  })();
+</script>

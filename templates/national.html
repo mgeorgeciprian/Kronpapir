@@ -1,0 +1,138 @@
+{% extends "base.html" %}
+
+{% block title %}Știri Naționale România - Presă Națională | KronPapir{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="https://kronpapir.ro/national">
+{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="Știri naționale din România - cele mai importante noutăți din presa națională, prezentate de KronPapir Brașov.">
+<meta name="keywords" content="știri naționale România, noutăți România, presă națională, KronPapir">
+{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollectionPage",
+  "name": "Știri Naționale România",
+  "description": "Cele mai importante știri din presa națională română",
+  "url": "https://kronpapir.ro/national",
+  "isPartOf": {
+    "@type": "WebSite",
+    "name": "KronPapir",
+    "url": "https://kronpapir.ro"
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Acasă",
+      "item": "https://kronpapir.ro/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      "name": "Știri Naționale"
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <div>
+    <section class="section">
+      <h1 class="section-title">Știri Naționale</h1>
+      <p style="margin-bottom: var(--space-lg); color: var(--text-secondary);">Total {{ total }} articole din presă națională</p>
+
+      {% if articles %}
+      <div class="articles-grid">
+        {% for article in articles %}
+        <article class="article-card">
+          <div class="article-card-image">
+            <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('national')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+          </div>
+          <div class="article-card-content">
+            {% if article.category %}
+            <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+            {% endif %}
+            <h3><a href="{{ article|article_url }}">{{ article.title }}</a></h3>
+            <p class="excerpt">{{ article.excerpt or article.content[:100] + '...' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ article.date }}</span>
+              {% if article.source %}
+              <span class="article-source">{{ article.source }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      <!-- Pagination -->
+      {% if total_pages > 1 %}
+      <div class="pagination">
+        {% if page > 1 %}
+          <a href="?page=1">« Prima</a>
+          <a href="?page={{ page - 1 }}">‹ Anterior</a>
+        {% endif %}
+
+        {% for p in range([1, page - 2]|max, [total_pages + 1, page + 3]|min) %}
+          {% if p == page %}
+            <span class="current">{{ p }}</span>
+          {% else %}
+            <a href="?page={{ p }}">{{ p }}</a>
+          {% endif %}
+        {% endfor %}
+
+        {% if page < total_pages %}
+          <a href="?page={{ page + 1 }}">Următor ›</a>
+          <a href="?page={{ total_pages }}">Ultima »</a>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% else %}
+      <div style="background-color: var(--surface); padding: var(--space-2xl); border-radius: var(--radius-lg); text-align: center;">
+        <h3 style="color: var(--text-secondary); margin-bottom: var(--space-md);">Nu au fost găsite articole</h3>
+        <p>Revin mai târziu pentru mai multe știri naționale.</p>
+        <a href="/" style="display: inline-block; margin-top: var(--space-lg); padding: var(--space-md) var(--space-lg); background-color: var(--primary); color: var(--surface); border-radius: var(--radius); font-weight: 600;">Înapoi la acasă</a>
+      </div>
+      {% endif %}
+    </section>
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📰 Sumar Național</h3>
+      <p style="margin-bottom: var(--space-md); color: var(--text-secondary);">Cele mai importante știri din presa națională română.</p>
+    </div>
+
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">🏠 Revenire</h3>
+      <a href="/" style="display: block; padding: var(--space-md); background-color: var(--primary); color: var(--surface); text-align: center; border-radius: var(--radius); font-weight: 600; transition: background-color var(--transition);">← Înapoi la Știri Locale</a>
+    </div>
+
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📂 Categorii</h3>
+      {% for cat_key, cat_name in categories.items() %}
+      <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="/categorie/{{ cat_key }}" style="font-weight: 500; color: var(--primary);">{{ cat_name }}</a>
+      </div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+
+{% endblock %}

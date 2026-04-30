@@ -1,0 +1,55 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="400" fill="#1a1a2e"/>
+
+  <!-- Group of people - left figure -->
+  <g transform="translate(120, 100)">
+    <!-- Head -->
+    <circle cx="0" cy="-20" r="18" fill="white"/>
+    <!-- Body -->
+    <rect x="-15" y="0" width="30" height="40" rx="3" fill="white"/>
+    <!-- Arms -->
+    <line x1="-15" y1="10" x2="-35" y2="25" stroke="white" stroke-width="4" stroke-linecap="round"/>
+    <line x1="15" y1="10" x2="35" y2="25" stroke="white" stroke-width="4" stroke-linecap="round"/>
+  </g>
+
+  <!-- Group of people - center figure (taller) -->
+  <g transform="translate(250, 90)">
+    <!-- Head -->
+    <circle cx="0" cy="-22" r="20" fill="white" opacity="0.9"/>
+    <!-- Body -->
+    <rect x="-16" y="0" width="32" height="50" rx="3" fill="white" opacity="0.9"/>
+    <!-- Arms -->
+    <line x1="-16" y1="12" x2="-38" y2="28" stroke="white" stroke-width="4.5" stroke-linecap="round" opacity="0.9"/>
+    <line x1="16" y1="12" x2="38" y2="28" stroke="white" stroke-width="4.5" stroke-linecap="round" opacity="0.9"/>
+  </g>
+
+  <!-- Group of people - right figure -->
+  <g transform="translate(380, 105)">
+    <!-- Head -->
+    <circle cx="0" cy="-18" r="17" fill="white" opacity="0.85"/>
+    <!-- Body -->
+    <rect x="-14" y="0" width="28" height="38" rx="3" fill="white" opacity="0.85"/>
+    <!-- Arms -->
+    <line x1="-14" y1="9" x2="-32" y2="24" stroke="white" stroke-width="3.8" stroke-linecap="round" opacity="0.85"/>
+    <line x1="14" y1="9" x2="32" y2="24" stroke="white" stroke-width="3.8" stroke-linecap="round" opacity="0.85"/>
+  </g>
+
+  <!-- Connection lines between figures -->
+  <line x1="140" y1="150" x2="230" y2="150" stroke="#1565C0" stroke-width="2" opacity="0.5"/>
+  <line x1="270" y1="150" x2="360" y2="150" stroke="#1565C0" stroke-width="2" opacity="0.5"/>
+
+  <!-- Chat bubble -->
+  <g transform="translate(250, 250)">
+    <rect x="-70" y="-20" width="140" height="50" rx="8" fill="none" stroke="#1565C0" stroke-width="2" opacity="0.6"/>
+    <!-- Pointer -->
+    <polygon points="-30,30 -20,50 -10,30" fill="#1565C0" opacity="0.5"/>
+    <!-- Dots inside -->
+    <circle cx="-30" cy="10" r="3" fill="#1565C0" opacity="0.6"/>
+    <circle cx="0" cy="10" r="3" fill="#1565C0" opacity="0.6"/>
+    <circle cx="30" cy="10" r="3" fill="#1565C0" opacity="0.6"/>
+  </g>
+
+  <!-- Category label -->
+  <text x="300" y="370" font-family="Arial, sans-serif" font-size="16" font-weight="300" fill="white" opacity="0.7" text-anchor="middle">Social</text>
+</svg>

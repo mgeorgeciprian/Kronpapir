@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+
+{% block title %}KronPapir - Știri din Brașov și Covasna{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="KronPapir - Știri din Brașov și Covasna">
+<meta property="og:description" content="Agregator de știri locale din inima Transilvaniei">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://kronpapir.ro">
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <!-- Main Content -->
+  <div>
+    <!-- Hero Section - Featured Article -->
+    {% if featured %}
+    <div class="hero">
+      <article class="featured-article">
+        {% if featured.image %}
+        <div class="featured-image">
+          <img src="{{ featured.image }}" alt="{{ featured.title }}" loading="lazy">
+        </div>
+        {% endif %}
+        <div class="featured-content">
+          {% if featured.category %}
+          <span class="category-tag {{ featured.category }}">{{ featured.category }}</span>
+          {% endif %}
+          <h1>{{ featured.title }}</h1>
+          <p class="excerpt">{{ featured.excerpt or featured.content[:150] + '...' }}</p>
+          <div class="featured-meta">
+            <span class="featured-meta-item">📅 {{ featured.date }}</span>
+            {% if featured.source %}
+            <span class="featured-meta-item">📰 {{ featured.source }}</span>
+            {% endif %}
+          </div>
+          <a href="/articol/{{ featured.id }}" class="read-more">Citește articolul complet</a>
+        </div>
+      </article>
+    </div>
+    {% endif %}
+
+    <!-- Latest Articles Grid -->
+    {% if latest %}
+    <section class="section">
+      <h2 class="section-title">Ultimele Știri Locale</h2>
+      <div class="articles-grid">
+        {% for article in latest %}
+        <article class="article-card">
+          {% if article.image %}
+          <div class="article-card-image">
+            <img src="{{ article.image }}" alt="{{ article.title }}" loading="lazy">
+          </div>
+          {% else %}
+          <div class="article-card-image no-image">
+            <span>Fără imagine</span>
+          </div>
+          {% endif %}
+          <div class="article-card-content">
+            {% if article.category %}
+            <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+            {% endif %}
+            <h3><a href="/articol/{{ article.id }}">{{ article.title }}</a></h3>
+            <p class="excerpt">{{ article.excerpt or article.content[:100] + '...' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ article.date }}</span>
+              {% if article.source %}
+              <span class="article-source">{{ article.source }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        <!-- In-Article Ad after 3rd article -->
+        {% if loop.index == 3 %}
+        </div>
+        <div class="ad-slot in-article">
+          <!-- Replace with Google AdSense code after approval -->
+          Spațiu publicitar
+        </div>
+        <div class="articles-grid">
+        {% endif %}
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+    <!-- Most Read Section -->
+    {% if most_read %}
+    <section class="section">
+      <h2 class="section-title">Cele Mai Citite</h2>
+      <div class="articles-grid">
+        {% for article in most_read %}
+        <article class="article-card">
+          {% if article.image %}
+          <div class="article-card-image">
+            <img src="{{ article.image }}" alt="{{ article.title }}" loading="lazy">
+          </div>
+          {% else %}
+          <div class="article-card-image no-image">
+            <span>Fără imagine</span>
+          </div>
+          {% endif %}
+          <div class="article-card-content">
+            {% if article.category %}
+            <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+            {% endif %}
+            <h3><a href="/articol/{{ article.id }}">{{ article.title }}</a></h3>
+            <p class="excerpt">{{ article.excerpt or article.content[:100] + '...' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ article.date }}</span>
+              {% if article.source %}
+              <span class="article-source">{{ article.source }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+  </div>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <!-- Sidebar Ad (300x250) -->
+    <div class="ad-slot sidebar-ad">
+      <!-- Replace with Google AdSense code after approval -->
+      Spațiu publicitar
+    </div>
+
+    <!-- National News Summary -->
+    {% if national %}
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📰 Sumar Național</h3>
+      {% for article in national %}
+      <article class="sidebar-article">
+        <h4><a href="/articol/{{ article.id }}">{{ article.title }}</a></h4>
+        <span class="date">{{ article.date }}</span>
+      </article>
+      {% endfor %}
+      <a href="/national" style="display: block; margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border); color: var(--primary); font-weight: 600;">Toate știrile naționale →</a>
+    </div>
+    {% endif %}
+
+    <!-- Weather Widget -->
+    <div class="weather-widget">
+      <h3>Brașov, România</h3>
+      <div class="weather-temp">18°C</div>
+      <div class="weather-desc">Parțial noros</div>
+      <a href="#" class="weather-link">Prognoza completă →</a>
+    </div>
+
+    <!-- Categories Widget -->
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📂 Categorii</h3>
+      {% for cat_key, cat_name in categories.items() %}
+      <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="/categorie/{{ cat_key }}" style="font-weight: 500; color: var(--primary);">{{ cat_name }} →</a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Newsletter Signup -->
+    <div class="sidebar-box" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--surface);">
+      <h3 style="color: var(--surface); border-bottom-color: rgba(255,255,255,0.3);">📧 Newsletter</h3>
+      <p style="color: rgba(255,255,255,0.9); font-size: 0.95rem; margin-bottom: var(--space-md);">Primești zilnic cele mai importante știri din Brașov.</p>
+      <form style="display: flex; flex-direction: column; gap: var(--space-sm);">
+        <input type="email" placeholder="Email-ul tău" style="padding: var(--space-sm) var(--space-md); border: none; border-radius: var(--radius); font-size: 0.9rem;">
+        <button type="submit" style="padding: var(--space-sm) var(--space-md); background-color: var(--accent); color: white; border: none; border-radius: var(--radius); font-weight: 600; cursor: pointer; transition: background-color var(--transition);">Abonează-te</button>
+      </form>
+    </div>
+  </aside>
+
+</div>
+
+{% endblock %}

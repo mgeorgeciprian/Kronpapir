@@ -1,0 +1,474 @@
+# Kronpapir.ro News Sources Configuration
+# Local news sources for Brașov/Covasna region
+# Supports both RSS feeds and direct web scraping
+
+sources:
+  # =============================================
+  # LOCAL SOURCES - Brașov/Covasna (RSS)
+  # =============================================
+
+  - id: monitorulexpres
+    name: "Monitorul Expres"
+    url: "https://www.monitorulexpres.ro"
+    type: "rss"
+    rss_url: "https://www.monitorulexpres.ro/feed/"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1"
+      content: "div.entry-content, div.post-content"
+      date: "time, span.entry-date, span.published"
+      image: "img.wp-post-image, img.featured-image, article img:first-of-type"
+    description: "Monitorul Expres - Ziar din Brașov (din 1998)"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: bizbrasov
+    name: "BizBrașov"
+    url: "https://bizbrasov.ro"
+    type: "rss"
+    rss_url: "https://bizbrasov.ro/feed/"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1"
+      content: "div.entry-content, div.post-content"
+      date: "time, span.entry-date, span.published"
+      image: "img.wp-post-image, img.featured-image, article img:first-of-type"
+    description: "BizBrașov - Știri de business din Brașov"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: brasovstiri
+    name: "Brașov Știri"
+    url: "https://brasovstiri.ro"
+    type: "rss"
+    rss_url: "https://brasovstiri.ro/feed/"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1"
+      content: "div.entry-content, div.post-content"
+      date: "time, span.entry-date, span.published"
+      image: "img.wp-post-image, img.featured-image, article img:first-of-type"
+    description: "Brașov Știri - Ultimele noutăți locale"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: litera9
+    name: "Litera9"
+    url: "https://litera9.com"
+    type: "rss"
+    rss_url: "https://litera9.com/feed/"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1"
+      content: "div.entry-content, div.post-content"
+      date: "time, span.entry-date, span.published"
+      image: "img.wp-post-image, img.featured-image, article img:first-of-type"
+    description: "Litera9 - Jurnalism independent din Brașov"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: saceleanul
+    name: "Săceleanul"
+    url: "https://www.saceleanul.ro"
+    type: "rss"
+    rss_url: "https://www.saceleanul.ro/feed/"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1"
+      content: "div.entry-content, div.post-content"
+      date: "time, span.entry-date, span.published"
+      image: "img.wp-post-image, img.featured-image, article img:first-of-type"
+    description: "Săceleanul - Știri din Săcele și împrejurimi"
+    retry_attempts: 3
+    timeout: 15
+
+  # =============================================
+  # LOCAL SOURCES - Brașov/Covasna (Web Scraping)
+  # Pentru site-uri fără RSS funcțional
+  # =============================================
+
+  - id: newsbv
+    name: "News BV"
+    url: "https://newsbv.ro"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1.title, h1"
+      content: "div.entry-content, div.post-content, div.article-content, article .content"
+      date: "time, span.entry-date, span.post-date, span.date, .published"
+      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
+      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
+    homepage: "https://newsbv.ro"
+    pagination: "/page/{page}/"
+    max_pages: 3
+    max_articles_per_source: 30
+    description: "News BV - Portal de știri Brașov (scraping)"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: bzb
+    name: "Bună Ziua Brașov"
+    url: "https://bzb.ro"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1.title, h1"
+      content: "div.entry-content, div.post-content, div.article-content, article .content"
+      date: "time, span.entry-date, span.post-date, span.date, .published"
+      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
+      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
+    homepage: "https://bzb.ro"
+    pagination: "/page/{page}/"
+    max_pages: 3
+    max_articles_per_source: 30
+    description: "Bună Ziua Brașov - Noutăți zilei (scraping)"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: stiridecovasna
+    name: "Știri de Covasna"
+    url: "https://stiridecovasna.ro"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1.title, h1"
+      content: "div.entry-content, div.post-content, div.article-content, article .content"
+      date: "time, span.entry-date, span.post-date, span.date, .published"
+      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
+      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
+    homepage: "https://stiridecovasna.ro"
+    pagination: "/page/{page}/"
+    max_pages: 3
+    max_articles_per_source: 30
+    description: "Știri de Covasna - Noutăți locale (scraping)"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: covasnamedia
+    name: "Covasna Media"
+    url: "https://covasnamedia.ro"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      title: "h1.entry-title, h1.post-title, h1.title, h1"
+      content: "div.entry-content, div.post-content, div.article-content, article .content"
+      date: "time, span.entry-date, span.post-date, span.date, .published"
+      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
+      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
+    homepage: "https://covasnamedia.ro"
+    pagination: "/page/{page}/"
+    max_pages: 3
+    max_articles_per_source: 30
+    description: "Covasna Media - Portal de știri (scraping)"
+    retry_attempts: 3
+    timeout: 15
+
+  # =============================================
+  # INSTITUTIONAL SOURCES - Consilii Județene
+  # =============================================
+
+  - id: cjbrasov
+    name: "Consiliul Județean Brașov"
+    url: "https://cjbrasov.ro/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: "a[href*='comunicat'], a[href*='anunt'], .entry-title a, article a, .post-title a"
+      title: "h1, .entry-title, .page-title"
+      content: ".entry-content, .page-content, article .content, .post-content"
+      date: ".entry-date, .post-date, time"
+    description: "Consiliul Județean Brașov - Anunțuri și comunicate oficiale"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: cjcv
+    name: "Consiliul Județean Covasna"
+    url: "https://www.cjcv.ro/ro/stiri.html"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: "a[href*='stiri'], .news-item a, .article-link"
+      title: "h1, .page-title, .article-title"
+      content: ".article-content, .page-content, .content-area"
+      date: ".date, time, .article-date"
+    description: "Consiliul Județean Covasna - Știri și anunțuri"
+    retry_attempts: 3
+    timeout: 15
+
+  # =============================================
+  # INSTITUTIONAL SOURCES - Primării Brașov
+  # =============================================
+
+  - id: primaria_brasov
+    name: "Primăria Brașov"
+    url: "https://www.brasovcity.ro/ro/ultimele_noutati/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Brașov - Anunțuri și noutăți oficiale"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_sacele
+    name: "Primăria Săcele"
+    url: "https://www.municipiulsacele.ro/category/anunturi/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Săcele - Anunțuri și informații publice"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_fagaras
+    name: "Primăria Făgăraș"
+    url: "https://www.primaria-fagaras.ro/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Făgăraș - Noutăți și comunicate"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_rasnov
+    name: "Primăria Râșnov"
+    url: "https://www.primariarasnov.ro/stiri"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Râșnov - Anunțuri și informații"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_zarnesti
+    name: "Primăria Zărnești"
+    url: "https://www.primaria-zarnesti.ro/categorie/stiri/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Zărnești - Știri și comunicate"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_predeal
+    name: "Primăria Predeal"
+    url: "https://www.primaria-predeal.ro/anunturi-publice/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Predeal - Anunțuri publice"
+    retry_attempts: 3
+    timeout: 15
+
+  # =============================================
+  # INSTITUTIONAL SOURCES - Primării Covasna
+  # =============================================
+
+  - id: primaria_sgheorghe
+    name: "Primăria Sfântu Gheorghe"
+    url: "https://www.sfantugheorgheinfo.ro/stiri"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Sfântu Gheorghe - Știri și anunțuri"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_covasna
+    name: "Primăria Covasna"
+    url: "https://www.primariacovasna.ro/informatii-publice/anunturi/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Covasna - Informații și anunțuri publice"
+    retry_attempts: 3
+    timeout: 15
+
+  - id: primaria_intorsura
+    name: "Primăria Întorsura Buzăului"
+    url: "http://www.intorsura.info/primaria-orasului/starea-civila/anunturi/"
+    type: "scrape"
+    category: "local"
+    enabled: true
+    selectors:
+      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
+      title: "h1, .entry-title, .page-title, .post-title"
+      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
+      date: ".entry-date, .post-date, time, .date"
+    description: "Primăria Întorsura Buzăului - Anunțuri publice"
+    retry_attempts: 3
+    timeout: 15
+
+  # =============================================
+  # NATIONAL SOURCES (RSS)
+  # =============================================
+
+  - id: agerpres
+    name: "Agerpres"
+    url: "https://www.agerpres.ro"
+    type: "rss"
+    rss_url: "https://www.agerpres.ro/home.rss"
+    category: "national"
+    enabled: true
+    selectors:
+      title: "h1.title, h1.article-title, h1"
+      content: "div.article-body, div.article-content, div.content"
+      date: "span.date, time"
+      image: "img.featured-image, img.article-image, article img"
+    description: "Agerpres - Agenția națională de presă"
+    retry_attempts: 2
+    timeout: 15
+
+  - id: hotnews
+    name: "HotNews"
+    url: "https://www.hotnews.ro"
+    type: "rss"
+    rss_url: "https://www.hotnews.ro/rss"
+    category: "national"
+    enabled: true
+    selectors:
+      title: "h1.article-title, h1.post-title, h1"
+      content: "div.article-content, article.post, div.content"
+      date: "time, span.publish-date"
+      image: "img.article-image, img.featured, article img"
+    description: "HotNews - Prima publicație 24/7 din România"
+    retry_attempts: 2
+    timeout: 15
+
+  - id: mediafax
+    name: "Mediafax"
+    url: "https://www.mediafax.ro"
+    type: "rss"
+    rss_url: "https://www.mediafax.ro/rss"
+    category: "national"
+    enabled: true
+    selectors:
+      title: "h1.article-title, h1.title, h1"
+      content: "div.article-content, div.content-area"
+      date: "span.publish-date, time"
+      image: "img.featured-image, img.article-image"
+    description: "Mediafax - Agenție de presă"
+    retry_attempts: 2
+    timeout: 15
+
+  - id: g4media
+    name: "G4Media"
+    url: "https://www.g4media.ro"
+    type: "rss"
+    rss_url: "https://www.g4media.ro/feed"
+    category: "national"
+    enabled: true
+    selectors:
+      title: "h1.post-title, h1.entry-title, h1"
+      content: "div.post-content, div.entry-content"
+      date: "span.post-date, time"
+      image: "img.wp-post-image, img.featured-image"
+    description: "G4Media - Analiză și comentarii"
+    retry_attempts: 2
+    timeout: 15
+
+  - id: digi24
+    name: "Digi24"
+    url: "https://www.digi24.ro"
+    type: "rss"
+    rss_url: "https://www.digi24.ro/rss"
+    category: "national"
+    enabled: true
+    selectors:
+      title: "h1.title, h1.article-title, h1"
+      content: "div.article-content, div.article-body"
+      date: "span.publish-date, time"
+      image: "img.featured-image, img.article-image"
+    description: "Digi24 - Știri naționale"
+    retry_attempts: 2
+    timeout: 15
+
+  - id: stiripesurse
+    name: "Știri Pe Surse"
+    url: "https://www.stiripesurse.ro"
+    type: "rss"
+    rss_url: "https://www.stiripesurse.ro/rss"
+    category: "national"
+    enabled: true
+    selectors:
+      title: "h1.post-title, h1.article-title, h1"
+      content: "div.post-content, article.post"
+      date: "span.post-date, time"
+      image: "img.featured-image, img.post-image"
+    description: "Știri Pe Surse - Breaking news"
+    retry_attempts: 2
+    timeout: 15
+
+# Global scraper settings
+scraper_config:
+  default_timeout: 15
+  max_retries: 3
+  rate_limit_delay: 2  # seconds between requests to same domain
+  user_agents:
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
+
+  deduplication:
+    enabled: true
+    strategy: "url_hash"  # url_hash or content_hash
+
+  article_retention_days: 30
+  batch_size: 10
+
+scheduling:
+  local_sources_interval: 3600  # seconds (1 hour)
+  national_sources_interval: 7200  # seconds (2 hours)
+  cleanup_interval: 86400  # seconds (1 day)
+  max_articles_per_source: 100

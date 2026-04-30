@@ -1,0 +1,19 @@
+{% extends "base.html" %}
+
+{% block title %}Pagina nu a fost găsită - KronPapir{% endblock %}
+
+{% block content %}
+
+<div style="max-width: 600px; margin: var(--space-2xl) auto; text-align: center; background-color: var(--surface); padding: var(--space-2xl); border-radius: var(--radius-lg);">
+  <h1 style="font-size: 4rem; margin: 0; color: var(--primary);">404</h1>
+  <h2 style="margin-bottom: var(--space-lg);">Pagina nu a fost găsită</h2>
+  <p style="color: var(--text-secondary); margin-bottom: var(--space-xl);">
+    Pagina pe care o cauți nu mai există. Aceasta ar putea fi din cauza unei schimbări în adresă sau a unui link mort.
+  </p>
+  <div style="display: flex; gap: var(--space-lg); justify-content: center; flex-wrap: wrap;">
+    <a href="/" style="padding: var(--space-md) var(--space-xl); background-color: var(--primary); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none; transition: background-color var(--transition); display: inline-block;">🏠 Acasă</a>
+    <a href="/local" style="padding: var(--space-md) var(--space-xl); background-color: var(--secondary); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none; transition: background-color var(--transition); display: inline-block;">📍 Știri Locale</a>
+  </div>
+</div>
+
+{% endblock %}

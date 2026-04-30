@@ -1,0 +1,258 @@
+{% extends "base.html" %}
+
+{% block title %}{{ article.seo_title or article.title }} - KronPapir{% endblock %}
+
+{% block canonical %}
+{% if article.slug %}
+<link rel="canonical" href="https://kronpapir.ro/stiri/{{ article.slug }}">
+{% else %}
+<link rel="canonical" href="https://kronpapir.ro/articol/{{ article.id }}">
+{% endif %}
+{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ article.title }}">
+<meta property="og:description" content="{{ article.meta_description or article.excerpt or article.content[:100] }}">
+<meta property="og:type" content="article">
+{% if article.image %}
+<meta property="og:image" content="{{ article.image }}">
+{% endif %}
+{% if article.slug %}
+<meta property="og:url" content="https://kronpapir.ro/stiri/{{ article.slug }}">
+{% else %}
+<meta property="og:url" content="https://kronpapir.ro/articol/{{ article.id }}">
+{% endif %}
+<meta property="article:published_time" content="{{ article.date }}">
+{% if article.category %}
+<meta property="article:section" content="{{ article.category }}">
+{% endif %}
+{% endblock %}
+
+{% block extra_css %}
+<meta name="description" content="{{ article.meta_description or article.excerpt or article.content[:160] }}">
+{% if article.keywords %}
+<meta name="keywords" content="{{ article.keywords }}">
+{% endif %}
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <article style="max-width: 800px;">
+    <!-- Article Header -->
+    <div class="article-header">
+      {% if article.category %}
+      <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+      {% endif %}
+      <h1 class="article-title">{{ article.title }}</h1>
+      <div class="article-meta">
+        <span class="article-meta-item">📅 {{ article.date }}</span>
+        {% if article.source %}
+        <span class="article-meta-item">📰 Sursa: <strong>{{ article.source }}</strong></span>
+        {% endif %}
+        {% if article.author %}
+        <span class="article-meta-item">✍️ {% if contributor_info %}<a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">{{ article.author }}</a>{% else %}{{ article.author }}{% endif %}</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Featured Image -->
+    <figure class="article-featured-image">
+      <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="eager" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+    </figure>
+
+    <!-- Ad Slot Before Article Content -->
+    {% if adsense_enabled %}
+    <div style="text-align: center; margin: 20px auto; max-width: 728px;">
+      <ins class="adsbygoogle"
+           style="display:inline-block;width:728px;height:90px"
+           data-ad-client="{{ adsense_client_id }}"
+           data-ad-slot="XXXXXXXXXX"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    {% endif %}
+
+    <!-- Article Body -->
+    <div class="article-body">
+      {% if article.excerpt %}
+      <p><strong>{{ article.excerpt }}</strong></p>
+      {% endif %}
+      {{ article.content | safe }}
+    </div>
+
+    <!-- Ad Slot After Article Content -->
+    {% if adsense_enabled %}
+    <div style="text-align: center; margin: 20px auto; max-width: 728px;">
+      <ins class="adsbygoogle"
+           style="display:inline-block;width:728px;height:90px"
+           data-ad-client="{{ adsense_client_id }}"
+           data-ad-slot="YYYYYYYYY"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    {% endif %}
+
+    <!-- Source Attribution -->
+    <div class="article-source-info">
+      {% if contributor_info %}
+      <strong>Autor colaborator:</strong> Acest articol a fost scris de <a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600;">{{ contributor_info.name }}</a>, colaborator KronPapir.
+      {% else %}
+      <strong>Notă de transparență:</strong> Această știre a fost agregată automat de KronPapir din sursa indicată mai sus.
+      {% if article.url %}
+      <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">Citește versiunea originală →</a>
+      {% endif %}
+      {% endif %}
+    </div>
+
+    <!-- Share Buttons -->
+    <div class="share-buttons">
+      <span class="share-label">Distribuie:</span>
+      <button class="share-btn" title="Distribuie pe Facebook" onclick="window.open('https://www.facebook.com/sharer/sharer.php?u=' + encodeURIComponent(window.location.href), 'facebook', 'width=600,height=400'); return false;">f</button>
+      <button class="share-btn" title="Distribuie pe Twitter" onclick="window.open('https://twitter.com/intent/tweet?url=' + encodeURIComponent(window.location.href) + '&text={{ article.title|urlencode }}', 'twitter', 'width=600,height=400'); return false;">𝕏</button>
+      <button class="share-btn" title="Copiază linkul" onclick="navigator.clipboard.writeText(window.location.href); alert('Link copiat!');">🔗</button>
+      <button class="share-btn" title="Tipărește" onclick="window.print();">🖨️</button>
+    </div>
+
+    <!-- Related Articles -->
+    {% if related %}
+    <!-- Ad Slot Before Related Articles -->
+    {% if adsense_enabled %}
+    <div style="text-align: center; margin: 20px auto; max-width: 728px;">
+      <ins class="adsbygoogle"
+           style="display:inline-block;width:728px;height:90px"
+           data-ad-client="{{ adsense_client_id }}"
+           data-ad-slot="ZZZZZZZZZZ"></ins>
+      <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+    </div>
+    {% endif %}
+
+    <section class="related-articles">
+      <h3>Articole Conexe</h3>
+      <div class="articles-grid" style="margin-top: var(--space-lg);">
+        {% for rel_article in related %}
+        <article class="article-card">
+          <div class="article-card-image">
+            <img src="{{ rel_article.image or url_for('static', filename='images/placeholders/' + (rel_article.category|default('default')) + '.svg') }}" alt="{{ rel_article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+          </div>
+          <div class="article-card-content">
+            {% if rel_article.category %}
+            <span class="category-tag {{ rel_article.category }}">{{ rel_article.category }}</span>
+            {% endif %}
+            <h3><a href="{{ rel_article|article_url }}">{{ rel_article.title }}</a></h3>
+            <p class="excerpt">{{ rel_article.excerpt or rel_article.content[:80] + '...' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ rel_article.date }}</span>
+              {% if rel_article.source %}
+              <span class="article-source">{{ rel_article.source }}</span>
+              {% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
+
+  </article>
+
+  <!-- Sidebar -->
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📌 Informații</h3>
+      <p style="margin-bottom: var(--space-md); color: var(--text-secondary);">KronPapir agregează automat știri locale din diverse surse. Articolele sunt prezentate pentru informare.</p>
+      <a href="/despre" style="color: var(--primary); font-weight: 600;">Mai multe detalii →</a>
+    </div>
+
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📂 Categorii</h3>
+      {% for cat_key, cat_name in categories.items() %}
+      <div style="padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="/categorie/{{ cat_key }}" style="font-weight: 500; color: var(--primary);">{{ cat_name }}</a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="sidebar-box" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--surface);">
+      <h3 style="color: var(--surface); border-bottom-color: rgba(255,255,255,0.3);">📍 Brașov Live</h3>
+      <p style="color: rgba(255,255,255,0.9); font-size: 0.9rem;">Rămâi la curent cu ultimele noutăți din Brașov.</p>
+      <a href="/local" style="display: inline-block; margin-top: var(--space-md); padding: var(--space-sm) var(--space-md); background-color: var(--accent); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none;">Toate știrile locale →</a>
+    </div>
+  </aside>
+</div>
+
+{% endblock %}
+
+{% block extra_js %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "NewsArticle",
+  "headline": "{{ article.title }}",
+  "description": "{{ article.meta_description or article.excerpt or article.content[:160] }}",
+  "mainEntityOfPage": {
+    "@type": "WebPage",
+    "@id": "https://kronpapir.ro{% if article.slug %}/stiri/{{ article.slug }}{% else %}/articol/{{ article.id }}{% endif %}"
+  },
+  {% if article.image %}"image": "{{ article.image }}",{% endif %}
+  "datePublished": "{{ article.date }}",
+  {% if article.updated %}"dateModified": "{{ article.updated }}",{% endif %}
+  {% if article.category %}"articleSection": "{{ categories.get(article.category, article.category) }}",{% endif %}
+  "wordCount": {{ article.content|striptags|wordcount }},
+  "author": {
+    {% if article.author and article.author != 'KronPapir' %}
+    "@type": "Person",
+    "name": "{{ article.author }}"
+    {% else %}
+    "@type": "Organization",
+    "name": "KronPapir",
+    "url": "https://kronpapir.ro"
+    {% endif %}
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "KronPapir",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}"
+    }
+  }
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "BreadcrumbList",
+  "itemListElement": [
+    {
+      "@type": "ListItem",
+      "position": 1,
+      "name": "Acasă",
+      "item": "https://kronpapir.ro/"
+    },
+    {
+      "@type": "ListItem",
+      "position": 2,
+      {% if article.type == 'national' %}
+      "name": "Știri Naționale",
+      "item": "https://kronpapir.ro/national"
+      {% else %}
+      "name": "Știri Locale",
+      "item": "https://kronpapir.ro/local"
+      {% endif %}
+    },
+    {
+      "@type": "ListItem",
+      "position": 3,
+      "name": "{{ article.title }}"
+    }
+  ]
+}
+</script>
+
+<script>
+// Simple analytics - track article views
+document.addEventListener('DOMContentLoaded', function() {
+  // Optional: Add page view tracking here
+  console.log('Article viewed: {{ article.id }}');
+});
+</script>
+{% endblock %}

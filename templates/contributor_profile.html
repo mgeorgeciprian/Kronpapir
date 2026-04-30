@@ -1,0 +1,169 @@
+{% extends "base.html" %}
+
+{% block title %}{{ contributor.name }} - Colaborator KronPapir{% endblock %}
+
+{% block canonical %}
+<link rel="canonical" href="https://kronpapir.ro/colaborator/{{ contributor.id }}">
+{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ contributor.name }} - Colaborator KronPapir">
+<meta property="og:description" content="{{ contributor.bio or 'Colaborator KronPapir' }}">
+<meta property="og:type" content="profile">
+<meta property="og:url" content="https://kronpapir.ro/colaborator/{{ contributor.id }}">
+{% endblock %}
+
+{% block content %}
+<div class="profile-container">
+  <div class="profile-header">
+    <div class="profile-avatar">{{ contributor.name[0]|upper }}</div>
+    <div class="profile-info">
+      <h1>{{ contributor.name }}</h1>
+      <p class="profile-role">Colaborator KronPapir</p>
+      {% if contributor.bio %}
+      <p class="profile-bio">{{ contributor.bio }}</p>
+      {% endif %}
+      <div class="profile-stats">
+        <span class="profile-stat">{{ articles|length }} articole publicate</span>
+        <span class="profile-stat">Membru din {{ contributor.registered_date[:10] }}</span>
+      </div>
+    </div>
+  </div>
+
+  {% if articles %}
+  <div class="profile-articles">
+    <h2>Articole de {{ contributor.name }}</h2>
+    <div class="articles-grid">
+      {% for article in articles %}
+      <article class="article-card">
+        <div class="article-card-image">
+          <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+        </div>
+        <div class="article-card-content">
+          {% if article.category %}
+          <span class="category-tag {{ article.category }}">{{ article.category }}</span>
+          {% endif %}
+          <h3><a href="/stiri/{{ article.slug }}">{{ article.title }}</a></h3>
+          <p class="excerpt">{{ article.excerpt or article.content[:100] + '...' }}</p>
+          <div class="article-card-meta">
+            <span class="date">{{ article.date[:10] if article.date else '' }}</span>
+          </div>
+        </div>
+      </article>
+      {% endfor %}
+    </div>
+  </div>
+  {% else %}
+  <div class="empty-profile">
+    <p>Acest colaborator nu are inca articole publicate.</p>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.profile-container {
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.profile-header {
+  display: flex;
+  align-items: center;
+  gap: var(--space-xl);
+  background: var(--surface);
+  padding: var(--space-xl);
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  margin-bottom: var(--space-xl);
+}
+
+.profile-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #1a472a 0%, #2d6a42 100%);
+  color: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.profile-info h1 {
+  margin-bottom: var(--space-sm);
+  font-size: 1.8rem;
+}
+
+.profile-role {
+  color: var(--primary);
+  font-weight: 600;
+  margin-bottom: var(--space-sm);
+}
+
+.profile-bio {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-md);
+  line-height: 1.6;
+}
+
+.profile-stats {
+  display: flex;
+  gap: var(--space-lg);
+  flex-wrap: wrap;
+}
+
+.profile-stat {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  background: var(--background);
+  padding: var(--space-sm) var(--space-md);
+  border-radius: var(--radius);
+}
+
+.profile-articles h2 {
+  margin-bottom: var(--space-lg);
+}
+
+.articles-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--space-lg);
+}
+
+.empty-profile {
+  text-align: center;
+  padding: var(--space-2xl);
+  color: var(--text-secondary);
+}
+
+@media (max-width: 768px) {
+  .profile-header {
+    flex-direction: column;
+    text-align: center;
+  }
+
+  .profile-stats {
+    justify-content: center;
+  }
+}
+</style>
+
+{% block json_ld %}
+{{ super() }}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Person",
+  "name": "{{ contributor.name }}",
+  "url": "https://kronpapir.ro/colaborator/{{ contributor.id }}",
+  "description": "{{ contributor.bio or 'Colaborator KronPapir' }}",
+  "worksFor": {
+    "@type": "Organization",
+    "name": "KronPapir"
+  }
+}
+</script>
+{% endblock %}
+{% endblock %}

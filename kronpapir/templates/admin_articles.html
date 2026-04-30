@@ -1,0 +1,351 @@
+{% extends "base.html" %}
+
+{% block title %}Administrare Articole - KronPapir{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Administrare Articole</h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-small">
+      Înapoi
+    </a>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
+    <a href="{{ url_for('admin_write') }}" class="admin-nav-link">Scrie Articol</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link active">Toate Articolele</a>
+  </div>
+</div>
+
+<div class="articles-admin-container">
+  <div class="articles-header">
+    <h2>Total: {{ total }} articole</h2>
+    <a href="{{ url_for('admin_write') }}" class="btn btn-primary">
+      + Articol Nou
+    </a>
+  </div>
+
+  {% if articles %}
+  <div class="table-responsive">
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th>Titlu</th>
+          <th>Categorie</th>
+          <th>Tip</th>
+          <th>Data</th>
+          <th>Sursă</th>
+          <th>Acțiuni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+        <tr>
+          <td class="title-cell">
+            <strong>{{ article.title[:70] }}{% if article.title|length > 70 %}...{% endif %}</strong>
+          </td>
+          <td>
+            <span class="category-badge">{{ article.category }}</span>
+          </td>
+          <td>
+            <span class="type-badge {% if article.type == 'national' %}type-national{% else %}type-local{% endif %}">
+              {{ article.type }}
+            </span>
+          </td>
+          <td>
+            <span class="date-cell">{{ article.date[:10] if article.date else 'N/A' }}</span>
+          </td>
+          <td>
+            <span class="source-cell">{{ article.source or 'Admin' }}</span>
+          </td>
+          <td class="actions-cell">
+            <a href="{{ url_for('article', article_id=article.id) }}" class="action-link" target="_blank" title="Vizualizează articol">
+              👁️
+            </a>
+            <a href="javascript:void(0);" onclick="deleteArticle('{{ article.id }}')" class="action-link delete" title="Șterge articol">
+              🗑️
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if page > 1 %}
+    <a href="{{ url_for('admin_articles', page=1) }}" class="page-link">« Prima</a>
+    <a href="{{ url_for('admin_articles', page=page-1) }}" class="page-link">‹ Anterioară</a>
+    {% endif %}
+
+    <span class="page-info">Pagina {{ page }} din {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('admin_articles', page=page+1) }}" class="page-link">Următoare ›</a>
+    <a href="{{ url_for('admin_articles', page=total_pages) }}" class="page-link">Ultima »</a>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <p>Nu sunt articole disponibile</p>
+    <a href="{{ url_for('admin_write') }}" class="btn btn-primary">
+      Adaugă Primul Articol
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.admin-header {
+  background: white;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--space-xl);
+  border-radius: 4px;
+}
+
+.admin-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.admin-title-bar h1 {
+  margin: 0;
+  color: #1a472a;
+}
+
+.admin-nav {
+  display: flex;
+  gap: var(--space-lg);
+  border-top: 1px solid #f0f0f0;
+  padding-top: var(--space-lg);
+}
+
+.admin-nav-link {
+  color: #666;
+  text-decoration: none;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.admin-nav-link:hover {
+  color: #1a472a;
+}
+
+.admin-nav-link.active {
+  color: #1a472a;
+  border-bottom-color: #1a472a;
+}
+
+.articles-admin-container {
+  background: white;
+  padding: var(--space-xl);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.articles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.articles-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.articles-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.articles-table thead {
+  background: #f9f9f9;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.articles-table th {
+  padding: var(--space-md) var(--space-lg);
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+}
+
+.articles-table td {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.articles-table tbody tr {
+  transition: background-color 0.3s;
+}
+
+.articles-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.title-cell {
+  max-width: 300px;
+  word-break: break-word;
+}
+
+.category-badge {
+  display: inline-block;
+  background: #e8f5f0;
+  color: #1a472a;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.type-badge.type-local {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.type-badge.type-national {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.date-cell,
+.source-cell {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.actions-cell {
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: center;
+}
+
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  text-decoration: none;
+  border-radius: 4px;
+  background: #f5f5f5;
+  transition: all 0.3s;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.action-link:hover {
+  background: #e0e0e0;
+}
+
+.action-link.delete:hover {
+  background: #ffebee;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+
+.page-link {
+  color: #1a472a;
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.page-link:hover {
+  background: #f5f5f5;
+  border-color: #1a472a;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl);
+  color: #999;
+}
+
+.empty-state p {
+  margin-bottom: var(--space-lg);
+}
+
+.btn-small {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .articles-table {
+    font-size: 0.85rem;
+  }
+
+  .articles-table th,
+  .articles-table td {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .title-cell {
+    max-width: 150px;
+  }
+
+  .articles-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .actions-cell {
+    gap: var(--space-sm);
+  }
+}
+</style>
+
+<script>
+function deleteArticle(articleId) {
+  if (!confirm('Sunteți sigur că doriți să ștergeți acest articol?')) {
+    return;
+  }
+
+  // This would require a delete endpoint
+  // For now, we'll show a message
+  alert('Funcția de ștergere va fi implementată în curând!');
+}
+</script>
+{% endblock %}

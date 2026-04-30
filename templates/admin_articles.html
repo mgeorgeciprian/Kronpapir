@@ -1,0 +1,567 @@
+{% extends "base.html" %}
+
+{% block title %}Administrare Articole - KronPapir{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Administrare Articole</h1>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn btn-secondary btn-small">
+      Înapoi
+    </a>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
+    <a href="{{ url_for('admin_write') }}" class="admin-nav-link">Scrie Articol</a>
+    <a href="{{ url_for('admin_raw_articles') }}" class="admin-nav-link">Articole Brute</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link active">Toate Articolele</a>
+    <a href="{{ url_for('admin_contributors') }}" class="admin-nav-link">Colaboratori{% if contributor_pending_count %} <span style="display:inline-block;background:#e65100;color:white;font-size:0.75rem;padding:2px 6px;border-radius:10px;font-weight:600;margin-left:4px;">{{ contributor_pending_count }}</span>{% endif %}</a>
+  </div>
+</div>
+
+<div class="articles-admin-container">
+  <!-- Search & Filter Bar -->
+  <form method="GET" action="{{ url_for('admin_articles') }}" class="filter-bar">
+    <div class="filter-row">
+      <div class="filter-group filter-search">
+        <input type="text" name="q" value="{{ q }}" placeholder="Caută în titlu sau conținut..." class="filter-input">
+      </div>
+      <div class="filter-group">
+        <select name="category" class="filter-select">
+          <option value="">Toate categoriile</option>
+          {% for cat_key in article_categories %}
+          <option value="{{ cat_key }}" {% if filter_category == cat_key %}selected{% endif %}>{{ categories.get(cat_key, cat_key|capitalize) }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="filter-group">
+        <select name="type" class="filter-select">
+          <option value="">Toate tipurile</option>
+          <option value="local" {% if filter_type == 'local' %}selected{% endif %}>Local</option>
+          <option value="national" {% if filter_type == 'national' %}selected{% endif %}>National</option>
+          <option value="editorial" {% if filter_type == 'editorial' %}selected{% endif %}>Editorial</option>
+        </select>
+      </div>
+      <div class="filter-group">
+        <select name="source" class="filter-select">
+          <option value="">Toate sursele</option>
+          {% for src in all_sources %}
+          <option value="{{ src }}" {% if filter_source == src %}selected{% endif %}>{{ src }}</option>
+          {% endfor %}
+        </select>
+      </div>
+    </div>
+    <div class="filter-row">
+      <div class="filter-group">
+        <label class="filter-label">De la:</label>
+        <input type="date" name="date_from" value="{{ date_from }}" class="filter-input filter-date">
+      </div>
+      <div class="filter-group">
+        <label class="filter-label">Până la:</label>
+        <input type="date" name="date_to" value="{{ date_to }}" class="filter-input filter-date">
+      </div>
+      <div class="filter-actions">
+        <button type="submit" class="btn btn-primary btn-small">Filtrează</button>
+        {% if has_filters %}
+        <a href="{{ url_for('admin_articles') }}" class="btn btn-secondary btn-small">Resetează</a>
+        {% endif %}
+      </div>
+    </div>
+  </form>
+
+  <div class="articles-header">
+    {% if has_filters %}
+    <h2>{{ total }} rezultate{% if q %} pentru „{{ q }}"{% endif %}</h2>
+    {% else %}
+    <h2>Total: {{ total }} articole</h2>
+    {% endif %}
+    <a href="{{ url_for('admin_write') }}" class="btn btn-primary">
+      + Articol Nou
+    </a>
+  </div>
+
+  {% if articles %}
+  <div class="table-responsive">
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th>Titlu</th>
+          <th>Categorie</th>
+          <th>Tip</th>
+          <th>Status</th>
+          <th>Data</th>
+          <th>Sursă</th>
+          <th>Acțiuni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for article in articles %}
+        <tr>
+          <td class="title-cell">
+            <strong>{{ article.title[:70] }}{% if article.title|length > 70 %}...{% endif %}</strong>
+          </td>
+          <td>
+            <span class="category-badge">{{ article.category }}</span>
+          </td>
+          <td>
+            <span class="type-badge {% if article.type == 'national' %}type-national{% else %}type-local{% endif %}">
+              {{ article.type }}
+            </span>
+          </td>
+          <td>
+            {% if article.processed %}
+              <span class="status-badge status-ai">AI</span>
+            {% else %}
+              <span class="status-badge status-copie">Copie</span>
+            {% endif %}
+          </td>
+          <td>
+            <span class="date-cell">{{ article.date[:10] if article.date else 'N/A' }}</span>
+          </td>
+          <td>
+            <span class="source-cell">{{ article.source or 'Admin' }}</span>
+          </td>
+          <td class="actions-cell">
+            <a href="{{ url_for('article', article_id=article.id) }}" class="action-link" target="_blank" title="Vizualizează articol">
+              👁️
+            </a>
+            <a href="{{ url_for('admin_edit', article_id=article.id) }}" class="action-link edit" title="Editează articol">
+              ✏️
+            </a>
+            {% if article.id in raw_article_ids %}
+            <a href="{{ url_for('admin_compare', article_id=article.id) }}" class="action-link compare" title="Compară cu originalul">
+              🔍
+            </a>
+            {% endif %}
+            <a href="javascript:void(0);" onclick="deleteArticle('{{ article.id }}')" class="action-link delete" title="Șterge articol">
+              🗑️
+            </a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+
+  <div class="pagination">
+    {% if page > 1 %}
+    <a href="{{ url_for('admin_articles', page=1, q=q, category=filter_category, type=filter_type, source=filter_source, date_from=date_from, date_to=date_to) }}" class="page-link">« Prima</a>
+    <a href="{{ url_for('admin_articles', page=page-1, q=q, category=filter_category, type=filter_type, source=filter_source, date_from=date_from, date_to=date_to) }}" class="page-link">‹ Anterioară</a>
+    {% endif %}
+
+    <span class="page-info">Pagina {{ page }} din {{ total_pages }}</span>
+
+    {% if page < total_pages %}
+    <a href="{{ url_for('admin_articles', page=page+1, q=q, category=filter_category, type=filter_type, source=filter_source, date_from=date_from, date_to=date_to) }}" class="page-link">Următoare ›</a>
+    <a href="{{ url_for('admin_articles', page=total_pages, q=q, category=filter_category, type=filter_type, source=filter_source, date_from=date_from, date_to=date_to) }}" class="page-link">Ultima »</a>
+    {% endif %}
+  </div>
+
+  {% else %}
+  <div class="empty-state">
+    <p>Nu sunt articole disponibile</p>
+    <a href="{{ url_for('admin_write') }}" class="btn btn-primary">
+      Adaugă Primul Articol
+    </a>
+  </div>
+  {% endif %}
+</div>
+
+<style>
+.filter-bar {
+  background: #f9f9f9;
+  padding: var(--space-lg);
+  border-radius: 8px;
+  margin-bottom: var(--space-xl);
+  border: 1px solid #e0e0e0;
+}
+
+.filter-row {
+  display: flex;
+  gap: var(--space-md);
+  align-items: center;
+  flex-wrap: wrap;
+  margin-bottom: var(--space-md);
+}
+
+.filter-row:last-child {
+  margin-bottom: 0;
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.filter-search {
+  flex: 1;
+  min-width: 200px;
+}
+
+.filter-label {
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.filter-input {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #1a472a;
+  box-shadow: 0 0 0 2px rgba(26,71,42,0.1);
+}
+
+.filter-search .filter-input {
+  width: 100%;
+}
+
+.filter-date {
+  width: 150px;
+}
+
+.filter-select {
+  padding: 8px 12px;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+  cursor: pointer;
+  min-width: 140px;
+}
+
+.filter-select:focus {
+  outline: none;
+  border-color: #1a472a;
+}
+
+.filter-actions {
+  display: flex;
+  gap: var(--space-sm);
+  margin-left: auto;
+}
+
+.admin-header {
+  background: white;
+  padding: var(--space-lg);
+  border-bottom: 1px solid #e0e0e0;
+  margin-bottom: var(--space-xl);
+  border-radius: 4px;
+}
+
+.admin-title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-lg);
+}
+
+.admin-title-bar h1 {
+  margin: 0;
+  color: #1a472a;
+}
+
+.admin-nav {
+  display: flex;
+  gap: var(--space-lg);
+  border-top: 1px solid #f0f0f0;
+  padding-top: var(--space-lg);
+}
+
+.admin-nav-link {
+  color: #666;
+  text-decoration: none;
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 3px solid transparent;
+  transition: all 0.3s;
+}
+
+.admin-nav-link:hover {
+  color: #1a472a;
+}
+
+.admin-nav-link.active {
+  color: #1a472a;
+  border-bottom-color: #1a472a;
+}
+
+.articles-admin-container {
+  background: white;
+  padding: var(--space-xl);
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+}
+
+.articles-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: var(--space-xl);
+  padding-bottom: var(--space-lg);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.articles-header h2 {
+  margin: 0;
+  color: #333;
+  font-size: 1.2rem;
+}
+
+.table-responsive {
+  overflow-x: auto;
+}
+
+.articles-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.95rem;
+}
+
+.articles-table thead {
+  background: #f9f9f9;
+  border-bottom: 2px solid #e0e0e0;
+}
+
+.articles-table th {
+  padding: var(--space-md) var(--space-lg);
+  text-align: left;
+  font-weight: 600;
+  color: #333;
+}
+
+.articles-table td {
+  padding: var(--space-md) var(--space-lg);
+  border-bottom: 1px solid #f0f0f0;
+}
+
+.articles-table tbody tr {
+  transition: background-color 0.3s;
+}
+
+.articles-table tbody tr:hover {
+  background-color: #f9f9f9;
+}
+
+.title-cell {
+  max-width: 300px;
+  word-break: break-word;
+}
+
+.category-badge {
+  display: inline-block;
+  background: #e8f5f0;
+  color: #1a472a;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.type-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+}
+
+.type-badge.type-local {
+  background: #e3f2fd;
+  color: #1565c0;
+}
+
+.type-badge.type-national {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.date-cell,
+.source-cell {
+  color: #999;
+  font-size: 0.9rem;
+}
+
+.actions-cell {
+  display: flex;
+  gap: var(--space-lg);
+  justify-content: center;
+}
+
+.action-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  text-decoration: none;
+  border-radius: 4px;
+  background: #f5f5f5;
+  transition: all 0.3s;
+  cursor: pointer;
+  font-size: 1.2rem;
+}
+
+.action-link:hover {
+  background: #e0e0e0;
+}
+
+.action-link.edit:hover {
+  background: #e3f2fd;
+}
+
+.action-link.delete:hover {
+  background: #ffebee;
+}
+
+.action-link.compare:hover {
+  background: #e8f5e9;
+}
+
+.status-badge {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+.status-ai {
+  background: #e8f5e9;
+  color: #2e7d32;
+}
+
+.status-copie {
+  background: #fff3e0;
+  color: #e65100;
+}
+
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-md);
+  margin-top: var(--space-xl);
+  padding-top: var(--space-xl);
+  border-top: 1px solid #f0f0f0;
+  flex-wrap: wrap;
+}
+
+.page-link {
+  color: #1a472a;
+  text-decoration: none;
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  transition: all 0.3s;
+}
+
+.page-link:hover {
+  background: #f5f5f5;
+  border-color: #1a472a;
+}
+
+.page-info {
+  color: #666;
+  font-weight: 500;
+}
+
+.empty-state {
+  text-align: center;
+  padding: var(--space-xl);
+  color: #999;
+}
+
+.empty-state p {
+  margin-bottom: var(--space-lg);
+}
+
+.btn-small {
+  padding: var(--space-sm) var(--space-md);
+  font-size: 0.9rem;
+}
+
+@media (max-width: 768px) {
+  .filter-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .filter-group {
+    width: 100%;
+  }
+
+  .filter-search {
+    min-width: auto;
+  }
+
+  .filter-select,
+  .filter-date {
+    width: 100%;
+  }
+
+  .filter-actions {
+    margin-left: 0;
+    justify-content: flex-start;
+  }
+
+  .articles-table {
+    font-size: 0.85rem;
+  }
+
+  .articles-table th,
+  .articles-table td {
+    padding: var(--space-sm) var(--space-md);
+  }
+
+  .title-cell {
+    max-width: 150px;
+  }
+
+  .articles-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: var(--space-md);
+  }
+
+  .actions-cell {
+    gap: var(--space-sm);
+  }
+}
+</style>
+
+<script>
+function deleteArticle(articleId) {
+  if (!confirm('Sunteți sigur că doriți să ștergeți definitiv acest articol? Aceasta nu poate fi anulată!')) {
+    return;
+  }
+
+  fetch("{{ url_for('admin_delete', article_id='ARTICLE_ID') }}".replace('ARTICLE_ID', articleId), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    }
+  })
+  .then(response => response.json())
+  .then(data => {
+    if (data.success) {
+      alert('Articol șters cu succes!');
+      location.reload();
+    } else {
+      alert('Eroare: ' + data.message);
+    }
+  })
+  .catch(error => {
+    alert('Eroare la ștergere: ' + error);
+  });
+}
+</script>
+{% endblock %}

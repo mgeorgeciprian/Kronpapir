@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="Știri Brașov - KronPapir, agregator de știri locale din Brașov și județul Brașov. Ultimele noutăți din inima Transilvaniei.">
+  <meta name="keywords" content="stiri brasov, știri Brașov, noutăți locale, Brașov, județul Brașov, stiri brasov azi, stiri locale brasov">
+  <meta name="author" content="KronPapir">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="language" content="Romanian">
+
+  <!-- Canonical URL -->
+  {% block canonical %}
+  <link rel="canonical" href="https://kronpapir.ro">
+  {% endblock %}
+
+  <!-- Hreflang -->
+  <link rel="alternate" hreflang="ro_RO" href="https://kronpapir.ro">
+  <link rel="alternate" hreflang="ro" href="https://kronpapir.ro">
+
+  <!-- Google Search Console Verification -->
+  {% if google_search_console_token %}
+  <meta name="google-site-verification" content="{{ google_search_console_token }}">
+  {% else %}
+  <!-- Uncomment after getting verification code from Google Search Console -->
+  <!-- <meta name="google-site-verification" content="YOUR-VERIFICATION-CODE"> -->
+  {% endif %}
+
+  <!-- Google AdSense Script (Uncomment after approval) -->
+  {% if adsense_enabled %}
+  <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client={{ adsense_client_id }}" crossorigin="anonymous"></script>
+  {% else %}
+  <!-- Google AdSense - Uncomment after approval -->
+  <!-- <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-XXXXXXXXXXXXXXXX" crossorigin="anonymous"></script> -->
+  {% endif %}
+
+  <!-- Open Graph Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="KronPapir">
+  <meta property="og:locale" content="ro_RO">
+  {% block og_tags %}
+  <meta property="og:title" content="KronPapir - Știri din Brașov">
+  <meta property="og:description" content="Agregator de știri locale din inima Transilvaniei">
+  <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+  <meta property="og:url" content="https://kronpapir.ro">
+  {% endblock %}
+
+  <!-- Twitter Card Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@kronpapir">
+  <meta name="twitter:title" content="KronPapir - Știri din Brașov">
+  <meta name="twitter:description" content="Agregator de știri locale din inima Transilvaniei">
+  <meta name="twitter:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+
+  <!-- JSON-LD Structured Data -->
+  {% block json_ld %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "KronPapir",
+    "description": "Știri din Brașov - agregator de știri locale din județul Brașov, Transilvania",
+    "url": "https://kronpapir.ro",
+    "inLanguage": "ro",
+    "potentialAction": {
+      "@type": "SearchAction",
+      "target": "https://kronpapir.ro/cautare?q={search_term_string}",
+      "query-input": "required name=search_term_string"
+    },
+    "publisher": {
+      "@type": "Organization",
+      "name": "KronPapir"
+    }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": "KronPapir",
+    "url": "https://kronpapir.ro",
+    "logo": {
+      "@type": "ImageObject",
+      "url": "https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}"
+    },
+    "description": "Agregator de știri locale din Brașov - ultimele noutăți din județul Brașov",
+    "foundingDate": "2025",
+    "areaServed": {
+      "@type": "AdministrativeArea",
+      "name": "Județul Brașov, România"
+    },
+    "sameAs": [
+      "https://www.facebook.com/kronpapir"
+    ],
+    "contactPoint": {
+      "@type": "ContactPoint",
+      "email": "redactia@kronpapir.ro",
+      "contactType": "editorial"
+    }
+  }
+  </script>
+  {% endblock %}
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+  <!-- Old base64 icon removed -->
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  {% block extra_css %}{% endblock %}
+
+  <title>{% block title %}KronPapir{% endblock %}</title>
+</head>
+<body>
+  <!-- Info Bar (curs valutar + vreme rapidă) -->
+  <div id="info-bar" style="background-color: #1a1a2e; color: #ccc; font-size: 0.78rem; padding: 4px 0; border-bottom: 1px solid #333;">
+    <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span>📅 <span id="info-date"></span></span>
+        <span style="color: #666;">|</span>
+        <span>💶 EUR: <strong id="eur-rate" style="color: #C9A84C;">--</strong> RON</span>
+        <span>💵 USD: <strong id="usd-rate" style="color: #C9A84C;">--</strong> RON</span>
+        <span>💷 GBP: <strong id="gbp-rate" style="color: #C9A84C;">--</strong> RON</span>
+      </div>
+      <div style="display: flex; gap: 12px; align-items: center;">
+        <span>🌡️ Brașov: <strong id="info-temp" style="color: #fff;">--°C</strong></span>
+        <span style="color: #666;">|</span>
+        <span>🌿 AQI: <strong id="info-aqi" style="color: #4caf50;">--</strong></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Header -->
+  <header>
+    <div class="header-top">
+      <a href="/" class="logo">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="KronPapir" class="logo-img">
+      </a>
+    </div>
+
+    <!-- Breaking News Ticker -->
+    {% if featured %}
+    <div class="breaking-news">
+      <span class="breaking-content">
+        {% if featured.title %}
+          {{ featured.title }}
+        {% else %}
+          Acces la ultimele știri locale din Brașov
+        {% endif %}
+      </span>
+    </div>
+    {% endif %}
+
+    <!-- Main Navigation -->
+    <nav class="main-nav">
+      <ul class="nav-links">
+        <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">Acasă</a></li>
+        <li><a href="/local" class="{% if request.path.startswith('/local') %}active{% endif %}">Știri Locale</a></li>
+        <li><a href="/national" class="{% if request.path.startswith('/national') %}active{% endif %}">Naționale</a></li>
+        <li><a href="/editoriale" class="{% if request.path.startswith('/editoriale') %}active{% endif %}">Editoriale</a></li>
+        <li><a href="/colaborator/inregistrare" class="{% if request.path.startswith('/colaborator') %}active{% endif %}">Colaboreaza</a></li>
+        <li class="dropdown">
+          <a href="#">Categorii ▼</a>
+          <ul class="dropdown-menu">
+            <li><a href="/categorie/politica">Politică</a></li>
+            <li><a href="/categorie/economie">Economie</a></li>
+            <li><a href="/categorie/cultura">Cultură</a></li>
+            <li><a href="/categorie/sport">Sport</a></li>
+            <li><a href="/categorie/sanatate">Sănătate</a></li>
+            <li><a href="/categorie/social">Social</a></li>
+            <li><a href="/categorie/mediu">Mediu</a></li>
+          </ul>
+        </li>
+        <li><a href="/despre">Despre</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  {% if contributor_logged_in %}
+  <!-- Contributor Session Bar -->
+  <div style="background: #e8f5e9; padding: 6px 0; border-bottom: 1px solid #c8e6c9; font-size: 0.85rem;">
+    <div class="container" style="display: flex; justify-content: flex-end; align-items: center; gap: var(--space-md);">
+      <span style="color: #2e7d32;">Conectat ca <strong>{{ contributor_name }}</strong></span>
+      <a href="/colaborator/panou" style="color: #1a472a; font-weight: 600; text-decoration: none;">Panoul meu</a>
+      <a href="/colaborator/logout" style="color: #666; text-decoration: none;">Iesire</a>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Header Ad Slot or Recommended Articles -->
+  {% if adsense_enabled %}
+  <!-- Leaderboard Ad (728x90) -->
+  <div class="container" style="margin-top: var(--space-md); margin-bottom: var(--space-md); text-align: center;">
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:728px;height:90px"
+         data-ad-client="{{ adsense_client_id }}"
+         data-ad-slot="XXXXXXXXXX"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+  {% elif random_articles and random_articles|length > 0 %}
+  <!-- Articole Recomandate (înlocuiește ad-ul până la aprobarea AdSense) -->
+  <div class="container" style="margin-top: var(--space-md); margin-bottom: var(--space-md);">
+    <div style="display: flex; gap: var(--space-md); overflow-x: auto; padding: var(--space-sm) 0;">
+      {% for ra in random_articles[:3] %}
+      <a href="{{ ra|article_url }}" style="display: flex; align-items: center; gap: var(--space-sm); background: var(--surface); padding: var(--space-sm) var(--space-md); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-decoration: none; min-width: 280px; flex: 1;">
+        <span class="category-tag {{ ra.category }}" style="font-size: 0.7rem; padding: 2px 6px;">{{ ra.category }}</span>
+        <span style="font-size: 0.85rem; color: var(--text-primary); font-weight: 500; line-height: 1.3;">{{ ra.title[:60] }}{% if ra.title|length > 60 %}...{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Main Content -->
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer Ad Slot or Recommended Articles -->
+  {% if adsense_enabled %}
+  <!-- Leaderboard Ad (728x90) -->
+  <div class="container" style="margin-bottom: var(--space-lg); text-align: center;">
+    <ins class="adsbygoogle"
+         style="display:inline-block;width:728px;height:90px"
+         data-ad-client="{{ adsense_client_id }}"
+         data-ad-slot="YYYYYYYYY"></ins>
+    <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
+  </div>
+  {% elif random_articles and random_articles|length > 3 %}
+  <!-- Articole Recomandate - Footer (înlocuiește ad-ul până la aprobarea AdSense) -->
+  <div class="container" style="margin-bottom: var(--space-lg);">
+    <div style="display: flex; gap: var(--space-md); overflow-x: auto; padding: var(--space-sm) 0;">
+      {% for ra in random_articles[3:6] %}
+      <a href="{{ ra|article_url }}" style="display: flex; align-items: center; gap: var(--space-sm); background: var(--surface); padding: var(--space-sm) var(--space-md); border-radius: var(--radius); box-shadow: 0 1px 3px rgba(0,0,0,0.08); text-decoration: none; min-width: 280px; flex: 1;">
+        <span class="category-tag {{ ra.category }}" style="font-size: 0.7rem; padding: 2px 6px;">{{ ra.category }}</span>
+        <span style="font-size: 0.85rem; color: var(--text-primary); font-weight: 500; line-height: 1.3;">{{ ra.title[:60] }}{% if ra.title|length > 60 %}...{% endif %}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>KronPapir</h3>
+          <p>Agregator automat de știri locale din Brașov.</p>
+          <p style="font-size: 0.85rem; margin-top: var(--space-lg); color: rgba(255,255,255,0.6);">Powered by AI</p>
+        </div>
+        <div class="footer-section">
+          <h3>Navigare</h3>
+          <a href="/">Acasă</a>
+          <a href="/local">Știri Locale</a>
+          <a href="/national">Știri Naționale</a>
+          <a href="/editoriale">Editoriale</a>
+          <a href="/colaborator/inregistrare">Devino Colaborator</a>
+          <a href="/despre">Despre</a>
+        </div>
+        <div class="footer-section">
+          <h3>Informații Legale</h3>
+          <a href="/despre">Despre Noi</a>
+          <a href="/confidentialitate">Confidențialitate</a>
+          <a href="/termeni">Termeni și Condiții</a>
+          <a href="/contact">Contact</a>
+        </div>
+        <div class="footer-section">
+          <h3>Contacte</h3>
+          <p>Email: <a href="mailto:redactia@kronpapir.ro">redactia@kronpapir.ro</a></p>
+          <p>Brașov, România</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 KronPapir. Toate drepturile rezervate. | <a href="/confidentialitate" style="color: rgba(255,255,255,0.9);">Politica de Confidențialitate</a> | <a href="/termeni" style="color: rgba(255,255,255,0.9);">Termeni și Condiții</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cookie Banner -->
+  {% include 'cookie_banner.html' %}
+
+  <!-- Info Bar + Weather + Air Quality + Exchange Rate Scripts -->
+  <script>
+  // === INFO BAR: Date ===
+  (function() {
+    const dateEl = document.getElementById('info-date');
+    if (!dateEl) return;
+    const zile = ['Duminică','Luni','Marți','Miercuri','Joi','Vineri','Sâmbătă'];
+    const luni = ['ianuarie','februarie','martie','aprilie','mai','iunie','iulie','august','septembrie','octombrie','noiembrie','decembrie'];
+    const d = new Date();
+    dateEl.textContent = zile[d.getDay()] + ', ' + d.getDate() + ' ' + luni[d.getMonth()] + ' ' + d.getFullYear();
+  })();
+
+  // === EXCHANGE RATES: EUR/USD/GBP → RON via Frankfurter API (BCE) ===
+  (function() {
+    fetch('https://api.frankfurter.app/latest?from=EUR&to=RON,USD,GBP')
+      .then(r => r.json())
+      .then(data => {
+        const rates = data.rates;
+        const eurRon = rates.RON;
+        document.getElementById('eur-rate').textContent = eurRon ? eurRon.toFixed(4) : '--';
+
+        // USD to RON = EUR/RON ÷ EUR/USD
+        if (rates.USD && eurRon) {
+          document.getElementById('usd-rate').textContent = (eurRon / rates.USD).toFixed(4);
+        }
+        // GBP to RON = EUR/RON ÷ EUR/GBP
+        if (rates.GBP && eurRon) {
+          document.getElementById('gbp-rate').textContent = (eurRon / rates.GBP).toFixed(4);
+        }
+      })
+      .catch(() => {});
+  })();
+
+  // === WEATHER via Open-Meteo (free, no API key) ===
+  (function() {
+    fetch('https://api.open-meteo.com/v1/forecast?latitude=45.6427&longitude=25.5887&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=Europe/Bucharest')
+      .then(r => r.json())
+      .then(data => {
+        const c = data.current;
+        const temp = Math.round(c.temperature_2m);
+        const humidity = c.relative_humidity_2m;
+        const wind = Math.round(c.wind_speed_10m);
+        const code = c.weather_code;
+
+        const descriptions = {
+          0: 'Cer senin ☀️', 1: 'Predominant senin 🌤️', 2: 'Parțial noros ⛅',
+          3: 'Acoperit ☁️', 45: 'Ceață 🌫️', 48: 'Ceață cu chiciură 🌫️',
+          51: 'Burniță ușoară 🌦️', 53: 'Burniță 🌧️', 55: 'Burniță densă 🌧️',
+          61: 'Ploaie ușoară 🌦️', 63: 'Ploaie 🌧️', 65: 'Ploaie abundentă 🌧️',
+          71: 'Ninsoare ușoară ❄️', 73: 'Ninsoare ❄️', 75: 'Ninsoare abundentă ❄️',
+          80: 'Averse ușoare 🌦️', 81: 'Averse 🌧️', 82: 'Averse puternice ⛈️',
+          95: 'Furtună ⛈️', 96: 'Furtună cu grindină ⛈️'
+        };
+        const desc = descriptions[code] || 'Variabil 🌤️';
+
+        // Sidebar widget
+        const wTemp = document.getElementById('weather-temp');
+        if (wTemp) wTemp.textContent = temp + '°C';
+        const wDesc = document.getElementById('weather-desc');
+        if (wDesc) wDesc.textContent = desc;
+        const wWind = document.getElementById('weather-wind');
+        if (wWind) wWind.textContent = '💨 ' + wind + ' km/h  ';
+        const wHum = document.getElementById('weather-humidity');
+        if (wHum) wHum.textContent = '💧 ' + humidity + '%';
+
+        // Info bar (compact)
+        const iTemp = document.getElementById('info-temp');
+        if (iTemp) iTemp.textContent = temp + '°C';
+      })
+      .catch(() => {
+        const wDesc = document.getElementById('weather-desc');
+        if (wDesc) wDesc.textContent = 'Indisponibil';
+      });
+  })();
+
+  // === AIR QUALITY via Open-Meteo (free, no API key, European AQI) ===
+  (function() {
+    fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=45.6427&longitude=25.5887&current=european_aqi,pm10,pm2_5,nitrogen_dioxide&timezone=Europe%2FBucharest')
+      .then(r => r.json())
+      .then(data => {
+        const c = data.current;
+        const aqi = c.european_aqi;
+        let label, color;
+
+        // European AQI scale (EAQI)
+        if (aqi <= 20) { label = 'Buna'; color = '#4caf50'; }
+        else if (aqi <= 40) { label = 'Acceptabila'; color = '#8bc34a'; }
+        else if (aqi <= 60) { label = 'Moderata'; color = '#ff9800'; }
+        else if (aqi <= 80) { label = 'Slaba'; color = '#ff5722'; }
+        else if (aqi <= 100) { label = 'F. Slaba'; color = '#f44336'; }
+        else { label = 'Periculoasa'; color = '#9c27b0'; }
+
+        // Sidebar widget
+        const aqiVal = document.getElementById('aqi-value');
+        if (aqiVal) { aqiVal.textContent = aqi; aqiVal.style.color = color; }
+        const aqiLbl = document.getElementById('aqi-label');
+        if (aqiLbl) aqiLbl.textContent = label;
+
+        let details = [];
+        if (c.pm2_5 != null) details.push('PM2.5: ' + c.pm2_5.toFixed(1));
+        if (c.pm10 != null) details.push('PM10: ' + c.pm10.toFixed(1));
+        if (c.nitrogen_dioxide != null) details.push('NO\u2082: ' + c.nitrogen_dioxide.toFixed(1));
+        const aqiDet = document.getElementById('aqi-details');
+        if (aqiDet && details.length) aqiDet.textContent = details.join(' | ');
+
+        // Info bar (compact)
+        const infoAqi = document.getElementById('info-aqi');
+        if (infoAqi) { infoAqi.textContent = aqi; infoAqi.style.color = color; }
+      })
+      .catch(() => {
+        const aqiLbl = document.getElementById('aqi-label');
+        if (aqiLbl) aqiLbl.textContent = 'Indisponibil';
+      });
+  })();
+  </script>
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

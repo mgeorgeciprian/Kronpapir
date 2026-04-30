@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="ro">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+
+  <!-- SEO Meta Tags -->
+  <meta name="description" content="KronPapir - Agregator de știri locale din Brașov și Covasna. Ultimele noutăți din inima Transilvaniei.">
+  <meta name="keywords" content="știri Brașov, știri Covasna, noutăți locale, Brașov">
+  <meta name="author" content="KronPapir">
+  <meta name="robots" content="index, follow, max-image-preview:large">
+  <meta name="language" content="Romanian">
+
+  <!-- Canonical URL -->
+  {% block canonical %}
+  <link rel="canonical" href="https://kronpapir.ro">
+  {% endblock %}
+
+  <!-- Hreflang -->
+  <link rel="alternate" hreflang="ro_RO" href="https://kronpapir.ro">
+  <link rel="alternate" hreflang="ro" href="https://kronpapir.ro">
+
+  <!-- Search Console Verification Placeholder -->
+  <!-- Replace with your actual verification code from Google Search Console -->
+  <!-- <meta name="google-site-verification" content="YOUR-VERIFICATION-CODE"> -->
+
+  <!-- Google AdSense Verification Placeholder -->
+  <!-- Replace with your actual AdSense verification code after approval -->
+  <!-- <meta name="google-adsense-account" content="ca-pub-XXXXXXXXXXXXXXXX"> -->
+
+  <!-- Open Graph Tags -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="KronPapir">
+  <meta property="og:locale" content="ro_RO">
+  {% block og_tags %}
+  <meta property="og:title" content="KronPapir - Știri din Brașov și Covasna">
+  <meta property="og:description" content="Agregator de știri locale din inima Transilvaniei">
+  <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+  <meta property="og:url" content="https://kronpapir.ro">
+  {% endblock %}
+
+  <!-- Twitter Card Tags -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:site" content="@kronpapir">
+  <meta name="twitter:title" content="KronPapir - Știri din Brașov și Covasna">
+  <meta name="twitter:description" content="Agregator de știri locale din inima Transilvaniei">
+  <meta name="twitter:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+
+  <!-- JSON-LD Structured Data -->
+  {% block json_ld %}
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebSite",
+    "name": "KronPapir",
+    "description": "Agregator de știri locale din Brașov și Covasna",
+    "url": "https://kronpapir.ro",
+    "inLanguage": "ro",
+    "publisher": {
+      "@type": "Organization",
+      "name": "KronPapir",
+      "logo": {
+        "@type": "ImageObject",
+        "url": "{{ url_for('static', filename='images/og-image.png') }}"
+      }
+    }
+  }
+  </script>
+  {% endblock %}
+
+  <!-- Favicon -->
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
+  <!-- Old base64 icon removed -->
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Stylesheets -->
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+  {% block extra_css %}{% endblock %}
+
+  <title>{% block title %}KronPapir{% endblock %}</title>
+</head>
+<body>
+  <!-- Header -->
+  <header>
+    <div class="header-top">
+      <a href="/" class="logo">
+        <img src="{{ url_for('static', filename='images/logo.svg') }}" alt="KronPapir" class="logo-img">
+      </a>
+    </div>
+
+    <!-- Breaking News Ticker -->
+    {% if featured %}
+    <div class="breaking-news">
+      <span class="breaking-content">
+        {% if featured.title %}
+          {{ featured.title }}
+        {% else %}
+          Acces la ultimele știri locale din Brașov și Covasna
+        {% endif %}
+      </span>
+    </div>
+    {% endif %}
+
+    <!-- Main Navigation -->
+    <nav class="main-nav">
+      <ul class="nav-links">
+        <li><a href="/" class="{% if request.path == '/' %}active{% endif %}">Acasă</a></li>
+        <li><a href="/local" class="{% if request.path.startswith('/local') %}active{% endif %}">Știri Locale</a></li>
+        <li><a href="/national" class="{% if request.path.startswith('/national') %}active{% endif %}">Naționale</a></li>
+        <li class="dropdown">
+          <a href="#">Categorii ▼</a>
+          <ul class="dropdown-menu">
+            <li><a href="/categorie/politica">Politică</a></li>
+            <li><a href="/categorie/economie">Economie</a></li>
+            <li><a href="/categorie/cultura">Cultură</a></li>
+            <li><a href="/categorie/sport">Sport</a></li>
+            <li><a href="/categorie/sanatate">Sănătate</a></li>
+            <li><a href="/categorie/social">Social</a></li>
+            <li><a href="/categorie/mediu">Mediu</a></li>
+          </ul>
+        </li>
+        <li><a href="/despre">Despre</a></li>
+      </ul>
+    </nav>
+  </header>
+
+  <!-- Leaderboard Ad (728x90) - Between Header and Content -->
+  <div class="ad-slot leaderboard">
+    <!-- Replace with Google AdSense code after approval -->
+    Spațiu publicitar
+  </div>
+
+  <!-- Main Content -->
+  <main class="container">
+    {% block content %}{% endblock %}
+  </main>
+
+  <!-- Footer Leaderboard Ad (728x90) - Before Footer -->
+  <div class="ad-slot footer-leaderboard">
+    <!-- Replace with Google AdSense code after approval -->
+    Spațiu publicitar
+  </div>
+
+  <!-- Footer -->
+  <footer>
+    <div class="container">
+      <div class="footer-content">
+        <div class="footer-section">
+          <h3>KronPapir</h3>
+          <p>Agregator automat de știri locale din Brașov și Covasna.</p>
+          <p style="font-size: 0.85rem; margin-top: var(--space-lg); color: rgba(255,255,255,0.6);">Powered by AI</p>
+        </div>
+        <div class="footer-section">
+          <h3>Navigare</h3>
+          <a href="/">Acasă</a>
+          <a href="/local">Știri Locale</a>
+          <a href="/national">Știri Naționale</a>
+          <a href="/despre">Despre</a>
+        </div>
+        <div class="footer-section">
+          <h3>Informații Legale</h3>
+          <a href="/despre">Despre Noi</a>
+          <a href="/confidentialitate">Confidențialitate</a>
+          <a href="/termeni">Termeni și Condiții</a>
+          <a href="/contact">Contact</a>
+        </div>
+        <div class="footer-section">
+          <h3>Contacte</h3>
+          <p>Email: <a href="mailto:redactia@kronpapir.ro">redactia@kronpapir.ro</a></p>
+          <p>Brașov, România</p>
+        </div>
+      </div>
+      <div class="footer-bottom">
+        <p>&copy; 2025 KronPapir. Toate drepturile rezervate. | <a href="/confidentialitate" style="color: rgba(255,255,255,0.9);">Politica de Confidențialitate</a> | <a href="/termeni" style="color: rgba(255,255,255,0.9);">Termeni și Condiții</a></p>
+      </div>
+    </div>
+  </footer>
+
+  <!-- Cookie Banner -->
+  {% include 'cookie_banner.html' %}
+
+  {% block extra_js %}{% endblock %}
+</body>
+</html>

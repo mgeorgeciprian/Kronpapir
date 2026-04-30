@@ -1,0 +1,40 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="400" fill="#1a1a2e"/>
+
+  <!-- Chart area -->
+  <g transform="translate(120, 60)">
+    <!-- Grid lines -->
+    <line x1="0" y1="0" x2="360" y2="0" stroke="white" stroke-width="1" opacity="0.2"/>
+    <line x1="0" y1="50" x2="360" y2="50" stroke="white" stroke-width="1" opacity="0.2"/>
+    <line x1="0" y1="100" x2="360" y2="100" stroke="white" stroke-width="1" opacity="0.2"/>
+    <line x1="0" y1="150" x2="360" y2="150" stroke="white" stroke-width="1" opacity="0.2"/>
+
+    <!-- Chart bars -->
+    <rect x="20" y="100" width="30" height="50" fill="#2E7D32" opacity="0.7"/>
+    <rect x="65" y="80" width="30" height="70" fill="#2E7D32" opacity="0.8"/>
+    <rect x="110" y="60" width="30" height="90" fill="#2E7D32" opacity="0.9"/>
+    <rect x="155" y="40" width="30" height="110" fill="#2E7D32"/>
+    <rect x="200" y="70" width="30" height="80" fill="#2E7D32" opacity="0.85"/>
+    <rect x="245" y="50" width="30" height="100" fill="#2E7D32" opacity="0.8"/>
+    <rect x="290" y="75" width="30" height="75" fill="#2E7D32" opacity="0.75"/>
+  </g>
+
+  <!-- Money/coin symbols -->
+  <g transform="translate(450, 120)" opacity="0.6">
+    <!-- Dollar sign -->
+    <text x="0" y="30" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#2E7D32">$</text>
+  </g>
+
+  <g transform="translate(450, 240)" opacity="0.5">
+    <!-- Euro sign -->
+    <text x="0" y="30" font-family="Arial, sans-serif" font-size="48" font-weight="bold" fill="#2E7D32">€</text>
+  </g>
+
+  <!-- Trending up indicator -->
+  <polyline points="80,280 120,260 160,240 200,220" fill="none" stroke="#2E7D32" stroke-width="3" opacity="0.7"/>
+  <polygon points="200,220 210,235 190,230" fill="#2E7D32" opacity="0.7"/>
+
+  <!-- Category label -->
+  <text x="300" y="370" font-family="Arial, sans-serif" font-size="16" font-weight="300" fill="white" opacity="0.7" text-anchor="middle">Economie</text>
+</svg>

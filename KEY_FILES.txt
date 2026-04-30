@@ -1,0 +1,169 @@
+KronPapir Frontend - KEY FILES REFERENCE
+=========================================
+
+Start here to understand the project structure and key components.
+
+ABSOLUTE PATHS TO KEY FILES
+===========================
+
+1. FLASK APPLICATION
+   File: /sessions/friendly-affectionate-meitner/kronpapir/web/app.py
+   Size: 245 lines
+   Purpose: Main Flask web server with all routes and API endpoints
+   
+   Key Sections:
+   - Import declarations (lines 1-7)
+   - Configuration (lines 9-21)
+   - Routes (lines 24-180)
+   - Error handlers (lines 183-191)
+   - Main execution (lines 194-195)
+
+2. MASTER TEMPLATE
+   File: /sessions/friendly-affectionate-meitner/kronpapir/templates/base.html
+   Size: 121 lines
+   Purpose: Main HTML template inherited by all pages
+   
+   Key Sections:
+   - HTML5 head with meta tags (lines 1-40)
+   - Header and navigation (lines 42-75)
+   - Main content block (lines 77-80)
+   - Footer (lines 82-112)
+   - Block extensions for child templates (lines 114-121)
+
+3. HOMEPAGE
+   File: /sessions/friendly-affectionate-meitner/kronpapir/templates/index.html
+   Size: 163 lines
+   Purpose: Homepage with featured article and latest news
+   
+   Key Sections:
+   - Featured article hero (lines 15-45)
+   - Latest articles grid (lines 47-75)
+   - Most read section (lines 77-105)
+   - Sidebar with national news (lines 107-163)
+
+4. CSS STYLESHEET
+   File: /sessions/friendly-affectionate-meitner/kronpapir/static/css/style.css
+   Size: 946 lines
+   Purpose: Complete responsive design with dark mode
+   
+   Key Sections:
+   - CSS Variables (lines 1-22)
+   - Dark mode media query (lines 24-40)
+   - Base styles (lines 43-120)
+   - Header & navigation (lines 123-240)
+   - Main container & layout (lines 243-285)
+   - Hero section (lines 288-385)
+   - Article grid (lines 388-480)
+   - Sidebar (lines 483-570)
+   - Article page (lines 780-950)
+   - Footer (lines 870-910)
+   - Print styles (lines 925-946)
+
+5. SAMPLE DATA
+   File: /sessions/friendly-affectionate-meitner/kronpapir/data/processed/sample.json
+   Size: 99 lines / 8 articles
+   Purpose: Example data structure for articles
+   
+   Structure:
+   - Array of article objects
+   - Each article has: id, title, excerpt, content, category, date, source, type, author, image, url
+   - Demonstrates all 8 categories
+   - Includes both local and national articles
+
+6. DEPENDENCIES
+   File: /sessions/friendly-affectionate-meitner/kronpapir/requirements.txt
+   Size: 5 lines
+   Purpose: Python package dependencies
+   
+   Packages:
+   - Flask==3.0.0 (web framework)
+   - Jinja2==3.1.2 (templating)
+   - Werkzeug==3.0.1 (WSGI)
+   - click==8.1.7 (CLI)
+   - itsdangerous==2.1.2 (security)
+
+OTHER IMPORTANT TEMPLATES
+========================
+
+Local News: /sessions/friendly-affectionate-meitner/kronpapir/templates/local.html (95 lines)
+National News: /sessions/friendly-affectionate-meitner/kronpapir/templates/national.html (99 lines)
+Category Pages: /sessions/friendly-affectionate-meitner/kronpapir/templates/category.html (96 lines)
+Article Detail: /sessions/friendly-affectionate-meitner/kronpapir/templates/article.html (144 lines)
+About Page: /sessions/friendly-affectionate-meitner/kronpapir/templates/about.html (150 lines)
+404 Error: /sessions/friendly-affectionate-meitner/kronpapir/templates/404.html (19 lines)
+500 Error: /sessions/friendly-affectionate-meitner/kronpapir/templates/500.html (22 lines)
+
+DOCUMENTATION FILES
+===================
+
+README.md (primary project documentation)
+FRONTEND_README.md (technical frontend guide)
+FRONTEND_FILES.txt (complete file listing)
+
+STARTUP SCRIPT
+==============
+
+run.sh (executable)
+- Creates Python virtual environment
+- Installs dependencies
+- Starts Flask server on localhost:5000
+
+QUICK REFERENCE
+==============
+
+Project Structure:
+  kronpapir/
+    ├── web/app.py                  <- Main Flask app
+    ├── templates/                  <- HTML templates
+    │   ├── base.html               <- Master template
+    │   ├── index.html              <- Homepage
+    │   ├── local.html              <- Local news
+    │   ├── national.html           <- National news
+    │   ├── category.html           <- Category filter
+    │   ├── article.html            <- Article detail
+    │   ├── about.html              <- About page
+    │   ├── 404.html                <- Error page
+    │   └── 500.html                <- Error page
+    ├── static/css/
+    │   └── style.css               <- Styling (946 lines)
+    ├── data/processed/
+    │   └── sample.json             <- Sample articles
+    └── requirements.txt            <- Dependencies
+
+To Start:
+  1. cd /sessions/friendly-affectionate-meitner/kronpapir
+  2. pip install -r requirements.txt
+  3. cd web && python app.py
+  4. Visit http://localhost:5000
+
+Key Routes:
+  / - Homepage
+  /local - Local news
+  /national - National news
+  /categorie/<cat> - By category
+  /articol/<id> - Article detail
+  /despre - About
+  /api/articles - JSON API
+
+Colors:
+  Primary: #1a472a (Dark Green)
+  Secondary: #2d6a42 (Medium Green)
+  Accent: #c41e3a (Red)
+  Background: #f5f0e8 (Cream)
+
+Typography:
+  Headlines: Playfair Display
+  Body: Inter
+  Code: Courier New
+
+Article Categories:
+  - local (Local)
+  - politica (Politics)
+  - economie (Economy)
+  - cultura (Culture)
+  - sport (Sports)
+  - sanatate (Health)
+  - social (Social)
+  - mediu (Environment)
+
+For help, see FRONTEND_README.md or IMPLEMENTATION_SUMMARY.txt

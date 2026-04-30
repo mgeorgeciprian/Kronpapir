@@ -1,0 +1,99 @@
+[
+  {
+    "id": "1",
+    "title": "Noua pasarelă peste râul Prahova va fi inaugurat în această lună",
+    "excerpt": "Autoritățile locale din Brașov au anunțat că noua pasarelă de cale ferată va fi deschisă pentru circulație în curând, îmbunătățind conectivitatea transportului public.",
+    "content": "Noua pasarelă peste râul Prahova va fi inaugurat în această lună. Autoritățile locale din Brașov au anunțat că noua pasarelă de cale ferată va fi deschisă pentru circulație în curând, îmbunătățind conectivitatea transportului public.\n\nProiectul a fost finanțat cu fonduri europene și va reduce timpii de deplasare pentru mii de pasageri zilnici. Inaugurarea oficială este programată pentru data de 15 februarie, cu prezența autorităților centrale și locale.",
+    "category": "local",
+    "date": "2024-02-08",
+    "source": "Brașov Live",
+    "type": "local",
+    "author": "Ioan Popescu",
+    "image": "https://via.placeholder.com/600x400?text=Pasarela+Prahova",
+    "url": "https://brasovlive.ro/pasarela-prahova"
+  },
+  {
+    "id": "2",
+    "title": "Bergenbahn lansează noi linii de autobus cu hidrogen în Brașov",
+    "excerpt": "Compania de transport anunță investiții în tehnologie ecologică pentru transportul public din oraș.",
+    "content": "Bergenbahn lansează noi linii de autobus cu hidrogen în Brașov. Compania de transport anunță investiții în tehnologie ecologică pentru transportul public din oraș.\n\nPrimele 10 autobuse cu motor pe bază de hidrogen vor intra în circulație în martie 2024. Aceasta este parte a unui plan mai larg de decarbonizare a sectorului de transport public.",
+    "category": "economie",
+    "date": "2024-02-07",
+    "source": "Business Brașov",
+    "type": "local",
+    "image": "https://via.placeholder.com/600x400?text=Autobus+Hidrogen",
+    "url": "https://businessbrasov.ro/bergenbahn-hidrogen"
+  },
+  {
+    "id": "3",
+    "title": "Festivalul de Film de la Brașov: Apel de participare pentru opere documentare",
+    "excerpt": "Organizatorii deschid înregistrările pentru ediția din 2024 a celui mai important festival de film din Transilvania.",
+    "content": "Festivalul de Film de la Brașov: Apel de participare pentru opere documentare. Organizatorii deschid înregistrările pentru ediția din 2024 a celui mai important festival de film din Transilvania.\n\nFestivalul va avea loc în perioada 10-20 octombrie și va cuprinde competiții pentru filme documentare, scurtmetraje și lungmetraje. Deadline-ul pentru înscrierea lucrărilor este 1 martie 2024.",
+    "category": "cultura",
+    "date": "2024-02-06",
+    "source": "Cultural Brașov",
+    "type": "local",
+    "image": "https://via.placeholder.com/600x400?text=Festival+Film",
+    "url": "https://culturalbrasov.ro/festival-film-2024"
+  },
+  {
+    "id": "4",
+    "title": "CSU Brașov avansează în Liga 1 după o victorie decisivă",
+    "excerpt": "Echipa de fotbal a Brașovului obține o victorie importantă în lupta pentru promovare.",
+    "content": "CSU Brașov avansează în Liga 1 după o victorie decisivă. Echipa de fotbal a Brașovului obține o victorie importantă în lupta pentru promovare.\n\nCu un scor de 2-1, CSU Brașov a câștigat meciul de duminică, consolidând poziția sa la vârful clasamentului Ligii 2.",
+    "category": "sport",
+    "date": "2024-02-05",
+    "source": "Sport Brașov",
+    "type": "local",
+    "image": "https://via.placeholder.com/600x400?text=CSU+Brasov",
+    "url": "https://sportbrasov.ro/csu-brasov-victorie"
+  },
+  {
+    "id": "5",
+    "title": "Guvernul aprobă noi subvenții pentru fermieri în Covasna",
+    "excerpt": "Pachetul de sprijin include măsuri pentru agricultura sustenabilă și dezvoltare rurală.",
+    "content": "Guvernul aprobă noi subvenții pentru fermieri în Covasna. Pachetul de sprijin include măsuri pentru agricultura sustenabilă și dezvoltare rurală.\n\nCu o valoare de 50 milioane lei, programul va beneficia aproximativ 1.500 de exploatații agricole din județul Covasna. Perioada de înscrierii va fi deschisă până la 15 martie.",
+    "category": "economie",
+    "date": "2024-02-04",
+    "source": "Știri Naționale",
+    "type": "national",
+    "image": "https://via.placeholder.com/600x400?text=Agricultura",
+    "url": "https://stiiniationale.ro/agricultura-covasna"
+  },
+  {
+    "id": "6",
+    "title": "Spitalul Municipal din Brașov modernizează secția de pediatrie",
+    "excerpt": "Investiție de 5 milioane de euro pentru dotări medicale moderne și spații mai bune pentru copii.",
+    "content": "Spitalul Municipal din Brașov modernizează secția de pediatrie. Investiție de 5 milioane de euro pentru dotări medicale moderne și spații mai bune pentru copii.\n\nLucrările de renovare vor include achiziția de echipamente de ultimă generație și construirea unei unitati de terapie intensivă pentru nou-născuți.",
+    "category": "sanatate",
+    "date": "2024-02-03",
+    "source": "Brașov Medical",
+    "type": "local",
+    "image": "https://via.placeholder.com/600x400?text=Spital+Pediatrie",
+    "url": "https://brasovmedical.ro/pediatrie-modernizare"
+  },
+  {
+    "id": "7",
+    "title": "Inițiativă socială: Brașov oferă 1.000 de mese quente zilnic pentru persoane vulnerabile",
+    "excerpt": "Program de sprijin alimentar pentru cei din nevoie, lansat de autoritățile locale cu sprijinul ONG-urilor.",
+    "content": "Inițiativă socială: Brașov oferă 1.000 de mese quente zilnic pentru persoane vulnerabile. Program de sprijin alimentar pentru cei din nevoie, lansat de autoritățile locale cu sprijinul ONG-urilor.\n\nProgramul va funcționa pe tot parcursul anului, cu centre de distribuție în principalele zone ale orașului. Scopul este de a asigura o alimentație adecvată persoanelor în situații dificile.",
+    "category": "social",
+    "date": "2024-02-02",
+    "source": "Social Brașov",
+    "type": "local",
+    "image": "https://via.placeholder.com/600x400?text=Program+Social",
+    "url": "https://socialbrasov.ro/mese-gratis"
+  },
+  {
+    "id": "8",
+    "title": "Covasna: Rezerva naturală a Bistriei interzice trecerea în perioada de reproducere a peștilor",
+    "excerpt": "Măsuri de protecție a biodiversității și conservării ecosistemului acvatic.",
+    "content": "Covasna: Rezerva naturală a Bistriei interzice trecerea în perioada de reproducere a peștilor. Măsuri de protecție a biodiversității și conservării ecosistemului acvatic.\n\nPe parcursul lunilor martie-mai, circulația va fi restrictionată în anumite zone pentru a proteja speciile în pericol de dispariție. Restricțiile vor fi ridicate după perioada de reproducere.",
+    "category": "mediu",
+    "date": "2024-02-01",
+    "source": "Verde Covasna",
+    "type": "local",
+    "image": "https://via.placeholder.com/600x400?text=Reserva+Naturala",
+    "url": "https://verdecovasna.ro/bistrita-protectie"
+  }
+]

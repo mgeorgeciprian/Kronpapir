@@ -1,0 +1,38 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="400" fill="#1a1a2e"/>
+
+  <!-- Soccer ball -->
+  <g transform="translate(180, 140)">
+    <circle cx="0" cy="0" r="60" fill="none" stroke="white" stroke-width="2"/>
+    <!-- Pentagon -->
+    <polygon points="0,-50 47,-15 29,40 -29,40 -47,-15" fill="none" stroke="white" stroke-width="2"/>
+    <!-- Hexagons (simplified) -->
+    <path d="M 30,-25 L 45,-10 L 40,10 L 20,20 L 5,15 L 10,-5 Z" fill="none" stroke="white" stroke-width="1.5"/>
+    <path d="M -30,-25 L -45,-10 L -40,10 L -20,20 L -5,15 L -10,-5 Z" fill="none" stroke="white" stroke-width="1.5"/>
+    <path d="M 0,-40 L 25,-20 L 20,5 L -5,10 L -20,-10 Z" fill="none" stroke="white" stroke-width="1.5"/>
+  </g>
+
+  <!-- Trophy -->
+  <g transform="translate(380, 100)">
+    <!-- Cup -->
+    <path d="M 30,20 Q 50,20 55,40 Q 55,60 40,70 L 40,90 L 20,90 L 20,70 Q 5,60 5,40 Q 10,20 30,20" fill="none" stroke="#E65100" stroke-width="2.5"/>
+    <!-- Handles -->
+    <path d="M 5,35 Q -10,35 -10,50 Q -10,65 5,65" fill="none" stroke="#E65100" stroke-width="2.5"/>
+    <path d="M 55,35 Q 70,35 70,50 Q 70,65 55,65" fill="none" stroke="#E65100" stroke-width="2.5"/>
+    <!-- Base -->
+    <rect x="15" y="90" width="50" height="8" fill="#E65100"/>
+    <rect x="10" y="98" width="60" height="5" fill="#E65100" opacity="0.7"/>
+  </g>
+
+  <!-- Accent dots -->
+  <circle cx="100" cy="250" r="5" fill="#E65100" opacity="0.5"/>
+  <circle cx="500" cy="280" r="6" fill="#E65100" opacity="0.4"/>
+  <circle cx="520" cy="120" r="4" fill="#E65100" opacity="0.6"/>
+
+  <!-- Diagonal accent line -->
+  <line x1="50" y1="300" x2="150" y2="350" stroke="#E65100" stroke-width="2" opacity="0.3"/>
+
+  <!-- Category label -->
+  <text x="300" y="370" font-family="Arial, sans-serif" font-size="16" font-weight="300" fill="white" opacity="0.7" text-anchor="middle">Sport</text>
+</svg>

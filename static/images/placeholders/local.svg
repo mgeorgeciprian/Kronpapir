@@ -1,0 +1,33 @@
+<svg viewBox="0 0 600 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="600" height="400" fill="#1a1a2e"/>
+
+  <!-- Mountain backdrop -->
+  <defs>
+    <linearGradient id="skyGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" style="stop-color:#2d2d4a;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#1a1a2e;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+
+  <!-- Mountains -->
+  <polygon points="0,250 120,120 180,180 280,80 380,150 450,90 550,160 600,120 600,400 0,400" fill="#3a3a5a" opacity="0.6"/>
+  <polygon points="50,280 150,160 220,220 320,140 400,200 480,130 600,180 600,400 0,400" fill="#4a4a6a"/>
+
+  <!-- Brașov skyline silhouette -->
+  <g transform="translate(150, 180)">
+    <!-- Buildings -->
+    <rect x="0" y="60" width="35" height="80" fill="white"/>
+    <rect x="45" y="40" width="40" height="100" fill="white"/>
+    <rect x="95" y="50" width="35" height="90" fill="white"/>
+    <rect x="140" y="35" width="50" height="105" fill="white"/>
+    <rect x="200" y="55" width="30" height="85" fill="white"/>
+
+    <!-- Church spire accent -->
+    <polygon points="285,20 305,80 310,80 290,20" fill="white"/>
+    <rect x="280" y="75" width="30" height="65" fill="white"/>
+  </g>
+
+  <!-- Category label -->
+  <text x="300" y="370" font-family="Arial, sans-serif" font-size="16" font-weight="300" fill="white" opacity="0.7" text-anchor="middle">Știri Locale</text>
+</svg>
