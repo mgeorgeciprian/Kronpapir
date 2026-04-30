@@ -3,20 +3,21 @@
    =================================== */
 
 :root {
-  /* Color Scheme - Cetate Heraldic Brașov */
-  --primary: #a4242b;        /* Roșu Cetate (heraldic Brașov) */
-  --secondary: #c2424a;      /* Roșu deschis (hover) */
-  --accent: #c9a84c;         /* Auriu coroană */
-  --background: #fbf8f3;     /* Cream cald */
-  --surface: #ffffff;        /* Alb pur pentru carduri */
-  --text-primary: #1a1d2e;   /* Bleumarin profund (cerneală) */
-  --text-secondary: #5a5e72; /* Bleumarin diluat */
-  --border: #e8e2d5;         /* Bej cald */
-  --divider: #d8d2c5;        /* Bej mai închis */
-  --header-bg: #1a1d2e;      /* Bleumarin profund pentru header */
-  --header-ink: #fbf8f3;     /* Cream pe bleumarin */
-  --footer-bg: #1a1d2e;
-  --footer-ink: #fbf8f3;
+  /* Color Scheme - Tâmpa Verde Munte */
+  --primary: #2d5a3d;        /* Verde Tâmpa (brad carpatic) */
+  --secondary: #3d7050;      /* Verde mediu (hover) */
+  --accent: #c9a84c;         /* Auriu accent */
+  --background: #f5f1e8;     /* Cream cald */
+  --surface: #ffffff;        /* Alb pur */
+  --text-primary: #1f2e23;   /* Verde foarte închis (cerneală) */
+  --text-secondary: #5a6b5e; /* Verde-gri */
+  --border: #d8d8c8;
+  --divider: #c8c8b8;
+  --header-bg: #1f2e23;      /* Verde închis pentru header */
+  --header-ink: #f5f1e8;     /* Cream pe verde */
+  --footer-bg: #1f2e23;
+  --footer-ink: #f5f1e8;
+  --mountain-stroke: #c9a84c;
 
   /* Typography */
   --font-serif: 'Playfair Display', Georgia, serif;
@@ -42,19 +43,20 @@
 /* Dark Mode - Kindle Night */
 @media (prefers-color-scheme: dark) {
   :root {
-    --primary: #c2424a;
-    --secondary: #d65a62;
+    --primary: #4a8a60;
+    --secondary: #5fa075;
     --accent: #e0c060;
-    --background: #14151f;
-    --surface: #1f2233;
-    --text-primary: #ece6d6;
-    --text-secondary: #9a9ab0;
-    --border: #2a2d40;
-    --divider: #353850;
-    --header-bg: #0d0f18;
-    --header-ink: #ece6d6;
-    --footer-bg: #0d0f18;
-    --footer-ink: #ece6d6;
+    --background: #14181a;
+    --surface: #1f2426;
+    --text-primary: #e8e0d0;
+    --text-secondary: #9aa098;
+    --border: #2a302d;
+    --divider: #353a37;
+    --header-bg: #0d1110;
+    --header-ink: #e8e0d0;
+    --footer-bg: #0d1110;
+    --footer-ink: #e8e0d0;
+    --mountain-stroke: #c9a84c;
   }
 }
 
@@ -192,8 +194,24 @@ header {
   padding: 22px 0 20px;
   text-align: center;
   border-bottom: 1px solid rgba(255,255,255,0.08);
-  border-bottom: 1px solid var(--divider);
-  background-color: var(--surface);
+  position: relative;
+  overflow: hidden;
+}
+
+.header-mountains {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 80px;
+  pointer-events: none;
+  opacity: 0.35;
+  z-index: 0;
+}
+
+.header-top > .logo-block {
+  position: relative;
+  z-index: 1;
 }
 
 .logo {
@@ -681,14 +699,14 @@ nav.main-nav {
   color: #fff;
 }
 
-.category-tag.local      { background-color: #a4242b; }  /* Roșu Cetate */
-.category-tag.politica   { background-color: #1a1d2e; }  /* Bleumarin */
-.category-tag.economie   { background-color: #0d6e5e; }  /* Verde închis */
-.category-tag.cultura    { background-color: #6b3aa0; }  /* Mov */
-.category-tag.sport      { background-color: #1d5fb5; }  /* Albastru */
-.category-tag.sanatate   { background-color: #a4242b; }  /* Roșu */
-.category-tag.social     { background-color: #c97a18; }  /* Portocaliu */
-.category-tag.mediu      { background-color: #3a6b2a; }  /* Verde */
+.category-tag.local      { background-color: #2d5a3d; }
+.category-tag.politica   { background-color: #1f2e23; }
+.category-tag.economie   { background-color: #0d6e5e; }
+.category-tag.cultura    { background-color: #6b3aa0; }
+.category-tag.sport      { background-color: #1d5fb5; }
+.category-tag.sanatate   { background-color: #a4242b; }
+.category-tag.social     { background-color: #c97a18; }
+.category-tag.mediu      { background-color: #3a6b2a; }
 
 /* ===================================
    Article Page
