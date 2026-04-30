@@ -41,11 +41,30 @@ ADSENSE_ENABLED = os.getenv('ADSENSE_ENABLED', 'false').lower() == 'true'
 ADSENSE_CLIENT_ID = os.getenv('ADSENSE_CLIENT_ID', 'ca-pub-XXXXXXXXXXXXXXXX')
 GOOGLE_SEARCH_CONSOLE_TOKEN = os.getenv('GOOGLE_SEARCH_CONSOLE_TOKEN', '')
 PIXABAY_API_KEY = os.getenv('PIXABAY_API_KEY', '')
+
+# Email (contact form)
+SMTP_EMAIL = os.getenv('SMTP_EMAIL', '')
+SMTP_PASSWORD = os.getenv('SMTP_PASSWORD', '')
+CONTACT_DIR = BASE_DIR / 'data' / 'contact'
 GA4_ENABLED = os.getenv('GA4_ENABLED', 'false').lower() == 'true'
 GA4_MEASUREMENT_ID = os.getenv('GA4_MEASUREMENT_ID', '')
 
 # Analytics configuration
 ANALYTICS_DIR = BASE_DIR / 'data' / 'analytics'
+
+
+# Security headers
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    if not app.debug:
+        response.headers['Strict-Transport-Security'] = 'max-age=31536000; includeSubDomains'
+    return response
+
 
 def admin_required(f):
     @wraps(f)
@@ -229,21 +248,33 @@ def generate_slug(title):
 
 
 def load_articles(limit=None, category=None, is_national=False, all_types=False, editorials_only=False):
-    """Load articles from processed data files."""
+    """Load articles from processed data files (.json and .json.gz)."""
     articles = []
 
     if not DATA_DIR.exists():
         return articles
 
     try:
+        import gzip as _gzip
+
+        # Citește .json normal
         for json_file in sorted(DATA_DIR.glob('*.json'), reverse=True):
             with open(json_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
-
                 if isinstance(data, list):
                     articles.extend(data)
                 else:
                     articles.append(data)
+
+        # Citește .json.gz (articole arhivate/comprimate)
+        for gz_file in sorted(DATA_DIR.glob('*.json.gz'), reverse=True):
+            with _gzip.open(gz_file, 'rb') as f:
+                data = json.loads(f.read())
+                if isinstance(data, list):
+                    articles.extend(data)
+                else:
+                    articles.append(data)
+
     except Exception as e:
         print(f"Error loading articles: {e}")
 
@@ -702,7 +733,6 @@ def terms_conditions():
 def contact():
     """Contact page - GET shows form, POST handles submission."""
     if request.method == 'POST':
-        # Handle contact form submission
         try:
             nume = request.form.get('nume', '').strip()
             email = request.form.get('email', '').strip()
@@ -710,18 +740,67 @@ def contact():
             mesaj = request.form.get('mesaj', '').strip()
             gdpr = request.form.get('gdpr')
 
-            # Validate required fields
             if not all([nume, email, subiect, mesaj, gdpr]):
                 return render_template('contact.html', categories=CATEGORIES,
                                      error='Vă rugăm să completați toate câmpurile marcate cu *')
 
-            # Validate email format
             if '@' not in email or '.' not in email:
                 return render_template('contact.html', categories=CATEGORIES,
                                      error='Adresa de email nu este validă')
 
-            # TODO: Send email or store in database
-            # For now, just return success message
+            # Salvare locală (backup + GDPR retention)
+            CONTACT_DIR.mkdir(parents=True, exist_ok=True)
+            msg_id = str(uuid.uuid4())[:8]
+            msg_data = {
+                'id': msg_id,
+                'nume': nume,
+                'email': email,
+                'subiect': subiect,
+                'mesaj': mesaj,
+                'gdpr_consent': True,
+                'date': datetime.now().isoformat(),
+                'ip': request.remote_addr,
+            }
+            msg_file = CONTACT_DIR / f"{msg_id}.json"
+            with open(msg_file, 'w', encoding='utf-8') as f:
+                json.dump(msg_data, f, ensure_ascii=False, indent=2)
+
+            # Cleanup mesaje > 30 zile (GDPR retention)
+            _cleanup_old_contact_messages()
+
+            # Trimitere email prin Gmail SMTP
+            if SMTP_EMAIL and SMTP_PASSWORD:
+                try:
+                    import smtplib
+                    from email.mime.text import MIMEText
+
+                    subject_map = {
+                        'intrebare': 'Întrebare Generală',
+                        'bug': 'Raportare Bug',
+                        'sugestie': 'Sugestie',
+                        'copyright': 'Copyright',
+                        'publicitate': 'Parteneriat',
+                        'alt': 'Altceva',
+                    }
+                    subj_label = subject_map.get(subiect, subiect)
+
+                    body = f"Mesaj nou de contact KronPapir.ro\n{'='*40}\n\n"
+                    body += f"Nume: {nume}\nEmail: {email}\nSubiect: {subj_label}\n\n"
+                    body += f"Mesaj:\n{mesaj}\n\n{'='*40}\n"
+                    body += f"Data: {msg_data['date']}\nIP: {msg_data['ip']}\nID: {msg_id}"
+
+                    msg = MIMEText(body, 'plain', 'utf-8')
+                    msg['Subject'] = f"[KronPapir Contact] {subj_label} — {nume}"
+                    msg['From'] = SMTP_EMAIL
+                    msg['To'] = 'redactia@kronpapir.ro'
+                    msg['Reply-To'] = email
+
+                    with smtplib.SMTP_SSL('smtp.gmail.com', 465, timeout=10) as server:
+                        server.login(SMTP_EMAIL, SMTP_PASSWORD)
+                        server.send_message(msg)
+                except Exception as e:
+                    print(f"Email sending failed (message saved locally): {e}")
+
             return render_template('contact.html', categories=CATEGORIES,
                                  success='Mulțumim! Mesajul tău a fost trimis. Îți vom răspunde în maxim 48 de ore.')
 
@@ -730,8 +809,20 @@ def contact():
             return render_template('contact.html', categories=CATEGORIES,
                                  error='A apărut o eroare. Vă rugăm să încercați din nou.')
 
-    # GET request - show contact form
     return render_template('contact.html', categories=CATEGORIES)
+
+
+def _cleanup_old_contact_messages():
+    """Șterge mesajele de contact mai vechi de 30 zile (GDPR retention)."""
+    if not CONTACT_DIR.exists():
+        return
+    cutoff = datetime.now().timestamp() - 30 * 86400
+    for f in CONTACT_DIR.glob('*.json'):
+        try:
+            if f.stat().st_mtime < cutoff:
+                f.unlink()
+        except Exception:
+            pass
 
 
 @app.route('/api/articles')
