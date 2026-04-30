@@ -106,11 +106,19 @@
 
   <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='images/favicon.svg') }}">
-  <!-- Old base64 icon removed -->
 
-  <!-- Google Fonts -->
+  <!-- Manifest (PWA) -->
+  <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
+  <meta name="theme-color" content="#1a1a2e">
+
+  <!-- RSS Feed -->
+  <link rel="alternate" type="application/rss+xml" title="KronPapir RSS" href="https://kronpapir.ro/feed">
+
+  <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="dns-prefetch" href="https://api.open-meteo.com">
+  <link rel="dns-prefetch" href="https://air-quality-api.open-meteo.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Stylesheets -->

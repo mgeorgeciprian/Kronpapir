@@ -12,6 +12,7 @@ import threading
 import urllib.request
 import urllib.parse
 from datetime import datetime, timedelta
+from html import escape as html_escape
 from pathlib import Path
 from functools import wraps
 
@@ -1886,6 +1887,7 @@ def robots_txt():
     robots_content = """User-agent: *
 Allow: /
 Sitemap: https://kronpapir.ro/sitemap.xml
+Sitemap: https://kronpapir.ro/news-sitemap.xml
 
 User-agent: Googlebot
 Allow: /
@@ -1986,6 +1988,115 @@ def sitemap_xml():
     sitemap_xml_content += '</urlset>'
 
     return Response(sitemap_xml_content, mimetype='application/xml')
+
+
+@app.route('/news-sitemap.xml')
+def news_sitemap_xml():
+    """Google News Sitemap — doar articole din ultimele 48h."""
+    try:
+        all_articles = load_articles(all_types=True)
+    except Exception:
+        all_articles = []
+
+    cutoff = datetime.now() - timedelta(hours=48)
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"\n'
+    xml += '        xmlns:news="http://www.google.com/schemas/sitemap-news/0.9">\n'
+
+    for article in all_articles:
+        article_date_str = article.get('date', '')
+        try:
+            if 'T' in article_date_str:
+                article_date = datetime.fromisoformat(article_date_str.replace('Z', '+00:00').split('+')[0])
+            else:
+                article_date = datetime.strptime(article_date_str, '%Y-%m-%d')
+        except (ValueError, TypeError):
+            continue
+
+        if article_date < cutoff:
+            continue
+
+        slug = article.get('slug') or generate_slug(article.get('title', ''))
+        title = html_escape(article.get('title', ''))
+        pub_date = article_date.strftime('%Y-%m-%dT%H:%M:%S+03:00')
+
+        xml += '  <url>\n'
+        xml += f'    <loc>https://kronpapir.ro/stiri/{slug}</loc>\n'
+        xml += '    <news:news>\n'
+        xml += '      <news:publication>\n'
+        xml += '        <news:name>KronPapir</news:name>\n'
+        xml += '        <news:language>ro</news:language>\n'
+        xml += '      </news:publication>\n'
+        xml += f'      <news:publication_date>{pub_date}</news:publication_date>\n'
+        xml += f'      <news:title>{title}</news:title>\n'
+        xml += '    </news:news>\n'
+        xml += '  </url>\n'
+
+    xml += '</urlset>'
+    return Response(xml, mimetype='application/xml')
+
+
+@app.route('/feed')
+def rss_feed():
+    """RSS 2.0 feed — ultimele 20 articole."""
+    try:
+        articles = load_articles(limit=20, all_types=True)
+    except Exception:
+        articles = []
+
+    rss = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    rss += '<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">\n'
+    rss += '<channel>\n'
+    rss += '  <title>KronPapir — Știri din Brașov</title>\n'
+    rss += '  <link>https://kronpapir.ro</link>\n'
+    rss += '  <description>Agregator de știri locale din județul Brașov, Transilvania</description>\n'
+    rss += '  <language>ro</language>\n'
+    rss += '  <atom:link href="https://kronpapir.ro/feed" rel="self" type="application/rss+xml"/>\n'
+    rss += f'  <lastBuildDate>{datetime.now().strftime("%a, %d %b %Y %H:%M:%S +0300")}</lastBuildDate>\n'
+    rss += '  <image>\n'
+    rss += '    <url>https://kronpapir.ro/static/images/og-image.png</url>\n'
+    rss += '    <title>KronPapir</title>\n'
+    rss += '    <link>https://kronpapir.ro</link>\n'
+    rss += '  </image>\n'
+
+    for article in articles:
+        slug = article.get('slug') or generate_slug(article.get('title', ''))
+        title = html_escape(article.get('title', ''))
+        link = f'https://kronpapir.ro/stiri/{slug}'
+        desc = html_escape(article.get('excerpt') or article.get('meta_description') or '')
+        guid = article.get('id', slug)
+
+        # Format pubDate per RFC 822
+        date_str = article.get('date', '')
+        try:
+            if 'T' in date_str:
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00').split('+')[0])
+            else:
+                dt = datetime.strptime(date_str, '%Y-%m-%d')
+            pub_date = dt.strftime('%a, %d %b %Y %H:%M:%S +0300')
+        except (ValueError, TypeError):
+            pub_date = datetime.now().strftime('%a, %d %b %Y %H:%M:%S +0300')
+
+        rss += '  <item>\n'
+        rss += f'    <title>{title}</title>\n'
+        rss += f'    <link>{link}</link>\n'
+        rss += f'    <description>{desc}</description>\n'
+        rss += f'    <pubDate>{pub_date}</pubDate>\n'
+        rss += f'    <guid isPermaLink="false">{guid}</guid>\n'
+        if article.get('image'):
+            rss += f'    <enclosure url="{html_escape(article["image"])}" type="image/jpeg"/>\n'
+        rss += '  </item>\n'
+
+    rss += '</channel>\n'
+    rss += '</rss>'
+    return Response(rss, mimetype='application/rss+xml')
+
+
+@app.route('/kronpapir2026seo.txt')
+def indexnow_key():
+    """IndexNow key verification file."""
+    return Response('kronpapir2026seo', mimetype='text/plain')
 
 
 # Error handlers

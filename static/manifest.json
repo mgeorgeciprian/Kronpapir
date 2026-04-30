@@ -1,0 +1,17 @@
+{
+  "name": "KronPapir — Știri din Brașov",
+  "short_name": "KronPapir",
+  "description": "Agregator de știri locale din județul Brașov, Transilvania",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1a1a2e",
+  "lang": "ro",
+  "icons": [
+    {
+      "src": "/static/images/og-image.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}

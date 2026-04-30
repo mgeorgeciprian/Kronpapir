@@ -271,6 +271,7 @@ def run_ai_processing():
             )
 
             processed_count = 0
+            processed_slugs = []
             processed_urls = set()
 
             # Citește URL-urile deja procesate pentru deduplicare
@@ -345,6 +346,7 @@ def run_ai_processing():
                     with open(dest, 'w', encoding='utf-8') as fh:
                         json.dump(rewritten, fh, ensure_ascii=False, indent=2)
                     processed_count += 1
+                    processed_slugs.append(rewritten.get('slug') or rewritten.get('id', ''))
                     processed_urls.add(rewritten.get('url', ''))
                 else:
                     logger.warning(f"   ⚠️ Nu s-a putut rescrie: {title[:50]}")
@@ -382,6 +384,16 @@ def run_ai_processing():
                     logger.warning("   ⚠️ Nu s-a putut scrie editorialul internațional")
 
             logger.info(f"✅ Procesare AI finalizată. Total procesat: {processed_count} (locale: {min(len(local_articles), max_local)}, editoriale: {processed_count - min(len(local_articles), max_local)})")
+
+            # Notifică motoarele de căutare
+            if processed_slugs:
+                try:
+                    from utils.seo import notify_search_engines
+                    new_urls = [f"https://kronpapir.ro/stiri/{s}" for s in processed_slugs]
+                    notify_search_engines(new_urls)
+                except Exception as e:
+                    logger.warning(f"⚠️ Notificare SEO eșuată: {e}")
+
             return {"status": "completed", "processed": processed_count}
 
         except ImportError as e:
@@ -536,6 +548,7 @@ def run_ai_processing_balanced():
                 model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
             )
 
+            balanced_slugs = []
             for art in to_process:
                 try:
                     result = rewriter.rewrite_article(art)
@@ -544,6 +557,7 @@ def run_ai_processing_balanced():
                         with open(dest, 'w', encoding='utf-8') as fh:
                             json.dump(result, fh, ensure_ascii=False, indent=2)
                         processed_count += 1
+                        balanced_slugs.append(result.get('slug') or result.get('id', ''))
                         logger.info(f"   ✅ {result.get('title', '')[:60]}...")
                     else:
                         failed_count += 1
@@ -573,6 +587,16 @@ def run_ai_processing_balanced():
                     logger.warning(f"   ⚠️ Nu am putut genera editorialul: {e}")
 
             logger.info(f"✅ Procesare echilibrată finalizată. Procesate: {processed_count}, Eșuate: {failed_count}")
+
+            # Notifică motoarele de căutare
+            if balanced_slugs:
+                try:
+                    from utils.seo import notify_search_engines
+                    new_urls = [f"https://kronpapir.ro/stiri/{s}" for s in balanced_slugs]
+                    notify_search_engines(new_urls)
+                except Exception as e:
+                    logger.warning(f"⚠️ Notificare SEO eșuată: {e}")
+
             return {"status": "completed", "processed": processed_count, "failed": failed_count}
 
         except Exception as e:
