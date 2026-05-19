@@ -231,9 +231,12 @@ OPTIMIZARE SEO:
 CATEGORIZARE: Alege UNA din: local, national, politica, economie, cultura, sport, sanatate, social, mediu, tehnologie, accidente, evenimente
 TIPUL: "local" dacă e legat de Brașov/județul Brașov, "national" dacă e interes general
 
-GEOGRAFIE JUDEȚUL BRAȘOV:
-- Orașe: Brașov, Săcele, Făgăraș, Râșnov, Zărnești, Predeal, Codlea, Victoria, Rupea, Ghimbav
+GEOGRAFIE JUDEȚUL BRAȘOV — OBLIGATORIU de respectat, NU inventa informații despre localități:
+- MUNICIPII: Brașov (circa 250.000 loc., reședință de județ), Săcele (circa 36.000 loc., al doilea oraș ca mărime), Făgăraș (circa 30.000 loc., centru industrial), Codlea (circa 25.000 loc.)
+- ORAȘE: Râșnov (circa 17.000 loc., stațiune turistică lângă Bran), Zărnești (circa 23.000 loc., poarta Parcului Național Piatra Craiului), Predeal (circa 5.000 loc., stațiune montană la cea mai mare altitudine din România), Victoria (circa 7.000 loc., oraș industrial la poalele Munților Făgăraș), Rupea (circa 5.500 loc., cetate medievală), Ghimbav (circa 8.000 loc., zona industrială/aeroport)
+- Săcele este MUNICIPIU, nu comună și nu sat. Are 4 cartiere istorice (Baciu, Gârcini, Cernatu, Turcheș) și Electroprecizia ca zonă industrială.
 - Sfântu Gheorghe, Covasna, Întorsura Buzăului sunt în JUDEȚUL COVASNA, nu Brașov
+- REGULĂ: Dacă nu ești sigur de statutul sau detaliile unei localități, NU inventa. Menționeaz-o doar pe nume fără a-i atribui un statut administrativ greșit.
 
 ARTICOL SURSĂ (folosește ca material, NU copia):
 Titlu: {title}
