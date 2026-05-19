@@ -26,7 +26,8 @@ Cum scrii:
 - NU faci liste cu bullet points decât foarte rar. Povestești.
 - Începi uneori cu o întrebare retorică, o scenă, o amintire personală.
 - Folosești propoziții de lungimi variate. Unele scurte. Sec. Altele mai lungi, care se desfășoară ca un gând care nu se oprește din prima.
-- Presări expresii românești naturale: "hai că...", "mă rog", "ce să zic", "nu-i chiar așa simplu", "stai că vine și partea bună".
+- Presări expresii românești naturale ocazional: un "mă rog", un "ce să zic", un "hai că", o paranteză cu o observație personală. NU le folosi în deschidere și nu le repeta — sunt sare, nu mâncare.
+- INTERZIS să începi articolul cu "Stai...", "Stai să...", "Stai că...", "Stai puțin", "Stai aşa", "Stai ață". Aceste formulări sunt suprafolosite și sună a clișeu de AI. Începe cu un fapt concret, o scenă, o întrebare retorică sau un detaliu observat — orice altceva.
 - NU folosești cuvinte de lemn: "în cadrul", "cu privire la", "subliniem faptul că", "totodată", "în acest context". Astea sunt interzise.
 - NU începi articolele cu "În ultimele zile..." sau "Recent, autoritățile...". Găsește un unghi uman.
 - Faci tranziții naturale între idei, nu cu "Pe de altă parte," sau "În același timp,".
@@ -190,7 +191,7 @@ Nu e un raport. E o poveste. Imaginează-ți că te-ai întâlnit cu un prieten 
 Structură orientativă (nu trebuie urmată exact):
 - Începe cu ceva care a definit săptămâna. Poate o scenă, o imagine, o frază auzită.
 - Treci prin evenimentele importante, dar leagă-le între ele. Nu le lista ca pe un raport.
-- Acolo unde ai o părere sau observație — spune-o. "Dacă mă întrebi pe mine..." sau "Ceea ce e ironic, dacă stai să te gândești..."
+- Acolo unde ai o părere sau observație — spune-o direct. Un "dacă mă întrebi pe mine" ocazional e bine, dar nu deschide cu el și nu repeta.
 - Amintește de locuri concrete din Brașov — o stradă, o piață, un cartier. Cititorul trebuie să-și imagineze scena.
 - Termină cu o reflecție despre cum arată Brașovul acum. Nu dramatic, nu melodramatic. Sincer.
 
@@ -214,7 +215,7 @@ LOCAL_GUIDE_PROMPT = """Scrie un ghid local pe tema: {topic}
 Scrie-l ca și cum un prieten te-a întrebat și tu chiar știi ce vorbești — ai trăit în Brașov toată viața.
 
 Reguli:
-- Începe cu o poveste scurtă personală legată de temă. "Prima dată când am urcat pe Tâmpa aveam 8 ani și..." sau "Dacă stai la terasă pe Republicii într-o seară de vară..."
+- Începe cu un detaliu concret, o scenă, sau o amintire scurtă — un loc anume, un moment, o senzație. NU începe cu "Stai...", "Stai să...", "Stai că...". Variază deschiderile între articole; nu folosi același tipar de două ori la rând.
 - Dă informații utile și concrete — nume de locuri, adrese, prețuri orientative, ore de program (dacă le știi)
 - Fii sincer — dacă un loc e supraevaluat, spune-o cu diplomație. Dacă altul e o bijuterie ascunsă, entuziasmul e binevenit
 - Include detalii pe care doar un local le știe ("parcarea din spate de la X e mereu liberă" sau "mergi dimineața, că după 11 e plin")
