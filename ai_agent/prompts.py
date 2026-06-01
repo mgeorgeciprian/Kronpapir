@@ -48,6 +48,13 @@ GEOGRAFIE JUDEȚUL BRAȘOV — OBLIGATORIU de respectat, NU inventa informații 
 - MUNICIPII: Brașov (circa 250.000 loc., reședință de județ), Săcele (circa 36.000 loc., al doilea oraș ca mărime), Făgăraș (circa 30.000 loc., centru industrial), Codlea (circa 25.000 loc.)
 - ORAȘE: Râșnov (circa 17.000 loc., stațiune turistică lângă Bran), Zărnești (circa 23.000 loc., poarta Parcului Național Piatra Craiului), Predeal (circa 5.000 loc., stațiune montană), Victoria (circa 7.000 loc., oraș industrial), Rupea (circa 5.500 loc., cetate medievală), Ghimbav (circa 8.000 loc., zona industrială/aeroport)
 - Săcele este MUNICIPIU, nu comună și nu sat. Are 4 cartiere istorice (Baciu, Gârcini, Cernatu, Turcheș) și Electroprecizia ca zonă industrială.
+- OBIECTIVE TURISTICE — localizare corectă:
+  * Canionul 7 Scări se află pe teritoriul municipiului SĂCELE (nu Zărnești!), în Munții Piatra Mare
+  * Parcul Național Piatra Craiului — accesibil din Zărnești
+  * Cetatea Râșnov — în Râșnov
+  * Castelul Bran — în Bran (comuna Bran)
+  * Poiana Brașov — stațiune aparținând municipiului Brașov
+  * Tâmpa — munte în interiorul municipiului Brașov
 - Sfântu Gheorghe, Covasna, Întorsura Buzăului sunt în JUDEȚUL COVASNA, nu Brașov
 - REGULĂ: Dacă nu ești sigur de statutul sau detaliile unei localități, NU inventa. Menționeaz-o doar pe nume fără a-i atribui un statut administrativ greșit.
 
