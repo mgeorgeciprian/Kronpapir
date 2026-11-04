@@ -3,14 +3,17 @@ KronPapir - Romanian Local News Aggregator
 Brașov/Covasna Area
 """
 
+import gzip
 import json
 import os
 import uuid
 import random
 import re
 import threading
+import time
 import urllib.request
 import urllib.parse
+import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
 from html import escape as html_escape
 from pathlib import Path
@@ -247,6 +250,40 @@ def generate_slug(title):
     return slug.strip('-')
 
 
+def article_exists(article_id):
+    """True if a processed article is on disk as <id>.json or <id>.json.gz."""
+    return any((DATA_DIR / f"{article_id}{ext}").exists() for ext in ('.json', '.json.gz'))
+
+
+def read_article_file(path):
+    """Parse a processed article file, compressed or not."""
+    if path.name.endswith('.gz'):
+        with gzip.open(path, 'rb') as f:
+            return json.loads(f.read())
+    with open(path, 'r', encoding='utf-8') as f:
+        return json.load(f)
+
+
+def find_article_file(article_id):
+    """Return the file holding an article (.json wins over .json.gz), or None.
+
+    Tries the filename first, then the 'id' inside each file: /admin/brute saves
+    AI rewrites as <raw id>.json although the rewriter gives them a new uuid.
+    """
+    for ext in ('.json', '.json.gz'):
+        path = DATA_DIR / f"{article_id}{ext}"
+        if path.exists():
+            return path
+    for path in sorted(DATA_DIR.glob('*.json')) + sorted(DATA_DIR.glob('*.json.gz')):
+        try:
+            data = read_article_file(path)
+        except Exception:
+            continue
+        if isinstance(data, dict) and data.get('id') == article_id:
+            return path
+    return None
+
+
 def load_articles(limit=None, category=None, is_national=False, all_types=False, editorials_only=False):
     """Load articles from processed data files (.json and .json.gz)."""
     articles = []
@@ -255,10 +292,9 @@ def load_articles(limit=None, category=None, is_national=False, all_types=False,
         return articles
 
     try:
-        import gzip as _gzip
-
         # Citește .json normal
-        for json_file in sorted(DATA_DIR.glob('*.json'), reverse=True):
+        json_files = sorted(DATA_DIR.glob('*.json'), reverse=True)
+        for json_file in json_files:
             with open(json_file, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 if isinstance(data, list):
@@ -267,13 +303,15 @@ def load_articles(limit=None, category=None, is_national=False, all_types=False,
                     articles.append(data)
 
         # Citește .json.gz (articole arhivate/comprimate)
+        # .json are prioritate: se sare peste .gz dacă articolul există deja
+        json_names = {f.name for f in json_files}
+        seen_ids = {a.get('id') for a in articles} - {None}
         for gz_file in sorted(DATA_DIR.glob('*.json.gz'), reverse=True):
-            with _gzip.open(gz_file, 'rb') as f:
-                data = json.loads(f.read())
-                if isinstance(data, list):
-                    articles.extend(data)
-                else:
-                    articles.append(data)
+            if gz_file.name.removesuffix('.gz') in json_names:
+                continue
+            data = read_article_file(gz_file)
+            items = data if isinstance(data, list) else [data]
+            articles.extend(a for a in items if a.get('id') not in seen_ids)
 
     except Exception as e:
         print(f"Error loading articles: {e}")
@@ -367,7 +405,7 @@ def load_raw_articles():
                 art_id = art.get('id') or json_file.stem
                 art['id'] = art_id
                 art['source_id'] = json_file.parent.name
-                art['is_processed'] = (DATA_DIR / f"{art_id}.json").exists()
+                art['is_processed'] = article_exists(art_id)
                 articles.append(art)
         except Exception as e:
             print(f"Error loading raw article {json_file}: {e}")
@@ -825,6 +863,87 @@ def _cleanup_old_contact_messages():
             pass
 
 
+# Widget-uri (curs, vreme, aer): datele vin prin server, cu cache per worker.
+BNR_RATES_URL = 'https://curs.bnr.ro/nbrfxrates.xml'
+WEATHER_URL = ('https://api.open-meteo.com/v1/forecast?latitude=45.6427&longitude=25.5887'
+               '&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code'
+               '&timezone=Europe/Bucharest')
+AIR_URL = ('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=45.6427&longitude=25.5887'
+           '&current=european_aqi,pm10,pm2_5,nitrogen_dioxide&timezone=Europe%2FBucharest')
+WIDGET_TIMEOUT = 5
+WIDGET_RETRY_SECONDS = 60
+_widget_cache = {}
+_widget_lock = threading.Lock()
+
+
+def parse_bnr_rates(raw):
+    """Extract the RON rates for EUR, USD and GBP from the BNR XML feed."""
+    cube = ET.fromstring(raw).find('.//{*}Cube')  # {*}: BNR și-a schimbat deja namespace-ul
+    rates = {r.get('currency'): float(r.text) / int(r.get('multiplier', 1))
+             for r in cube.findall('{*}Rate')
+             if r.get('currency') in ('EUR', 'USD', 'GBP')}
+    if len(rates) != 3:
+        raise ValueError('curs BNR incomplet')
+    return {'date': cube.get('date'), 'rates': rates}
+
+
+def cached_widget(key, url, parse, ttl, max_stale):
+    """Return fresh or cached widget data, or None when nothing usable is left.
+
+    A failed refresh keeps the last good value for up to max_stale seconds and
+    waits WIDGET_RETRY_SECONDS before trying again, so a slow upstream can't
+    hold up every page view.
+    """
+    now = time.time()
+    with _widget_lock:
+        entry = _widget_cache.get(key)
+        if entry and now < entry['retry_at']:
+            return entry['data'] if now - entry['fetched_at'] <= max_stale else None
+        # Doar primul request reîmprospătează; restul folosesc valoarea veche
+        if entry:
+            entry['retry_at'] = now + WIDGET_RETRY_SECONDS
+    try:
+        req = urllib.request.Request(url, headers={'User-Agent': 'KronPapir/1.0'})
+        with urllib.request.urlopen(req, timeout=WIDGET_TIMEOUT) as resp:
+            data = parse(resp.read())
+    except Exception as e:
+        print(f"Widget {key} refresh failed: {e}")
+        with _widget_lock:
+            if entry:
+                return entry['data'] if now - entry['fetched_at'] <= max_stale else None
+            _widget_cache[key] = {'data': None, 'fetched_at': 0, 'retry_at': now + WIDGET_RETRY_SECONDS}
+        return None
+    with _widget_lock:
+        _widget_cache[key] = {'data': data, 'fetched_at': now, 'retry_at': now + ttl}
+    return data
+
+
+def widget_response(data, max_age):
+    if data is None:
+        return jsonify({'error': 'indisponibil'}), 503
+    response = jsonify(data)
+    response.headers['Cache-Control'] = f'public, max-age={max_age}'
+    return response
+
+
+@app.route('/api/curs')
+def api_curs():
+    """Cursul BNR (RON pentru 1 EUR/USD/GBP)."""
+    return widget_response(cached_widget('curs', BNR_RATES_URL, parse_bnr_rates, 3600, 4 * 86400), 600)
+
+
+@app.route('/api/vreme')
+def api_vreme():
+    """Vremea curentă în Brașov (Open-Meteo)."""
+    return widget_response(cached_widget('vreme', WEATHER_URL, json.loads, 900, 6 * 3600), 300)
+
+
+@app.route('/api/aer')
+def api_aer():
+    """Calitatea aerului în Brașov (Open-Meteo)."""
+    return widget_response(cached_widget('aer', AIR_URL, json.loads, 900, 6 * 3600), 300)
+
+
 @app.route('/api/articles')
 def api_articles():
     """JSON API for articles."""
@@ -1163,10 +1282,13 @@ def admin_edit(article_id):
                 'updated': datetime.now().isoformat()
             })
 
-            # Save article as JSON
-            article_file = DATA_DIR / f"{article['id']}.json"
+            # Save article as JSON, under its existing filename when it has one
+            existing = find_article_file(article['id'])
+            stem = existing.name.removesuffix('.gz').removesuffix('.json') if existing else article['id']
+            article_file = DATA_DIR / f"{stem}.json"
             with open(article_file, 'w', encoding='utf-8') as f:
                 json.dump(article, f, ensure_ascii=False, indent=2)
+            (DATA_DIR / f"{stem}.json.gz").unlink(missing_ok=True)
 
             return render_template(
                 'admin_edit.html',
@@ -1199,9 +1321,11 @@ def admin_edit(article_id):
 def admin_delete(article_id):
     """Delete article."""
     try:
-        article_file = DATA_DIR / f"{article_id}.json"
-        if article_file.exists():
+        deleted = False
+        while (article_file := find_article_file(article_id)):
             article_file.unlink()
+            deleted = True
+        if deleted:
             return jsonify({'success': True, 'message': 'Articol șters cu succes'})
         else:
             return jsonify({'success': False, 'message': 'Articol nu găsit'}), 404
@@ -1286,7 +1410,7 @@ def admin_process():
             continue
 
         dest = DATA_DIR / f"{art_id}.json"
-        if dest.exists():
+        if article_exists(art_id):
             success_count += 1
             continue
 
@@ -1309,7 +1433,7 @@ def admin_process():
                 failed_count += 1
 
         # Fallback: copy without AI processing
-        if not (DATA_DIR / f"{art_id}.json").exists():
+        if not article_exists(art_id):
             fallback = _fallback_copy_web(art)
             with open(dest, 'w', encoding='utf-8') as f:
                 json.dump(fallback, f, ensure_ascii=False, indent=2)
@@ -1376,17 +1500,15 @@ def admin_compare(article_id):
     # Find processed article
     processed = None
     processed_filename = None
-    for json_file in sorted(DATA_DIR.glob('*.json'), reverse=True):
+    article_file = find_article_file(article_id)
+    if article_file:
         try:
-            with open(json_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
+            data = read_article_file(article_file)
             if isinstance(data, dict):
-                if data.get('id') == article_id or json_file.stem == article_id:
-                    processed = data
-                    processed_filename = json_file.stem
-                    break
+                processed = data
+                processed_filename = article_file.name.removesuffix('.gz').removesuffix('.json')
         except Exception:
-            continue
+            pass
 
     if not processed:
         abort(404)
@@ -1410,12 +1532,11 @@ def admin_compare(article_id):
 def admin_reprocess(processed_filename):
     """Re-process a single article through AI rewriter."""
     dest = DATA_DIR / f"{processed_filename}.json"
-    if not dest.exists():
+    if not article_exists(processed_filename):
         return jsonify({'success': False, 'message': 'Articol procesat nu a fost gasit'}), 404
 
     try:
-        with open(dest, 'r', encoding='utf-8') as f:
-            processed = json.load(f)
+        processed = read_article_file(find_article_file(processed_filename))
     except Exception:
         return jsonify({'success': False, 'message': 'Eroare la citirea articolului'}), 500
 
@@ -1441,6 +1562,7 @@ def admin_reprocess(processed_filename):
             result['id'] = processed_filename
             with open(dest, 'w', encoding='utf-8') as f:
                 json.dump(result, f, ensure_ascii=False, indent=2)
+            (DATA_DIR / f"{processed_filename}.json.gz").unlink(missing_ok=True)
             return jsonify({'success': True, 'message': 'Articol reprocesat cu succes!'})
         else:
             return jsonify({'success': False, 'message': 'AI rewriter a returnat None'}), 500
@@ -1874,6 +1996,7 @@ def admin_approve_contributor_article(article_id):
     DATA_DIR.mkdir(parents=True, exist_ok=True)
     with open(DATA_DIR / f"{article['id']}.json", 'w', encoding='utf-8') as f:
         json.dump(published, f, ensure_ascii=False, indent=2)
+    (DATA_DIR / f"{article['id']}.json.gz").unlink(missing_ok=True)
 
     update_contributor_article_count(article.get('contributor_id', ''))
 

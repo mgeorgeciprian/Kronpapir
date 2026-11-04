@@ -139,13 +139,32 @@ def archive_raw(archive_days=RAW_ARCHIVE_DAYS, dry_run=False):
             archived_size += total_size
             continue
 
+        # Sufixul .tmp: nu trebuie să fie prins de glob-ul "*.tar.gz" din show_status()
+        tmp_path = ARCHIVE_DIR / f".{archive_path.name}.{os.getpid()}.tmp"
+
         try:
-            # Append dacă arhiva există deja
-            mode = "a:gz" if archive_path.exists() else "w:gz"
-            with tarfile.open(archive_path, mode) as tar:
-                for f in files:
-                    arcname = f"{f.parent.name}/{f.name}"
+            # tarfile nu suportă "a:gz": construim o arhivă nouă cu membrii vechi + fișierele noi
+            arcnames = [f"{f.parent.name}/{f.name}" for f in files]
+            new_names = set(arcnames)
+            expected = list(arcnames)
+            with tarfile.open(tmp_path, "w:gz") as tar:
+                if archive_path.exists():
+                    with tarfile.open(archive_path, "r:gz") as old:
+                        for member in old:
+                            if member.name in new_names:
+                                continue  # fișierul nou îl înlocuiește pe cel vechi
+                            tar.addfile(member, old.extractfile(member) if member.isreg() else None)
+                            expected.append(member.name)
+                for f, arcname in zip(files, arcnames):
                     tar.add(str(f), arcname=arcname)
+
+            with tarfile.open(tmp_path, "r:gz") as tar:
+                if sorted(tar.getnames()) != sorted(expected):
+                    raise tarfile.TarError(f"verificare eșuată pentru {tmp_path.name}")
+
+            if archive_path.exists():
+                os.chmod(tmp_path, archive_path.stat().st_mode & 0o7777)
+            os.replace(tmp_path, archive_path)
 
             for f in files:
                 f.unlink()
@@ -159,6 +178,12 @@ def archive_raw(archive_days=RAW_ARCHIVE_DAYS, dry_run=False):
 
         except Exception as e:
             logger.error(f"  Eroare la arhivarea {group_key}: {e}")
+
+        finally:
+            try:
+                tmp_path.unlink(missing_ok=True)
+            except OSError as e:
+                logger.error(f"  Nu pot șterge {tmp_path.name}: {e}")
 
     logger.info(f"{'[DRY-RUN] ' if dry_run else ''}Brute arhivate: {archived_files} fișiere, "
                 f"{archived_size/1024/1024:.1f} MB original")

@@ -21,6 +21,24 @@ except ImportError:
 logger = logging.getLogger("KronPapir.Rewriter")
 
 
+# Scheme JSON: API-ul garantează un răspuns valid, inclusiv cu ghilimele în HTML
+_TEXT = {"type": "string"}
+_KEYWORDS = {"type": "array", "items": {"type": "string"}}
+EDITORIAL_SCHEMA = {
+    "type": "object",
+    "properties": {"title": _TEXT, "seo_title": _TEXT, "content": _TEXT,
+                   "meta_description": _TEXT, "slug": _TEXT, "keywords": _KEYWORDS},
+    "required": ["title", "seo_title", "content", "meta_description", "slug", "keywords"],
+    "additionalProperties": False,
+}
+ARTICLE_SCHEMA = {
+    "type": "object",
+    "properties": {**EDITORIAL_SCHEMA["properties"], "category": _TEXT, "type": _TEXT},
+    "required": EDITORIAL_SCHEMA["required"] + ["category", "type"],
+    "additionalProperties": False,
+}
+
+
 class ArticleRewriter:
     """
     Rescrie articole folosind Claude AI cu stil de jurnalist local.
@@ -142,25 +160,26 @@ class ArticleRewriter:
         except json.JSONDecodeError:
             pass
 
-        # Last resort: extract fields manually with regex
-        try:
-            import re as _re_json
-            fields = {}
-            for key in ['title', 'seo_title', 'content', 'meta_description', 'slug', 'category', 'type']:
-                match = _re_json.search(rf'"{key}"\s*:\s*"((?:[^"\\]|\\.)*)"', json_str, _re_json.DOTALL)
-                if match:
-                    fields[key] = match.group(1).replace('\\n', '\n').replace('\\"', '"')
-            kw_match = _re_json.search(r'"keywords"\s*:\s*\[(.*?)\]', json_str, _re_json.DOTALL)
-            if kw_match:
-                fields['keywords'] = _re_json.findall(r'"([^"]*)"', kw_match.group(1))
-            if fields.get('title') and fields.get('content'):
-                logger.warning("⚠️  JSON reparat cu regex extraction")
-                return fields
-        except Exception:
-            pass
-
         logger.error(f"❌ JSON imposibil de reparat")
         logger.debug(f"Răspuns: {json_str[:300]}...")
+        return None
+
+    def _request_json(self, prompt: str, schema: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """Cere lui Claude un JSON după schemă, cu o reîncercare. None dacă eșuează."""
+        for attempt in (1, 2):
+            self._rate_limit()
+            message = self.client.messages.create(
+                model=self.model,
+                max_tokens=8192,
+                output_config={"format": {"type": "json_schema", "schema": schema}},
+                messages=[{"role": "user", "content": prompt}],
+            )
+            if message.stop_reason == "end_turn":
+                text = next((b.text for b in message.content if b.type == "text"), "")
+                result = self._parse_json_response(text)
+                if result:
+                    return result
+            logger.warning(f"⚠️  Răspuns neutilizabil (încercarea {attempt}, stop: {message.stop_reason})")
         return None
 
     def _rate_limit(self):
@@ -316,33 +335,10 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
             # Call Claude
             logger.debug(f"📝 Rescript articol: {raw_article.get('title', 'Necunoscut')[:50]}...")
 
-            message = self.client.messages.create(
-                model=self.model,
-                max_tokens=8192,
-                messages=[
-                    {"role": "user", "content": prompt}
-                ]
-            )
-
-            # Parse response
-            response_text = message.content[0].text.strip()
-
-            # Extrage JSON din răspuns cu repair logic
-            rewritten = self._parse_json_response(response_text)
+            rewritten = self._request_json(prompt, ARTICLE_SCHEMA)
             if rewritten is None:
-                # Retry once — AI models are non-deterministic
-                logger.warning("⚠️  Prima încercare eșuată, reîncerc...")
-                self._rate_limit()
-                message = self.client.messages.create(
-                    model=self.model,
-                    max_tokens=8192,
-                    messages=[{"role": "user", "content": prompt}]
-                )
-                response_text = message.content[0].text.strip()
-                rewritten = self._parse_json_response(response_text)
-                if rewritten is None:
-                    logger.error(f"❌ JSON invalid după retry pentru: {raw_article.get('title', 'Necunoscut')}")
-                    return None
+                logger.error(f"❌ JSON invalid după retry pentru: {raw_article.get('title', 'Necunoscut')[:50]}")
+                return None
 
             # Validează câmpuri obligatorii
             required_fields = ['title', 'content', 'category', 'type', 'seo_title', 'meta_description', 'slug', 'keywords']
@@ -529,25 +525,10 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
 }}"""
 
         try:
-            self._rate_limit()
-
-            message = self.client.messages.create(
-                model=self.model,
-                max_tokens=4096,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            response_text = message.content[0].text.strip()
-
-            # Parse JSON
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
-
-            if start_idx < 0 or end_idx <= start_idx:
-                logger.error("❌ Nu e JSON în răspunsul editorial")
+            rewritten = self._request_json(prompt, EDITORIAL_SCHEMA)
+            if rewritten is None:
+                logger.error("❌ Editorial fără JSON valid după retry")
                 return None
-
-            rewritten = json.loads(response_text[start_idx:end_idx])
 
             # Construiesc editorialul final
             today = datetime.now().strftime("%Y-%m-%d")
@@ -575,9 +556,6 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
             logger.info(f"✅ Editorial {type_label}: {editorial['title'][:50]}...")
             return editorial
 
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ JSON invalid în editorial: {e}")
-            return None
         except Exception as e:
             logger.error(f"❌ Eroare la scrierea editorialului: {e}")
             return None

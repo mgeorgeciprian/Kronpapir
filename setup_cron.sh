@@ -4,7 +4,7 @@
 #   06:00 - Scrape + 5 articole locale (dimineața)
 #   14:00 - Scrape + 5 articole locale (după-amiaza)
 #   22:00 - Editoriale zilnice (3 editoriale: național, internațional, tematic)
-#   03:30 - Arhivare/compresie articole (zilnic)
+#   03:30 - Arhivare articole brute (zilnic)
 #   04:30 - Audit SEO (duminica)
 
 set -e
@@ -47,8 +47,8 @@ crontab -l 2>/dev/null | grep -v -e "run_pipeline.py" -e "archive_articles.py" -
 # Seara 22:00 - Editoriale zilnice (Andrei Varga)
 0 22 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE editorial >> $LOG_DIR/cron_editorial.log 2>&1
 
-# Noaptea 03:30 - Arhivare brute vechi + compresie procesate >30 zile
-30 3 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $ARCHIVE >> $LOG_DIR/cron_archive.log 2>&1
+# Noaptea 03:30 - Arhivare brute vechi (doar --raw-only)
+30 3 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $ARCHIVE --raw-only >> $LOG_DIR/cron_archive.log 2>&1
 
 # Duminica 04:30 - Audit SEO
 30 4 * * 0 cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $SEO_AUDIT >> $LOG_DIR/cron_seo_audit.log 2>&1
@@ -61,7 +61,7 @@ echo "Program zilnic KronPapir.ro:"
 echo "  06:00 - Scrape + 5 articole locale rescrise AI"
 echo "  14:00 - Scrape + 5 articole locale rescrise AI"
 echo "  22:00 - 3 editoriale: national + international + tematic"
-echo "  03:30 - Arhivare/compresie articole vechi"
+echo "  03:30 - Arhivare articole brute vechi"
 echo "  04:30 - Audit SEO (doar duminica)"
 echo ""
 echo "Total zilnic: ~10 articole locale + 3 editoriale = 13 articole/zi"

@@ -117,8 +117,6 @@
   <!-- Preconnect -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="dns-prefetch" href="https://api.open-meteo.com">
-  <link rel="dns-prefetch" href="https://air-quality-api.open-meteo.com">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- Stylesheets -->
@@ -464,30 +462,22 @@
     dateEl.textContent = zile[d.getDay()] + ', ' + d.getDate() + ' ' + luni[d.getMonth()] + ' ' + d.getFullYear();
   })();
 
-  // === EXCHANGE RATES: EUR/USD/GBP → RON via Frankfurter API (BCE) ===
+  // === EXCHANGE RATES: EUR/USD/GBP → RON, curs BNR prin /api/curs ===
   (function() {
-    fetch('https://api.frankfurter.app/latest?from=EUR&to=RON,USD,GBP')
+    fetch('/api/curs')
       .then(r => r.json())
       .then(data => {
         const rates = data.rates;
-        const eurRon = rates.RON;
-        document.getElementById('eur-rate').textContent = eurRon ? eurRon.toFixed(4) : '--';
-
-        // USD to RON = EUR/RON ÷ EUR/USD
-        if (rates.USD && eurRon) {
-          document.getElementById('usd-rate').textContent = (eurRon / rates.USD).toFixed(4);
-        }
-        // GBP to RON = EUR/RON ÷ EUR/GBP
-        if (rates.GBP && eurRon) {
-          document.getElementById('gbp-rate').textContent = (eurRon / rates.GBP).toFixed(4);
-        }
+        document.getElementById('eur-rate').textContent = rates.EUR.toFixed(4);
+        document.getElementById('usd-rate').textContent = rates.USD.toFixed(4);
+        document.getElementById('gbp-rate').textContent = rates.GBP.toFixed(4);
       })
       .catch(() => {});
   })();
 
-  // === WEATHER via Open-Meteo (free, no API key) ===
+  // === WEATHER via Open-Meteo, prin /api/vreme ===
   (function() {
-    fetch('https://api.open-meteo.com/v1/forecast?latitude=45.6427&longitude=25.5887&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=Europe/Bucharest')
+    fetch('/api/vreme')
       .then(r => r.json())
       .then(data => {
         const c = data.current;
@@ -527,9 +517,9 @@
       });
   })();
 
-  // === AIR QUALITY via Open-Meteo (free, no API key, European AQI) ===
+  // === AIR QUALITY via Open-Meteo (European AQI), prin /api/aer ===
   (function() {
-    fetch('https://air-quality-api.open-meteo.com/v1/air-quality?latitude=45.6427&longitude=25.5887&current=european_aqi,pm10,pm2_5,nitrogen_dioxide&timezone=Europe%2FBucharest')
+    fetch('/api/aer')
       .then(r => r.json())
       .then(data => {
         const c = data.current;

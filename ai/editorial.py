@@ -62,6 +62,22 @@ LIMBA ROMÂNĂ CORECTĂ — ai facultate de jurnalism, nu scrii cu greșeli:
 """
 
 
+# Schema JSON: API-ul garantează un răspuns valid, inclusiv cu ghilimele în HTML
+EDITORIAL_SCHEMA = {
+    "type": "object",
+    "properties": {
+        "title": {"type": "string"},
+        "seo_title": {"type": "string"},
+        "content": {"type": "string"},
+        "meta_description": {"type": "string"},
+        "slug": {"type": "string"},
+        "keywords": {"type": "array", "items": {"type": "string"}},
+    },
+    "required": ["title", "seo_title", "content", "meta_description", "slug", "keywords"],
+    "additionalProperties": False,
+}
+
+
 class EditorialAgent:
     """
     Agent editorial dedicat care scrie editoriale zilnice.
@@ -96,35 +112,29 @@ class EditorialAgent:
             time.sleep(self.rate_limit_delay - elapsed)
         self.last_api_call = time.time()
 
-    def _call_claude(self, prompt: str, max_tokens: int = 4096) -> Optional[Dict]:
-        """Apelează Claude și returnează JSON parsat."""
+    def _call_claude(self, prompt: str, max_tokens: int = 8192) -> Optional[Dict]:
+        """Apelează Claude cu schema JSON, cu o reîncercare; returnează JSON parsat."""
         if not self.client:
             return None
 
         try:
-            self._rate_limit()
-
-            message = self.client.messages.create(
-                model=self.model,
-                max_tokens=max_tokens,
-                messages=[{"role": "user", "content": prompt}]
-            )
-
-            response_text = message.content[0].text.strip()
-
-            # Parse JSON
-            start_idx = response_text.find('{')
-            end_idx = response_text.rfind('}') + 1
-
-            if start_idx < 0 or end_idx <= start_idx:
-                logger.error("❌ Nu e JSON valid în răspuns")
-                return None
-
-            return json.loads(response_text[start_idx:end_idx])
-
-        except json.JSONDecodeError as e:
-            logger.error(f"❌ JSON invalid: {e}")
+            for attempt in (1, 2):
+                self._rate_limit()
+                message = self.client.messages.create(
+                    model=self.model,
+                    max_tokens=max_tokens,
+                    output_config={"format": {"type": "json_schema", "schema": EDITORIAL_SCHEMA}},
+                    messages=[{"role": "user", "content": prompt}]
+                )
+                if message.stop_reason == "end_turn":
+                    text = next((b.text for b in message.content if b.type == "text"), "")
+                    try:
+                        return json.loads(text)
+                    except json.JSONDecodeError as e:
+                        logger.error(f"❌ JSON invalid: {e}")
+                logger.warning(f"⚠️ Răspuns neutilizabil (încercarea {attempt}, stop: {message.stop_reason})")
             return None
+
         except Exception as e:
             logger.error(f"❌ Eroare API: {e}")
             return None
