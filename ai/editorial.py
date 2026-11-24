@@ -71,7 +71,7 @@ class EditorialAgent:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-5-20250929",
+        model: str = "claude-opus-5-5",
         rate_limit_delay: float = 1.5,
     ):
         self.model = model

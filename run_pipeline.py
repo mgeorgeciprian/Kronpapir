@@ -264,10 +264,12 @@ def run_ai_processing():
     if api_key:
         try:
             from ai.rewriter import ArticleRewriter
+            from config.models import get_article_model, get_editorial_model
 
             rewriter = ArticleRewriter(
                 api_key=api_key,
-                model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+                model=get_article_model(),
+                editorial_model=get_editorial_model(),
             )
 
             processed_count = 0
@@ -542,10 +544,12 @@ def run_ai_processing_balanced():
     if api_key:
         try:
             from ai.rewriter import ArticleRewriter
+            from config.models import get_article_model, get_editorial_model
 
             rewriter = ArticleRewriter(
                 api_key=api_key,
-                model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+                model=get_article_model(),
+                editorial_model=get_editorial_model(),
             )
 
             balanced_slugs = []
@@ -686,10 +690,11 @@ def run_editorials():
 
     try:
         from ai.editorial import EditorialAgent
+        from config.models import get_editorial_model
 
         agent = EditorialAgent(
             api_key=api_key,
-            model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+            model=get_editorial_model(),
         )
 
         # Clasifică articolele brute
