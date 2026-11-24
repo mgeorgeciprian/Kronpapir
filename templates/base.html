@@ -325,6 +325,23 @@
             <li><a href="/categorie/mediu">Mediu</a></li>
           </ul>
         </li>
+        <li class="dropdown">
+          <a href="#" class="{% if request.path.startswith('/localitate') %}active{% endif %}">Localități ▼</a>
+          <ul class="dropdown-menu">
+            <li><a href="/localitate/sacele">Săcele</a></li>
+            <li><a href="/localitate/tarlungeni">Tărlungeni</a></li>
+            <li><a href="/localitate/harman">Hărman</a></li>
+            <li><a href="/localitate/sanpetru">Sânpetru</a></li>
+            <li><a href="/localitate/ghimbav">Ghimbav</a></li>
+            <li><a href="/localitate/codlea">Codlea</a></li>
+            <li><a href="/localitate/rasnov">Râșnov</a></li>
+            <li><a href="/localitate/zarnesti">Zărnești</a></li>
+            <li><a href="/localitate/prejmer">Prejmer</a></li>
+            <li><a href="/localitate/predeal">Predeal</a></li>
+            <li><a href="/localitate/fagaras">Făgăraș</a></li>
+          </ul>
+        </li>
+        <li><a href="/utile" class="{% if request.path.startswith('/utile') %}active{% endif %}">Utile</a></li>
         <li><a href="/despre">Despre</a></li>
       </ul>
     </nav>

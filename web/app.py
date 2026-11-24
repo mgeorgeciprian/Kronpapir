@@ -711,6 +711,64 @@ def editoriale():
     )
 
 
+@app.route('/localitate/<slug>')
+def locality(slug):
+    """Știri dintr-o localitate din zona Brașov (Săcele, Tărlungeni, ...)."""
+    from utils.localities import LOCALITIES, detect_localities
+    if slug not in LOCALITIES:
+        abort(404)
+    name = LOCALITIES[slug][0]
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+
+    all_articles = [a for a in load_articles(all_types=True)
+                    if not a.get('is_editorial') and slug in detect_localities(a)]
+    total = len(all_articles)
+    articles = all_articles[(page - 1) * per_page:page * per_page]
+
+    return render_template(
+        'category.html',
+        articles=articles,
+        category=None,
+        category_name=f"Știri {name}",
+        page_intro=f"Ultimele știri din {name} și împrejurimi: administrație, comunitate, școli, sport și anunțuri utile.",
+        page=page,
+        total_pages=(total + per_page - 1) // per_page,
+        total=total,
+        categories=CATEGORIES,
+        localities={k: v[0] for k, v in LOCALITIES.items()},
+    )
+
+
+@app.route('/utile')
+def utile():
+    """Informații practice: întreruperi, programe, termene, restricții (ultimele 30 de zile)."""
+    from utils.localities import LOCALITIES, is_service_article, is_recent
+    page = request.args.get('page', 1, type=int)
+    per_page = 15
+
+    all_articles = [a for a in load_articles(all_types=True)
+                    if not a.get('is_editorial') and a.get('type', 'local') != 'national'
+                    and is_recent(a, 30) and is_service_article(a)]
+    total = len(all_articles)
+    articles = all_articles[(page - 1) * per_page:page * per_page]
+
+    return render_template(
+        'category.html',
+        articles=articles,
+        category=None,
+        category_name="Informații utile Brașov",
+        page_intro=("Întreruperi de apă și curent, restricții de trafic, programe, termene și alte anunțuri "
+                    "practice din Brașov și împrejurimi, din ultimele 30 de zile. "
+                    "În caz de urgență sunați la 112."),
+        page=page,
+        total_pages=(total + per_page - 1) // per_page,
+        total=total,
+        categories=CATEGORIES,
+        localities={k: v[0] for k, v in LOCALITIES.items()},
+    )
+
+
 @app.route('/despre')
 def about():
     """About page."""
@@ -2017,11 +2075,15 @@ def sitemap_xml():
         ('/local', 'daily', '0.8'),
         ('/national', 'daily', '0.7'),
         ('/editoriale', 'daily', '0.8'),
+        ('/utile', 'daily', '0.8'),
         ('/despre', 'monthly', '0.7'),
         ('/confidentialitate', 'monthly', '0.5'),
         ('/termeni', 'monthly', '0.5'),
         ('/contact', 'monthly', '0.5'),
     ]
+
+    from utils.localities import LOCALITIES
+    static_pages += [(f'/localitate/{slug}', 'daily', '0.7') for slug in LOCALITIES]
 
     for page_url, changefreq, priority in static_pages:
         sitemap_urls.append({

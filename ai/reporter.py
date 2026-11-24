@@ -87,7 +87,9 @@ Răspunde DOAR cu JSON valid:
   "meta_description": "150-160 caractere",
   "slug": "slug-fara-diacritice",
   "keywords": ["cuvant1", "cuvant2", "cuvant3", "cuvant4"],
-  "category": "politica|economie|cultura|sport|sanatate|social|mediu|local"
+  "category": "politica|economie|cultura|sport|sanatate|social|mediu|local",
+  "service": true dacă știrea e o informație practică pentru cititori (întreruperi de apă/curent/gaz,
+             restricții de trafic, program de funcționare, termene, înscrieri, taxe, avertizări), altfel false
 }}"""
 
 CHECKER_PROMPT = """Ești editor de verificare a faptelor la KronPapir.ro.
@@ -341,11 +343,12 @@ class ReporterAgent:
         return []
 
     def _finalize(self, draft: Dict[str, Any], source_name: str, source_url: str, image: str,
-                  category: str) -> Dict[str, Any]:
+                  category: str, locality: Optional[str] = None) -> Dict[str, Any]:
+        from utils.localities import detect_localities
         slug = re.sub(r"[^a-z0-9-]", "", (draft.get("slug") or "").lower().replace(" ", "-")).strip("-")
         if not slug:
             slug = f"stire-{uuid.uuid4().hex[:8]}"
-        return {
+        article = {
             "id": str(uuid.uuid4()),
             "title": draft["title"],
             "seo_title": draft.get("seo_title") or draft["title"][:60],
@@ -365,7 +368,13 @@ class ReporterAgent:
             "original": True,
             "ai_generated": True,
             "generated_by": "reporter",
+            "is_service": bool(draft.get("service")),
         }
+        localities = detect_localities(article)
+        if locality and locality not in localities:
+            localities.insert(0, locality)
+        article["localities"] = localities
+        return article
 
     # --- scriere ---
     def write_from_document(self, doc: Dict[str, str], source: Dict[str, Any]) -> Dict[str, Any]:
@@ -389,7 +398,7 @@ class ReporterAgent:
             return {"status": "rejected", "reason": "; ".join(problems)[:500]}
 
         article = self._finalize(draft, source["name"], doc["url"], doc.get("image", ""),
-                                 source.get("category", "local"))
+                                 source.get("category", "local"), source.get("locality"))
         return {"status": "published", "article": article}
 
     def write_weather(self, cfg: Dict[str, Any]) -> Dict[str, Any]:

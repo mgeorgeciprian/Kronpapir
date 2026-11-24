@@ -14,6 +14,22 @@
 # completează cu feed_url / link_pattern corecte.
 
 sources:
+  # Săcele - nișa cu cel mai bun trafic în Search Console
+  - id: primaria-sacele
+    name: "Primăria Municipiului Săcele"
+    list_url: "https://www.municipiulsacele.ro/category/comunitate/"
+    feed_url: "https://www.municipiulsacele.ro/feed/"
+    category: "local"
+    locality: "sacele"
+    enabled: true
+
+  - id: apa-brasov
+    name: "Compania Apa Brașov"
+    list_url: "https://www.apabrasov.ro/"
+    link_pattern: "/(comunicate|anunturi|intreruperi|stiri|noutati)"
+    category: "local"
+    enabled: true
+
   - id: primaria-brasov
     name: "Primăria Municipiului Brașov"
     list_url: "https://www.brasovcity.ro/stiri-wp/"
@@ -55,6 +71,9 @@ sources:
     link_pattern: "/(comunicate|stiri|noutati|anunturi)/"
     category: "cultura"
     enabled: true
+
+# Câmpul opțional "locality" (slug din utils/localities.py) leagă toate știrile
+# sursei de pagina /localitate/<slug>; altfel localitățile sunt detectate din text.
 
 # Știri din date publice (nu necesită comunicat)
 data_reports:
