@@ -682,7 +682,7 @@ def article_by_slug(slug):
 
 @app.route('/editoriale')
 def editoriale():
-    """Editorial articles by Andrei Varga."""
+    """Editorial articles (Redacția KronPapir, AI-generated)."""
     page = request.args.get('page', 1, type=int)
     per_page = 10
 

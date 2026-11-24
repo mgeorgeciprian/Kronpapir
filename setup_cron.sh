@@ -44,7 +44,7 @@ crontab -l 2>/dev/null | grep -v "run_pipeline.py" | crontab -
 0 8 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE report >> $LOG_DIR/cron_reporter.log 2>&1
 0 17 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE report >> $LOG_DIR/cron_reporter.log 2>&1
 
-# Seara 22:00 - Editoriale zilnice (Andrei Varga)
+# Seara 22:00 - Editoriale zilnice (Redacția KronPapir)
 0 22 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE editorial >> $LOG_DIR/cron_editorial.log 2>&1
 CRONEOF
 ) | crontab -

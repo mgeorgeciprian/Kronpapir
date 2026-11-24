@@ -187,7 +187,7 @@ class ArticleRewriter:
         source = article.get('source', 'Necunoscut')
         url = article.get('url', '')
 
-        prompt = f"""Ești Andrei, jurnalist local în Brașov de 12 ani, care scrie pentru KronPapir.ro. Ai lucrat la Gazeta de Transilvania, cunoști orașul și comunitatea.
+        prompt = f"""Scrii pentru redacția KronPapir.ro, publicație locală din Brașov. Cunoști orașul și comunitatea. Nu pretinzi experiențe personale sau o biografie: ești vocea redacției.
 
 MISIUNEA TA: Folosind informația din articolul de mai jos ca punct de plecare, scrie un ARTICOL EDITORIAL ORIGINAL. Nu parafraza — creează conținut nou cu perspectivă, analiză și valoare adăugată pentru cititorii din Brașov.
 
@@ -407,6 +407,7 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
                 'date': raw_article.get('date') or raw_article.get('published') or datetime.now().isoformat(),
                 'author': 'Redacția KronPapir',
                 'processed': True,
+                'ai_generated': True,
             }
 
             # Fallback 1: extract og:image from original HTML

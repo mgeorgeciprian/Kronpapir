@@ -2,8 +2,9 @@
 KronPapir - Agent Editorial Dedicat
 Scrie editoriale zilnice: național, internațional, tematic
 
-Editorialistul KronPapir: "Andrei Varga" — voce analitică, perspectivă locală,
-conectează evenimentele mari la viața brașovenilor.
+Editorialele sunt semnate "Redacția KronPapir" și marcate ca generate cu AI
+(ai_generated=True): voce analitică, perspectivă locală, conectează
+evenimentele mari la viața brașovenilor.
 """
 
 import os
@@ -33,23 +34,23 @@ TEME_ZILNICE = {
 }
 
 # Personalitatea editorialistului
-EDITORIAL_PERSONA = """Ești Andrei Varga, editorialist-șef la KronPapir.ro, portalul de știri din Brașov.
+EDITORIAL_PERSONA = """Scrii editorialul zilnic al redacției KronPapir.ro, portalul de știri din Brașov.
 
-CINE EȘTI:
-- Jurnalist cu 15 ani de experiență în presă locală și națională
-- Brașovean prin adopție, iubești orașul și comunitatea
-- Analist echilibrat — nu ești partizan, dar ai opinii argumentate
-- Știi să conectezi evenimentele mari de pe scena națională/internațională cu impactul lor asupra vieții din Brașov
+VOCEA REDACȚIEI:
+- Analitică și echilibrată — nu partizană, dar cu opinii argumentate
+- Conectezi evenimentele mari de pe scena națională/internațională cu impactul lor asupra vieții din Brașov
 - Scrii cu claritate, empatie și ocazional cu umor fin
+- Nu pretinzi experiențe personale, amintiri sau o biografie: ești vocea redacției, nu o persoană
 
-STILUL TĂU:
+STILUL:
 - Deschizi cu un paragraf puternic care captează atenția
 - Analizezi, nu doar rezumi — oferi CONTEXT și PERSPECTIVĂ
 - Conectezi știrile între ele pentru a arăta imaginea de ansamblu
-- Închei mereu cu o reflecție sau o întrebare care lasă cititorul să gândească
+- Închei cu o reflecție sau o întrebare care lasă cititorul să gândească
 - Ton: profesional dar cald, accesibil dar inteligent
 - NU folosești clișee jurnalistice ("rămâne de văzut", "timpul va decide")
-- Semnezi: "Andrei Varga, editorialist KronPapir"
+- Faptele (cifre, nume, date) vin DOAR din articolele primite; opiniile sunt clar formulate ca opinii
+- Nu semnezi textul — semnătura e adăugată automat
 
 LIMBA ROMÂNĂ CORECTĂ — ai facultate de jurnalism, nu scrii cu greșeli:
 - Acorduri gramaticale corecte: "sunt bani" NU "e bani", "sunt oameni" NU "e oameni", "există probleme" NU "e probleme". Subiect plural = verb la plural. ÎNTOTDEAUNA.
@@ -229,7 +230,8 @@ class EditorialAgent:
             'image': '',
             'date': datetime.now().isoformat(),
             'publish_date': tomorrow,
-            'author': 'Andrei Varga',
+            'author': 'Redacția KronPapir',
+            'ai_generated': True,
             'processed': True,
             'is_editorial': True,
             'editorial_type': editorial_type,
@@ -267,7 +269,7 @@ SEO:
 ȘTIRILE NAȚIONALE ALE ZILEI ({len(articles[:5])} știri):
 {stiri}
 
-Semnează la final: "— Andrei Varga, editorialist KronPapir"
+Nu adăuga semnătură la final.
 
 Returnează DOAR JSON valid (fără markdown, fără ```):
 {{
@@ -317,7 +319,7 @@ SEO:
 ȘTIRILE INTERNAȚIONALE ALE ZILEI ({len(articles[:5])} știri):
 {stiri}
 
-Semnează la final: "— Andrei Varga, editorialist KronPapir"
+Nu adăuga semnătură la final.
 
 Returnează DOAR JSON valid:
 {{
@@ -382,7 +384,7 @@ SEO:
 ȘTIRI RELEVANTE PENTRU TEMĂ ({len(articles[:7])} știri):
 {stiri}
 
-Semnează la final: "— Andrei Varga, editorialist KronPapir"
+Nu adăuga semnătură la final.
 
 Returnează DOAR JSON valid:
 {{

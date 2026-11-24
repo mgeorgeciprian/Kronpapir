@@ -78,6 +78,12 @@
       <p><strong>{{ article.excerpt }}</strong></p>
       {% endif %}
       {{ article.content | safe }}
+      {% if article.ai_generated or article.is_editorial or (article.processed and not article.contributor_id) %}
+      <p class="ai-disclosure" style="margin-top: var(--space-lg); padding: var(--space-sm) var(--space-md); border-left: 3px solid var(--border); color: var(--text-secondary); font-size: 0.85rem;">
+        {% if article.is_editorial %}Editorial de opinie redactat cu ajutorul inteligenței artificiale, pe baza știrilor zilei.
+        {% else %}Articol redactat cu ajutorul inteligenței artificiale pe baza sursei indicate{% if article.url %} (<a href="{{ article.url }}" rel="nofollow noopener" target="_blank">documentul original</a>){% endif %}.{% endif %}
+      </p>
+      {% endif %}
     </div>
 
     <!-- Ad Slot After Article Content -->
@@ -198,7 +204,7 @@
   {% if article.category %}"articleSection": "{{ categories.get(article.category, article.category) }}",{% endif %}
   "wordCount": {{ article.content|striptags|wordcount }},
   "author": {
-    {% if article.author and article.author != 'KronPapir' %}
+    {% if article.author and article.author not in ('KronPapir', 'Redacția KronPapir') and not article.ai_generated and not article.is_editorial %}
     "@type": "Person",
     "name": "{{ article.author }}"
     {% else %}

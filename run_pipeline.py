@@ -680,7 +680,7 @@ def run_web_server(host="0.0.0.0", port=5000, debug=False):
 def run_editorials():
     """Rulează agentul editorial — scrie 3 editoriale: național, internațional, tematic."""
     logger.info("=" * 60)
-    logger.info("📰 KronPapir.ro - Agent Editorial (Andrei Varga)")
+    logger.info("📰 KronPapir.ro - Agent Editorial (Redacția KronPapir)")
     logger.info("=" * 60)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
