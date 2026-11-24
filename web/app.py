@@ -1268,9 +1268,10 @@ def admin_process():
     if api_key:
         try:
             from ai.rewriter import ArticleRewriter
+            from config.models import get_article_model
             rewriter = ArticleRewriter(
                 api_key=api_key,
-                model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
+                model=get_article_model(),
             )
         except Exception as e:
             print(f"Could not initialize AI rewriter: {e}")
@@ -1431,9 +1432,10 @@ def admin_reprocess(processed_filename):
 
     try:
         from ai.rewriter import ArticleRewriter
+        from config.models import get_article_model
         rewriter = ArticleRewriter(
             api_key=api_key,
-            model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
+            model=get_article_model(),
         )
         result = rewriter.rewrite_article(raw)
         if result:
@@ -1511,10 +1513,11 @@ def admin_api_suggest_keywords():
     if api_key and title:
         try:
             import anthropic
+            from config.models import get_article_model
             client = anthropic.Anthropic(api_key=api_key)
             prompt = f"Genereaza 8 cuvinte cheie SEO relevante pentru acest articol romanesc. Returneaza DOAR cuvintele cheie separate prin virgula, fara numerotare.\n\nTitlu: {title}\nContinut: {content[:500]}"
             response = client.messages.create(
-                model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
+                model=get_article_model(),
                 max_tokens=200,
                 messages=[{"role": "user", "content": prompt}]
             )

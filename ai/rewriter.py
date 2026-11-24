@@ -36,8 +36,9 @@ class ArticleRewriter:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-5-20250929",
+        model: str = "claude-sonnet-5-5",
         rate_limit_delay: float = 1.0,
+        editorial_model: Optional[str] = None,
     ):
         """
         Inițializează rewriterul.
@@ -48,6 +49,7 @@ class ArticleRewriter:
             rate_limit_delay: Delay în secunde între API calls
         """
         self.model = model
+        self.editorial_model = editorial_model or model
         self.rate_limit_delay = rate_limit_delay
         self.last_api_call = 0
 
@@ -532,7 +534,7 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
             self._rate_limit()
 
             message = self.client.messages.create(
-                model=self.model,
+                model=self.editorial_model,
                 max_tokens=4096,
                 messages=[{"role": "user", "content": prompt}]
             )
