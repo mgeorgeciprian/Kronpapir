@@ -16,3 +16,8 @@ def get_article_model() -> str:
 
 def get_editorial_model() -> str:
     return os.environ.get("CLAUDE_EDITORIAL_MODEL") or DEFAULT_EDITORIAL_MODEL
+
+
+def get_reporter_model() -> str:
+    """Model pentru Agentul Reporter (știri originale din surse primare)."""
+    return os.environ.get("CLAUDE_REPORTER_MODEL") or get_article_model()

@@ -680,7 +680,7 @@ def run_web_server(host="0.0.0.0", port=5000, debug=False):
 def run_editorials():
     """Rulează agentul editorial — scrie 3 editoriale: național, internațional, tematic."""
     logger.info("=" * 60)
-    logger.info("📰 KronPapir.ro - Agent Editorial (Andrei Varga)")
+    logger.info("📰 KronPapir.ro - Agent Editorial (Redacția KronPapir)")
     logger.info("=" * 60)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -754,6 +754,42 @@ def run_editorials():
     except Exception as e:
         logger.error(f"❌ Eroare la editoriale: {e}")
         return {"status": "error", "error": str(e)}
+
+
+def run_reporter_agent(limit=5, dry_run=False, check=False):
+    """Agentul Reporter: știri originale din comunicate oficiale și date publice."""
+    from ai.reporter import run_reporter, check_sources
+
+    if check:
+        logger.info("🔎 Verificare surse primare")
+        for r in check_sources(BASE_DIR):
+            mark = "✅" if r["readable"] else ("⚠️" if r["found"] else "❌")
+            logger.info(f"   {mark} {r['id']:<20} găsite={r['found']:<3} citibil={r['readable']} "
+                        f"({r['chars']} caractere) {r['example']}")
+        return {"status": "checked"}
+
+    api_key = os.environ.get("ANTHROPIC_API_KEY", "")
+    if not api_key:
+        logger.error("❌ ANTHROPIC_API_KEY nu e setat. Reporterul nu poate scrie.")
+        return {"status": "no_api_key"}
+
+    from config.models import get_reporter_model, get_article_model
+
+    logger.info("=" * 60)
+    logger.info("🗞️  KronPapir.ro - Agent Reporter (surse primare)")
+    logger.info("=" * 60)
+    stats = run_reporter(BASE_DIR, api_key, model=get_reporter_model(),
+                         checker_model=get_article_model(), max_articles=limit, dry_run=dry_run)
+    logger.info(f"✅ Reporter: publicate={stats['published']} sărite={stats['skipped']} "
+                f"respinse la verificare={stats['rejected']} erori={stats['error']}")
+
+    if stats["slugs"]:
+        try:
+            from utils.seo import notify_search_engines
+            notify_search_engines([f"https://kronpapir.ro/stiri/{s}" for s in stats["slugs"]])
+        except Exception as e:
+            logger.warning(f"⚠️ Notificare SEO eșuată: {e}")
+    return {"status": "completed", **stats}
 
 
 def cleanup_old_articles(max_age_days=7):
@@ -918,6 +954,7 @@ Comenzi disponibile:
   scrape-national Fetchuiește doar din surse naționale
   process         Procesează articolele locale cu Claude AI (5 per rulare)
   editorial       Scrie editoriale zilnice (național + internațional + tematic)
+  report          Agent Reporter: știri originale din comunicate oficiale (--check, --dry-run, --limit)
   serve           Pornește serverul web
   full            Pipeline complet (scrape + process)
   auto            Mod automat (scrape periodic + serve)
@@ -932,13 +969,16 @@ Exemple:
 
     parser.add_argument('command', choices=[
         'scrape', 'scrape-local', 'scrape-national',
-        'process', 'process-balanced', 'editorial', 'serve', 'full', 'auto', 'status'
+        'process', 'process-balanced', 'editorial', 'report', 'serve', 'full', 'auto', 'status'
     ], help='Comanda de executat')
 
     parser.add_argument('--port', type=int, default=5000, help='Port server web (default: 5000)')
     parser.add_argument('--host', default='0.0.0.0', help='Host server web (default: 0.0.0.0)')
     parser.add_argument('--interval', type=int, default=3600, help='Interval scraping în secunde (default: 3600)')
     parser.add_argument('--debug', action='store_true', help='Mod debug')
+    parser.add_argument('--limit', type=int, default=5, help='Reporter: max articole per rulare (default: 5)')
+    parser.add_argument('--dry-run', action='store_true', help='Reporter: scrie fără să salveze')
+    parser.add_argument('--check', action='store_true', help='Reporter: doar verifică sursele')
 
     args = parser.parse_args()
 
@@ -952,6 +992,7 @@ Exemple:
         'process': run_ai_processing,
         'process-balanced': run_ai_processing_balanced,
         'editorial': run_editorials,
+        'report': lambda: run_reporter_agent(args.limit, args.dry_run, args.check),
         'serve': lambda: run_web_server(args.host, args.port, args.debug),
         'full': run_full_pipeline,
         'auto': lambda: run_auto_mode(args.interval),

@@ -1,0 +1,84 @@
+# KronPapir - Surse primare pentru Agentul Reporter
+#
+# Reporterul scrie știri ORIGINALE pornind de la comunicatele oficiale ale
+# instituțiilor (nu din articolele altor publicații). Fiecare articol citează
+# și face link la documentul sursă.
+#
+# Moduri de descoperire, în ordine:
+#   1. feed_url        - feed RSS/Atom explicit
+#   2. autodiscovery   - caută <link rel="alternate" type="application/rss+xml"> pe list_url
+#   3. listing         - extrage link-urile din list_url care se potrivesc cu link_pattern (regex)
+#
+# Verifică sursele pe server cu:  python run_pipeline.py report --check
+# Sursele care nu returnează nimic se dezactivează (enabled: false) sau se
+# completează cu feed_url / link_pattern corecte.
+
+sources:
+  # Săcele - nișa cu cel mai bun trafic în Search Console
+  - id: primaria-sacele
+    name: "Primăria Municipiului Săcele"
+    list_url: "https://www.municipiulsacele.ro/category/comunitate/"
+    feed_url: "https://www.municipiulsacele.ro/feed/"
+    category: "local"
+    locality: "sacele"
+    enabled: true
+
+  - id: apa-brasov
+    name: "Compania Apa Brașov"
+    list_url: "https://www.apabrasov.ro/"
+    link_pattern: "/(comunicate|anunturi|intreruperi|stiri|noutati)"
+    category: "local"
+    enabled: true
+
+  - id: primaria-brasov
+    name: "Primăria Municipiului Brașov"
+    list_url: "https://www.brasovcity.ro/stiri-wp/"
+    feed_url: "https://www.brasovcity.ro/stiri-wp/feed/"
+    category: "local"
+    enabled: true
+
+  - id: cj-brasov
+    name: "Consiliul Județean Brașov"
+    list_url: "https://www.judbrasov.ro/"
+    link_pattern: "/(stiri|comunicate|noutati|anunturi)/"
+    category: "local"
+    enabled: true
+
+  - id: ipj-brasov
+    name: "IPJ Brașov"
+    list_url: "https://bv.politiaromana.ro/ro/stiri"
+    link_pattern: "/ro/stiri/[^/?#]+"
+    category: "social"
+    enabled: true
+
+  - id: isu-brasov
+    name: "ISU Brașov"
+    list_url: "https://www.isubv.ro/"
+    link_pattern: "/(comunicate|stiri|noutati)/"
+    category: "social"
+    enabled: true
+
+  - id: prefectura-brasov
+    name: "Instituția Prefectului Județul Brașov"
+    list_url: "https://bv.prefectura.mai.gov.ro/"
+    feed_url: "https://bv.prefectura.mai.gov.ro/feed/"
+    category: "politica"
+    enabled: true
+
+  - id: isj-brasov
+    name: "Inspectoratul Școlar Județean Brașov"
+    list_url: "https://www.isjbrasov.ro/"
+    link_pattern: "/(comunicate|stiri|noutati|anunturi)/"
+    category: "cultura"
+    enabled: true
+
+# Câmpul opțional "locality" (slug din utils/localities.py) leagă toate știrile
+# sursei de pagina /localitate/<slug>; altfel localitățile sunt detectate din text.
+
+# Știri din date publice (nu necesită comunicat)
+data_reports:
+  weather:
+    enabled: true
+    name: "Prognoza meteo Brașov"
+    latitude: 45.6427
+    longitude: 25.5887
