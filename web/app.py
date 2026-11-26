@@ -817,6 +817,17 @@ def terms_conditions():
     return render_template('termeni.html', categories=CATEGORIES)
 
 
+# Data se schimbă manual, la fiecare modificare a textului din politica_editoriala.html.
+EDITORIAL_POLICY_UPDATED = '26 noiembrie 2026'
+
+
+@app.route('/politica-editoriala')
+def editorial_policy():
+    """Politica editorială publică (CLAUDE.md, regula 6): cum lucrează redacția și cum folosește AI."""
+    return render_template('politica_editoriala.html', categories=CATEGORIES,
+                           updated_label=EDITORIAL_POLICY_UPDATED)
+
+
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     """Contact page - GET shows form, POST handles submission."""

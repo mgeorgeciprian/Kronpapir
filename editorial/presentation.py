@@ -165,6 +165,7 @@ def build_jsonld(article: dict, category_label: str = "") -> list:
             "name": SITE_NAME,
             "url": SITE_URL,
             "logo": {"@type": "ImageObject", "url": LOGO_URL},
+            "publishingPrinciples": SITE_URL + "/politica-editoriala",
         },
         "image": [og_image(article)],
         "wordCount": len(_plain(article.get("content")).split()),

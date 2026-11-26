@@ -15,13 +15,11 @@
   <meta name="language" content="Romanian">
 
   <!-- Canonical URL -->
+  {# Implicit: adresa paginii curente, fără parametri (în afară de ?page=N). Site-ul e într-o singură limbă, deci fără hreflang. #}
   {% block canonical %}
-  <link rel="canonical" href="https://kronpapir.ro">
+  {% set _page = request.args.get('page', '0') | int(0) %}
+  <link rel="canonical" href="https://kronpapir.ro{{ request.path }}{% if _page > 1 %}?page={{ _page }}{% endif %}">
   {% endblock %}
-
-  <!-- Hreflang -->
-  <link rel="alternate" hreflang="ro_RO" href="https://kronpapir.ro">
-  <link rel="alternate" hreflang="ro" href="https://kronpapir.ro">
 
   <!-- Google Search Console Verification -->
   {% if google_search_console_token %}
@@ -436,6 +434,7 @@
         <div class="footer-section">
           <h3>Informații Legale</h3>
           <a href="/despre">Despre Noi</a>
+          <a href="/politica-editoriala">Politica editorială</a>
           <a href="/confidentialitate">Confidențialitate</a>
           <a href="/termeni">Termeni și Condiții</a>
           <a href="/contact">Contact</a>

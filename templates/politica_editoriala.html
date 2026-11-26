@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Politica editorială - KronPapir{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="Cum lucrează redacția KronPapir: ce publicăm automat, ce verifică un om, cum folosim inteligența artificială, cum corectăm greșelile și cum marcăm conținutul sponsorizat.">
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <article style="max-width: 800px;">
+    <header class="article-header">
+      <h1 class="article-title">Politica editorială</h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">Ultima actualizare: {{ updated_label }}</p>
+    </header>
+
+    <div class="article-body">
+      <p>KronPapir este un site de știri locale din Brașov. Vrem să fie locul în care brașovenii găsesc repede informațiile utile: locuri de muncă, cursuri, licitații, avarii, decizii ale primăriei, evenimente. Pagina de față explică cum lucrăm, ca să poți judeca singur cât te poți baza pe ce citești aici.</p>
+
+      <h2>Cine răspunde de conținut</h2>
+      <p>Site-ul are un editor, care este și proprietarul lui. El stabilește regulile de mai jos, aprobă editorialele și subiectele sensibile și răspunde de corecturi. Îl găsești la <a href="mailto:redactia@kronpapir.ro">redactia@kronpapir.ro</a>.</p>
+
+      <h2>Cum folosim inteligența artificială</h2>
+      <p>O mare parte din munca de redacție o face o echipă de programe AI, pe care o numim „Redacția AI KronPapir”. Programele colectează date din surse publice, scriu ciorne, verifică faptele și propun titluri. Folosim modele Claude, dezvoltate de Anthropic.</p>
+      <p>AI-ul nu decide singur ce ajunge pe site, decât în cazul articolelor de date, descrise mai jos. Nu inventăm persoane, citate, cifre sau „jurnaliști” care nu există. Când o informație lipsește din sursă, o lăsăm necompletată.</p>
+
+      <h2>Ce se publică automat și ce verifică un om</h2>
+      <ul>
+        <li><strong>Articole de date</strong> (locuri de muncă, cursuri, avarii, licitații): se pot publica automat, dar numai din surse oficiale și numai după o verificare automată a faptelor cu scor de cel puțin 8 din 10. Sunt semnate „Generat automat de Redacția AI KronPapir din date oficiale” și au link la sursă.</li>
+        <li><strong>Editoriale și subiecte sensibile</strong> (politică, accidente, sănătate, articole despre persoane private): rămân ciornă până le citește și le aprobă editorul. Nu se publică niciodată fără el.</li>
+        <li><strong>Orice articol cu scor de verificare sub 8</strong> rămâne ciornă pentru editor.</li>
+      </ul>
+      <p>Un articol poartă mențiunea „cu verificare umană” doar dacă editorul l-a citit și l-a aprobat. Data verificării este salvată la articol.</p>
+
+      <h2>Surse și conținut preluat</h2>
+      <p>Preferăm datele publice: anunțuri oficiale, registre, API-uri și fluxuri RSS ale instituțiilor. Fiecare articol de date are link la sursa lui.</p>
+      <p>Din articolele altor publicații luăm doar un rezumat scurt, cu informații adăugate de noi și cu link la articolul original. Nu rescriem integral articolele altora și nu le folosim fotografiile. Unele texte mai vechi de pe site au fost rescrieri ale altor publicații: acestea nu mai sunt trimise spre indexare în motoarele de căutare, până când sunt verificate sau înlocuite.</p>
+
+      <h2>Corecturi</h2>
+      <p>Când greșim, corectăm vizibil. Articolul primește mențiunea „Actualizare:”, cu explicația a ce s-a schimbat, iar data modificării este actualizată. Nu ștergem greșelile pe ascuns.</p>
+      <p>Dacă ai găsit o greșeală, scrie-ne la <a href="mailto:redactia@kronpapir.ro">redactia@kronpapir.ro</a> sau prin <a href="/contact">formularul de contact</a>. Spune-ne linkul articolului și ce e greșit.</p>
+
+      <h2>Date personale</h2>
+      <p>Nu publicăm date personale ale persoanelor private: nume, telefoane, adrese sau fotografii. La anunțurile de angajare nu păstrăm numele, telefonul sau emailul persoanei de contact. Fiecare ofertă trimite la anunțul oficial de pe ANOFM, unde găsești datele pentru aplicare. Detalii găsești în <a href="/confidentialitate">politica de confidențialitate</a>.</p>
+
+      <h2>Publicitate și conținut sponsorizat</h2>
+      <p>Conținutul plătit este marcat clar cu „Publicitate” sau „Conținut sponsorizat”. Cine plătește nu poate schimba știrile și nu are dreptul să le citească înainte de publicare.</p>
+
+      <h2>Colaboratori</h2>
+      <p>Pe KronPapir pot scrie și colaboratori înregistrați. Articolele lor apar sub numele lor și sunt publicate după aprobarea editorului, cu aceleași reguli: surse verificabile, fără date personale ale persoanelor private și corecturi vizibile.</p>
+    </div>
+  </article>
+</div>
+
+{% endblock %}
