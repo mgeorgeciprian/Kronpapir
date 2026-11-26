@@ -189,6 +189,45 @@ class ArticleRewriter:
             time.sleep(self.rate_limit_delay - elapsed)
         self.last_api_call = time.time()
 
+    def _build_summary_prompt(self, article: Dict[str, Any]) -> str:
+        """Rezumat scurt pentru știrile altor publicații (CLAUDE.md, regula 5): ~120 de cuvinte și link."""
+        title = article.get('title', 'Fără titlu')
+        content = article.get('content') or article.get('text') or article.get('original_text', '')
+        source = article.get('source', 'Necunoscut')
+        url = article.get('url', '')
+        return f"""Scrii pentru Redacția KronPapir (kronpapir.ro), site de știri locale din Brașov. Nu semnezi cu un nume.
+
+SARCINA: un REZUMAT SCURT al articolului publicat de {source}, cu link la articolul complet. Nu rescrii articolul: spui pe scurt ce s-a întâmplat și ce înseamnă pentru cititor, ca cine vrea detalii să meargă la sursă.
+
+REGULI DE ADEVĂR (mai presus de orice):
+- Folosești DOAR faptele din articolul sursă. Nu inventezi și nu adaugi nimic: nici cifre, nici nume, nici citate, nici context din cunoștințele tale.
+- Orice număr din rezumat trebuie să apară în sursă. Fiecare rezumat trece printr-un fact-check automat care respinge orice cifră sau afirmație care nu e în sursă.
+- Nu copia fraze întregi din sursă. Spune cu cuvintele tale.
+
+STRUCTURA (HTML):
+1. <p> Primul paragraf: ce, cine, când, unde, cu atribuirea „potrivit {source}” sau „scrie {source}”.
+2. <p> Un paragraf cu detaliile esențiale (cel mult 3 fapte).
+3. Doar dacă sursa spune concret ce are cititorul de făcut sau ce se schimbă pentru el (termen, adresă, program, restricție): <div class="local-impact"><h2>Ce înseamnă pentru tine</h2><p>…</p></div>. Altfel lași secțiunea afară.
+4. <p class="sursa-completa">Citește articolul complet pe <a href="{url}" target="_blank" rel="noopener">{source}</a>.</p>
+
+LUNGIME: 80–150 de cuvinte în total. Nu mai mult.
+
+STIL: română corectă, cu ș și ț; fraze clare, fără clișee („în concluzie”, „este important de menționat”), fără clickbait, fără limbaj vulgar. Titlul spune exact ce s-a întâmplat.
+
+ANUL CURENT: {datetime.now().year} (doar ca reper). Nu adăuga anul în titlu sau text dacă sursa nu îl spune.
+
+SEO: title 50–60 de caractere; seo_title cu „| KronPapir.ro” la final; meta_description 140–160 de caractere; slug de 4–6 cuvinte fără diacritice; 4–6 cuvinte cheie.
+CATEGORIE: una din local, national, politica, economie, cultura, sport, sanatate, social, mediu, tehnologie, accidente, evenimente.
+TIP: "local" dacă e despre județul Brașov, altfel "national".
+
+ARTICOL SURSĂ:
+Titlu: {title}
+Sursă: {source}
+URL: {url}
+Conținut: {content}
+
+Returnează JSON cu: title, seo_title, content (HTML-ul de mai sus), meta_description, slug, keywords, category, type."""
+
     def _build_prompt(self, article: Dict[str, Any]) -> str:
         """
         Construiește promptul pentru Claude — conținut original cu valoare adăugată.
@@ -199,6 +238,18 @@ class ArticleRewriter:
         Returns:
             Prompt complet pentru Claude
         """
+        if article.get('source_kind') != 'oficial':
+            prompt = self._build_summary_prompt(article)
+        else:
+            prompt = self._build_full_prompt(article)
+        feedback = article.get('_factcheck_feedback')
+        if feedback:
+            prompt += ("\n\nCORECTURĂ CERUTĂ DE FACT-CHECK (încercarea anterioară a fost respinsă): "
+                       + feedback + "\nScrie din nou textul fără aceste probleme.")
+        return prompt
+
+    def _build_full_prompt(self, article: Dict[str, Any]) -> str:
+        """Articol complet: doar pentru sursele oficiale (comunicate, anunțuri ale instituțiilor)."""
         title = article.get('title', 'Fără titlu')
         content = article.get('content') or article.get('text') or article.get('original_text', '')
         source = article.get('source', 'Necunoscut')
@@ -209,7 +260,7 @@ class ArticleRewriter:
 REGULĂ DE ADEVĂR (mai presus de orice altă instrucțiune de mai jos): folosești DOAR faptele din articolul sursă. Nu inventezi cifre, nume, citate, scene, întâmplări sau experiențe personale. Dacă o informație nu e în sursă, nu o scrii.
 CIFRELE: orice număr din articolul tău (sume, prețuri, distanțe, durate, procente, populații, ore, date) trebuie să apară în sursă. Nu estima și nu adăuga cifre „de context” din cunoștințele tale (de exemplu cât costă un aparat, câți kilometri are un ocol, câți locuitori are un oraș). Fiecare articol trece printr-un fact-check automat care respinge orice cifră care nu e în sursă. Valoarea adăugată vine din explicații practice și din ordinea clară a faptelor, nu din cifre noi.
 
-MISIUNEA TA: Folosind informația din articolul de mai jos ca punct de plecare, scrie un ARTICOL EDITORIAL ORIGINAL. Nu parafraza — creează conținut nou cu perspectivă, analiză și valoare adăugată pentru cititorii din Brașov.
+MISIUNEA TA: Textul de mai jos e un comunicat sau un anunț oficial al unei instituții publice. Scrie un articol de știri care îl explică pe înțelesul brașovenilor: ce se întâmplă, unde, când, pe cine afectează și ce au de făcut. Nu copia formulările de comunicat și nu prelua tonul laudativ al instituției („municipalitatea se mândrește”); păstrează doar faptele. Atribuie clar sursa („anunță Primăria Brașov”).
 
 PERSONALITATE:
 - Scrii natural, nu ca un robot, cu observații sobre și argumentate din fapte
@@ -236,7 +287,7 @@ LIMBA ROMÂNĂ CORECTĂ — Ești absolvent de jurnalism, nu scrii cu greșeli:
 - Verifică fiecare propoziție: subiectul și predicatul trebuie să fie în acord (număr, gen)
 - Scrii ca un profesionist cu facultate de jurnalism, nu ca un mesaj de pe Facebook
 
-ANUL CURENT: {datetime.now().year}. Folosește anul corect în text, titlu și slug. NU inventa ani din trecut.
+ANUL CURENT: {datetime.now().year} (doar ca reper pentru „astăzi”, „luna viitoare”). Nu adăuga anul în titlu, text sau slug dacă sursa nu îl spune.
 
 STRUCTURA OBLIGATORIE A ARTICOLULUI (în HTML):
 
@@ -248,16 +299,12 @@ STRUCTURA OBLIGATORIE A ARTICOLULUI (în HTML):
    - Explică ce înseamnă pentru cititor, doar pe baza faptelor din sursă
    - Structurează cu <h2> subtitluri naturale (nu "Secțiunea 1", ci titluri descriptive)
 
-3. <div class="local-impact"> — "De ce contează pentru Brașov" (sau pentru România, dacă e știre națională):
-   - 2-3 paragrafe cu impact concret, local, pentru cititori
-   - Conectează știrea cu realitatea zilnică din Brașov/România
+3. <div class="local-impact"> — "Ce înseamnă pentru tine": DOAR ce reiese direct din sursă (termene, restricții, program, unde te adresezi, cine e afectat). Fără aprecieri de tipul „strada e îndrăgită de turiști” dacă sursa nu le spune. Dacă sursa nu oferă nimic concret, lași secțiunea afară.
 
-4. <div class="faq"> — "Întrebări frecvente" (2-3 întrebări + răspunsuri scurte):
-   - Întrebări pe care un cititor normal le-ar pune
-   - Răspunsuri concrete, 2-3 propoziții fiecare
-   - Schema FAQ ajută SEO
+4. <div class="faq"> — "Întrebări frecvente": DOAR întrebări la care sursa are răspuns explicit (2-3). Dacă nu sunt, lași secțiunea afară.
 
-LUNGIME TOTALĂ: 600-900 cuvinte (articol substanțial, nu rezumat)
+LUNGIME: cât e nevoie ca să spui faptele din sursă clar, de obicei 250-500 de cuvinte. Nu lungi textul cu descrieri, aprecieri sau context care nu sunt în sursă: fact-check-ul respinge orice afirmație care nu e în comunicat.
+TITLUL spune ce se întâmplă acum (de exemplu „Au început lucrările”), nu un rezultat viitor prezentat ca fapt.
 
 OPTIMIZARE SEO:
 - Titlu: 50-60 caractere, captivant, include context local dacă e cazul
@@ -271,8 +318,8 @@ CATEGORIZARE: Alege UNA din: local, national, politica, economie, cultura, sport
 TIPUL: "local" dacă e legat de Brașov/județul Brașov, "national" dacă e interes general
 
 GEOGRAFIE JUDEȚUL BRAȘOV — OBLIGATORIU de respectat, NU inventa informații despre localități:
-- MUNICIPII: Brașov (circa 250.000 loc., reședință de județ), Săcele (circa 36.000 loc., al doilea oraș ca mărime), Făgăraș (circa 30.000 loc., centru industrial), Codlea (circa 25.000 loc.)
-- ORAȘE: Râșnov (circa 17.000 loc., stațiune turistică lângă Bran), Zărnești (circa 23.000 loc., poarta Parcului Național Piatra Craiului), Predeal (circa 5.000 loc., stațiune montană la cea mai mare altitudine din România), Victoria (circa 7.000 loc., oraș industrial la poalele Munților Făgăraș), Rupea (circa 5.500 loc., cetate medievală), Ghimbav (circa 8.000 loc., zona industrială/aeroport)
+- MUNICIPII: Brașov (reședință de județ), Săcele (al doilea oraș ca mărime), Făgăraș (centru industrial), Codlea
+- ORAȘE: Râșnov (stațiune turistică lângă Bran), Zărnești (poarta Parcului Național Piatra Craiului), Predeal (stațiune montană la cea mai mare altitudine din România), Victoria (oraș industrial la poalele Munților Făgăraș), Rupea (cetate medievală), Ghimbav (zona industrială/aeroport)
 - Săcele este MUNICIPIU, nu comună și nu sat. Are 4 cartiere istorice (Baciu, Gârcini, Cernatu, Turcheș) și Electroprecizia ca zonă industrială.
 - OBIECTIVE TURISTICE — localizare corectă:
   * Canionul 7 Scări se află pe teritoriul municipiului SĂCELE (nu Zărnești!), în Munții Piatra Mare
@@ -307,10 +354,6 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
   "type": "local sau national"
 }}"""
 
-        feedback = article.get('_factcheck_feedback')
-        if feedback:
-            prompt += ("\n\nCORECTURĂ CERUTĂ DE FACT-CHECK (încercarea anterioară a fost respinsă): "
-                       + feedback + "\nScrie din nou articolul fără aceste afirmații.")
         return prompt
 
     def rewrite_article(self, raw_article: Dict[str, Any]) -> Optional[Dict[str, Any]]:
@@ -403,6 +446,7 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
                 'type': rewritten['type'].lower(),
                 'source': raw_article.get('source', 'Necunoscut'),
                 'source_title': raw_article.get('title', ''),
+                'format': 'articol' if raw_article.get('source_kind') == 'oficial' else 'rezumat',
                 'url': raw_article.get('url', ''),
                 'image': raw_article.get('image_url') or raw_article.get('image', ''),
                 'date': raw_article.get('date') or raw_article.get('published') or datetime.now().isoformat(),

@@ -226,6 +226,26 @@ def make_fact_checker():
         return None
 
 
+_SOURCE_KINDS = None
+
+
+def source_kind(raw):
+    """'oficial' pentru instituții (primării, consilii județene; câmpul `kind` din config/sources.yaml),
+    altfel 'publicatie'. Publicațiile primesc doar rezumate scurte; sursele oficiale, articole complete."""
+    global _SOURCE_KINDS
+    if _SOURCE_KINDS is None:
+        _SOURCE_KINDS = {}
+        try:
+            import yaml
+            cfg = yaml.safe_load((Path(__file__).parent / 'config' / 'sources.yaml').read_text(encoding='utf-8'))
+            for s in cfg.get('sources') or []:
+                kind = s.get('kind') or ('oficial' if str(s.get('id', '')).startswith(('primaria_', 'cj')) else 'publicatie')
+                _SOURCE_KINDS[s.get('name')] = kind
+        except Exception as e:
+            logger.warning(f"⚠️ Nu pot citi tipurile surselor: {e}")
+    return _SOURCE_KINDS.get(raw.get('source'), 'publicatie')
+
+
 def rewrite_and_route(raw, rewriter, checker):
     """Rescrie, verifică și decide: published (data/processed), draft sau rejected (data/drafts).
 
@@ -235,6 +255,7 @@ def rewrite_and_route(raw, rewriter, checker):
     from editorial import factcheck as fc
     from editorial import store as editorial_store
 
+    raw = dict(raw, source_kind=raw.get('source_kind') or source_kind(raw))
     rewritten = rewriter.rewrite_article(raw)
     if not rewritten:
         return None, "esuat"
@@ -252,6 +273,10 @@ def rewrite_and_route(raw, rewriter, checker):
                 continue
         break
 
+    if raw['source_kind'] == 'oficial':
+        # comunicat al unei instituții: articol de date oficiale (semnătura și indexarea corespunzătoare)
+        rewritten['source_type'] = 'date_oficiale'
+        rewritten.setdefault('source_url', raw.get('url', ''))
     rewritten['fact_check'] = {
         "scor": (llm or {}).get("scor"),
         "erori": det["erori"] + (llm or {}).get("erori_blocante", []),

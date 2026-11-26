@@ -212,3 +212,40 @@ class SourcesPageTest(unittest.TestCase):
         self.assertIn("<td>1</td>", html)
         self.assertIn("am comasat astfel 1 articol dublat", html)
         self.assertIn("mediere.anofm.ro", html)
+
+
+class FormatTest(unittest.TestCase):
+    def test_prompt_by_source_kind(self):
+        from ai.rewriter import ArticleRewriter
+        rw_ = ArticleRewriter.__new__(ArticleRewriter)
+        raw = {"title": "T", "content": SOURCE, "source": "BizBrașov", "url": "https://b.ro/1"}
+        p_pub = rw_._build_prompt(raw)
+        p_off = rw_._build_prompt(dict(raw, source="Primăria Brașov", source_kind="oficial"))
+        self.assertIn("REZUMAT SCURT", p_pub)
+        self.assertIn("80–150 de cuvinte", p_pub)
+        self.assertIn("comunicat sau un anunț oficial", p_off)
+        self.assertNotIn("36.000", p_off)  # fără cifre de populație care ajungeau în articole
+        self.assertIn("CORECTURĂ", rw_._build_prompt(dict(raw, _factcheck_feedback="scoate 60")))
+
+    def test_summary_too_long_is_blocking(self):
+        long = rw(" ".join(["cuvânt"] * 200), format="rezumat")
+        det = fc.deterministic(SOURCE, long, NOW)
+        self.assertEqual(det["erori"][0]["tip"], "rezumat_prea_lung")
+        self.assertIn("scurtează", fc.feedback(det, None))
+
+    def test_source_kind_from_config(self):
+        import run_pipeline as rp
+        self.assertEqual(rp.source_kind({"source": "Primăria Brașov"}), "oficial")
+        self.assertEqual(rp.source_kind({"source": "BizBrașov"}), "publicatie")
+        self.assertEqual(rp.source_kind({"source": "Necunoscut"}), "publicatie")
+
+
+class OfficialRouteTest(RouteTest):
+    def test_official_source_becomes_official_data(self):
+        raw = dict(self.raw, source="Primăria Brașov")
+        art, decision = self.rp.rewrite_and_route(raw, FakeRewriter([rw("Buget de 1.204.500 lei.")]), self.checker)
+        self.assertEqual(decision, "published")
+        self.assertEqual(art["source_type"], "date_oficiale")
+        from editorial import presentation as pres
+        self.assertFalse(pres.should_noindex(art))
+        self.assertIn("date oficiale", pres.byline(art)["text"])

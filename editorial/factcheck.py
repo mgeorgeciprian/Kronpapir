@@ -8,6 +8,7 @@ import re
 from datetime import datetime
 
 SENSITIVE_CATEGORIES = {"politica", "accidente", "sanatate"}
+SUMMARY_MAX_WORDS = 180  # rezumatele de presă: țintă 80–150, toleranță până la 180
 WELL_KNOWN = {"112"}  # numărul de urgență: nu e un fapt despre caz
 _NUM = re.compile(r"(?<![\w])\d+(?:[.,\s]\d{3})*(?:[.,]\d+)?(?![\w])")
 _EMAIL = re.compile(r"[\w.+-]+@[\w-]+(\.[\w-]+)+")
@@ -81,6 +82,14 @@ def deterministic(source_text, article, now=None):
         for m in rx.finditer(body):
             erori.append({"tip": f"date_personale_{tip}", "valoare": m.group(0)})
 
+    if article.get("format") == "rezumat":
+        words = len(plain(article.get("content") or "").split())
+        if words > SUMMARY_MAX_WORDS:
+            erori.append({"tip": "rezumat_prea_lung", "valoare": f"{words} de cuvinte",
+                          "context": f"limita e {SUMMARY_MAX_WORDS}"})
+        if article.get("url") and article["url"] not in (article.get("content") or ""):
+            avert.append({"tip": "rezumat_fara_link_in_text"})
+
     if re.search(r"[şţŞŢ]", body):
         avert.append({"tip": "diacritice_cu_sedila"})
     seo_title = article.get("seo_title") or article.get("title") or ""
@@ -101,6 +110,8 @@ def deterministic(source_text, article, now=None):
 def feedback(det, llm):
     """Textul pentru o nouă încercare de rescriere: ce trebuie scos."""
     items = [f"cifra „{e['valoare']}” nu apare în sursă" for e in det["erori"] if e["tip"] == "numar_inexistent"]
+    items += [f"rezumatul are {e['valoare']}; limita e {SUMMARY_MAX_WORDS}, scurtează-l"
+              for e in det["erori"] if e["tip"] == "rezumat_prea_lung"]
     for e in (llm or {}).get("erori_blocante", []):
         items.append(f"„{e.get('valoare', '')}”: {e.get('motiv', '')}")
     return "; ".join(items[:12])
