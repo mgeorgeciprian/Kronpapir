@@ -1,0 +1,16 @@
+# Rotația logurilor KronPapir. Se instalează la deploy:
+#   sudo cp deploy/logrotate-kronpapir /etc/logrotate.d/kronpapir
+#   sudo logrotate --debug /etc/logrotate.d/kronpapir   # verificare fără efect
+# copytruncate: procesele (gunicorn, cron cu >>) continuă să scrie în același fișier.
+/home/kronpapir/app/logs/*.log {
+    su kronpapir kronpapir
+    daily
+    maxsize 20M
+    rotate 14
+    compress
+    delaycompress
+    missingok
+    notifempty
+    copytruncate
+    dateext
+}

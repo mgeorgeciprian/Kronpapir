@@ -38,7 +38,7 @@ Scrie ca un jurnalism local bun:
 - Lucrează pe branch-uri noi, cu commit-uri mici. Nu face push pe `main` și nu deploya fără confirmarea lui George.
 - Secretele stau doar în `.env`, niciodată în git sau în loguri.
 - Scrie teste pentru scrapere, fact-check și validare (`tests/`, pytest).
-- Logurile au rotație (`logging.handlers.RotatingFileHandler`).
+- Logurile din `logs/` au rotație prin logrotate (`deploy/logrotate-kronpapir`). În cod se folosesc handler-e simple de fișier: rotația o face sistemul, fiindcă mai multe procese scriu în aceleași fișiere.
 - Fiecare job are timeout și retry și apare în scheduler.
 - Scraperele respectă `robots.txt` și termenii site-ului, fac maximum o cerere la 2 secunde, folosesc un User-Agent identificabil și cache. Preferă API, RSS sau date deschise.
 - Costuri: fiecare agent are un plafon lunar în `config/agents.yaml`. Peste 80% din plafon îl alertezi pe George; la 100% agentul se oprește.
