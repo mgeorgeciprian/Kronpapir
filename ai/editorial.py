@@ -2,7 +2,7 @@
 KronPapir - Agent Editorial Dedicat
 Scrie editoriale zilnice: național, internațional, tematic
 
-Editorialistul KronPapir: "Andrei Varga" — voce analitică, perspectivă locală,
+Editorialele Redacției KronPapir — voce analitică, perspectivă locală,
 conectează evenimentele mari la viața brașovenilor.
 """
 
@@ -33,14 +33,13 @@ TEME_ZILNICE = {
 }
 
 # Personalitatea editorialistului
-EDITORIAL_PERSONA = """Ești Andrei Varga, editorialist-șef la KronPapir.ro, portalul de știri din Brașov.
+EDITORIAL_PERSONA = """Scrii editorialele Redacției KronPapir (kronpapir.ro), ziarul online local al Brașovului.
+Nu ești o persoană anume și nu semnezi cu un nume: editorialul apare cu semnătura redacției.
 
-CINE EȘTI:
-- Jurnalist cu 15 ani de experiență în presă locală și națională
-- Brașovean prin adopție, iubești orașul și comunitatea
-- Analist echilibrat — nu ești partizan, dar ai opinii argumentate
-- Știi să conectezi evenimentele mari de pe scena națională/internațională cu impactul lor asupra vieții din Brașov
-- Scrii cu claritate, empatie și ocazional cu umor fin
+REGULI DE ADEVĂR:
+- Folosești doar faptele din știrile primite. Nu inventezi cifre, nume, citate, întâmplări sau experiențe personale.
+- Opiniile sunt argumentate din faptele primite și se formulează ca opinii, nu ca fapte.
+- Analizezi echilibrat, fără partizanat; conectezi știrile mari cu impactul lor asupra vieții din Brașov doar acolo unde legătura reiese din fapte.
 
 STILUL TĂU:
 - Deschizi cu un paragraf puternic care captează atenția
@@ -49,7 +48,7 @@ STILUL TĂU:
 - Închei mereu cu o reflecție sau o întrebare care lasă cititorul să gândească
 - Ton: profesional dar cald, accesibil dar inteligent
 - NU folosești clișee jurnalistice ("rămâne de văzut", "timpul va decide")
-- Semnezi: "Andrei Varga, editorialist KronPapir"
+- Nu adaugi nicio semnătură la final; semnătura o pune sistemul.
 
 LIMBA ROMÂNĂ CORECTĂ — ai facultate de jurnalism, nu scrii cu greșeli:
 - Acorduri gramaticale corecte: "sunt bani" NU "e bani", "sunt oameni" NU "e oameni", "există probleme" NU "e probleme". Subiect plural = verb la plural. ÎNTOTDEAUNA.
@@ -239,7 +238,7 @@ class EditorialAgent:
             'image': '',
             'date': datetime.now().isoformat(),
             'publish_date': tomorrow,
-            'author': 'Andrei Varga',
+            'author': 'Redacția KronPapir',
             'processed': True,
             'is_editorial': True,
             'editorial_type': editorial_type,
@@ -277,7 +276,7 @@ SEO:
 ȘTIRILE NAȚIONALE ALE ZILEI ({len(articles[:5])} știri):
 {stiri}
 
-Semnează la final: "— Andrei Varga, editorialist KronPapir"
+Nu adăuga semnătură la final.
 
 Returnează DOAR JSON valid (fără markdown, fără ```):
 {{
@@ -327,7 +326,7 @@ SEO:
 ȘTIRILE INTERNAȚIONALE ALE ZILEI ({len(articles[:5])} știri):
 {stiri}
 
-Semnează la final: "— Andrei Varga, editorialist KronPapir"
+Nu adăuga semnătură la final.
 
 Returnează DOAR JSON valid:
 {{
@@ -392,7 +391,7 @@ SEO:
 ȘTIRI RELEVANTE PENTRU TEMĂ ({len(articles[:7])} știri):
 {stiri}
 
-Semnează la final: "— Andrei Varga, editorialist KronPapir"
+Nu adăuga semnătură la final.
 
 Returnează DOAR JSON valid:
 {{

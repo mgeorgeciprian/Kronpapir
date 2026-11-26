@@ -44,7 +44,7 @@ crontab -l 2>/dev/null | grep -v -e "run_pipeline.py" -e "archive_articles.py" -
 # Dupa-amiaza 14:00 - Scrape + 5 articole locale
 0 14 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE full >> $LOG_DIR/cron_afternoon.log 2>&1
 
-# Seara 22:00 - Editoriale zilnice (Andrei Varga)
+# Seara 22:00 - Editoriale zilnice (ciorne pentru editor)
 0 22 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE editorial >> $LOG_DIR/cron_editorial.log 2>&1
 
 # Noaptea 03:30 - Arhivare brute vechi (doar --raw-only)

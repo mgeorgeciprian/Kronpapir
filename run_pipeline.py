@@ -64,6 +64,15 @@ logging.basicConfig(
 )
 logger = logging.getLogger("KronPapir")
 
+def save_editorial_draft(editorial):
+    """Editorialele nu se publică niciodată automat: ajung în Ciorne, pentru George."""
+    from editorial.store import save_draft
+    editorial = dict(editorial)
+    editorial['source_type'] = 'editorial'
+    editorial['author'] = 'Redacția KronPapir'
+    return save_draft(editorial, reason='Editorial: se publică doar după aprobarea editorului.')
+
+
 # Event pentru oprire gracioasă
 shutdown_event = Event()
 
@@ -359,9 +368,7 @@ def run_ai_processing():
                     editorial_type="national"
                 )
                 if editorial:
-                    dest = PROCESSED_DIR / f"{editorial['id']}.json"
-                    with open(dest, 'w', encoding='utf-8') as fh:
-                        json.dump(editorial, fh, ensure_ascii=False, indent=2)
+                    save_editorial_draft(editorial)
                     processed_count += 1
                     logger.info(f"   ✅ Editorial național salvat: {editorial['title'][:50]}...")
                 else:
@@ -375,9 +382,7 @@ def run_ai_processing():
                     editorial_type="international"
                 )
                 if editorial:
-                    dest = PROCESSED_DIR / f"{editorial['id']}.json"
-                    with open(dest, 'w', encoding='utf-8') as fh:
-                        json.dump(editorial, fh, ensure_ascii=False, indent=2)
+                    save_editorial_draft(editorial)
                     processed_count += 1
                     logger.info(f"   ✅ Editorial internațional salvat: {editorial['title'][:50]}...")
                 else:
@@ -579,9 +584,7 @@ def run_ai_processing_balanced():
                 try:
                     editorial = rewriter.write_editorial(national_articles, editorial_type="national")
                     if editorial:
-                        dest = PROCESSED_DIR / f"{editorial['id']}.json"
-                        with open(dest, 'w', encoding='utf-8') as fh:
-                            json.dump(editorial, fh, ensure_ascii=False, indent=2)
+                        save_editorial_draft(editorial)
                         logger.info(f"   ✅ Editorial generat: {editorial.get('title', '')[:60]}")
                 except Exception as e:
                     logger.warning(f"   ⚠️ Nu am putut genera editorialul: {e}")
@@ -676,7 +679,7 @@ def run_web_server(host="0.0.0.0", port=5000, debug=False):
 def run_editorials():
     """Rulează agentul editorial — scrie 3 editoriale: național, internațional, tematic."""
     logger.info("=" * 60)
-    logger.info("📰 KronPapir.ro - Agent Editorial (Andrei Varga)")
+    logger.info("📰 KronPapir.ro - Agent Editorial (ciorne pentru editor)")
     logger.info("=" * 60)
 
     api_key = os.environ.get("ANTHROPIC_API_KEY", "")
@@ -734,9 +737,7 @@ def run_editorials():
         for key in ['national', 'international', 'tematic']:
             editorial = results.get(key)
             if editorial:
-                dest = PROCESSED_DIR / f"{editorial['id']}.json"
-                with open(dest, 'w', encoding='utf-8') as fh:
-                    json.dump(editorial, fh, ensure_ascii=False, indent=2)
+                save_editorial_draft(editorial)
                 saved += 1
                 logger.info(f"   💾 Salvat: {editorial['title'][:60]}")
 
