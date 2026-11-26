@@ -1713,3 +1713,11 @@ footer .footer-bottom {
   color: var(--text-secondary);
   font-size: 0.95rem;
 }
+
+/* Mențiunea pentru ilustrațiile generate de AI */
+.article-featured-image .image-credit {
+  font-size: 0.8rem;
+  color: #666;
+  margin-top: 6px;
+  text-align: right;
+}

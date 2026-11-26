@@ -8,7 +8,7 @@ Editor și proprietar: George. El aprobă strategia, schimbările mari și tot c
 - Python 3.12 și Flask (`web/app.py`), servite cu gunicorn prin supervisor (`kronpapir_web`), în spatele nginx.
 - Producția rulează din `/home/kronpapir/app`, ca userul `kronpapir`. Nu lucra direct acolo: lucrează pe un branch într-o clonă separată.
 - Articolele sunt fișiere JSON în `data/processed/<id>.json` (sau `.json.gz` după arhivare). Nu există bază de date.
-- Job-urile rulează din crontab-ul userului `kronpapir`: pipeline la 06:00 și 14:00, editoriale la 22:00, Facebook la 07:00, 12:00, 15:00 și 19:00, arhivare la 03:30, locuri de muncă AJOFM la 05:40 și 13:40, raportul lunar AJOFM pe 1 ale lunii la 06:30 (`python -m reports.ajofm_report`, ciornă), audit SEO duminica la 04:30, PageSpeed duminica la 05:00 (`python -m seo.pagespeed`, raport în `data/seo/pagespeed/`).
+- Job-urile rulează din crontab-ul userului `kronpapir`: pipeline la 06:00 și 14:00, editoriale la 22:00, Facebook la 07:00, 12:00, 15:00 și 19:00, arhivare la 03:30, locuri de muncă AJOFM la 05:40 și 13:40, raportul lunar AJOFM pe 1 ale lunii la 06:30 (`python -m reports.ajofm_report`, ciornă), ilustratorul la 06:45 și 14:45 (`python -m ai.illustrator --limit 1`, schițe SVG în `static/ilustratii/`, costuri în `data/costs/`), audit SEO duminica la 04:30, PageSpeed duminica la 05:00 (`python -m seo.pagespeed`, raport în `data/seo/pagespeed/`).
 - Agenții sunt descriși în `.claude/agents/*.md`. Job-urile Python citesc prompturile din aceleași fișiere. Modelele și plafoanele de cost sunt în `config/agents.yaml`.
 
 ## Reguli editoriale (obligatorii pentru toți agenții)

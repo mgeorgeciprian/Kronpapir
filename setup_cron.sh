@@ -9,6 +9,7 @@
 #   05:00 - PageSpeed Insights (duminica, seo/pagespeed.py)
 #   05:40, 13:40 - Locuri de muncă AJOFM Brașov (sources/ajofm.py)
 #   06:30 pe 1 ale lunii - Raport lunar AJOFM, ca ciornă (reports/ajofm_report.py)
+#   06:45, 14:45 - Ilustrator: o schiță în creion pentru cel mai nou articol fără imagine (ai/illustrator.py)
 
 set -e
 
@@ -35,7 +36,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Elimină cron-urile vechi KronPapir
-crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "reports.ajofm_report" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
+crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "reports.ajofm_report" -e "ai.illustrator" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
 
 # Adaugă cron jobs
 (crontab -l 2>/dev/null; cat <<CRONEOF
@@ -46,6 +47,9 @@ crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "reports.ajofm_report" -e
 
 # Pe 1 ale lunii 06:30 - Raport lunar AJOFM (ciornă pentru George; fără LLM)
 30 6 1 * * cd $APP_DIR && ${ENV_LOAD}timeout 300 $VENV_PYTHON -m reports.ajofm_report >> $LOG_DIR/cron_ajofm_report.log 2>&1
+
+# 06:45, 14:45 - Ilustrator AI (Opus, plafon lunar în config/agents.yaml; se oprește singur la plafon)
+45 6,14 * * * cd $APP_DIR && ${ENV_LOAD}timeout 900 $VENV_PYTHON -m ai.illustrator --limit 1 >> $LOG_DIR/cron_illustrator.log 2>&1
 
 # Duminica 05:00 - PageSpeed Insights pentru paginile principale (max 45 min; raport in data/seo/pagespeed/)
 0 5 * * 0 cd $APP_DIR && ${ENV_LOAD}timeout 2700 $VENV_PYTHON -m seo.pagespeed >> $LOG_DIR/cron_pagespeed.log 2>&1

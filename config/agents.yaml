@@ -33,3 +33,8 @@ agents:
   ux-ui-auditor:
     model: claude-sonnet-5-5
     monthly_budget_usd: 3
+  ilustrator:           # schițe în creion (SVG) pentru articolele fără imagine proprie
+    model: claude-opus-5-5   # Sonnet desenează prea schematic
+    effort: high
+    monthly_budget_usd: 15
+    use_source_photo: true   # poza sursei doar ca referință de subiect; false = doar din text

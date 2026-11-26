@@ -91,6 +91,7 @@
     <!-- Featured Image -->
     <figure class="article-featured-image">
       <img src="{{ article|safe_image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.image_alt or article.title }}" loading="eager" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+      {% if article.image_credit and article|safe_image %}<figcaption class="image-credit">{{ article.image_credit }}</figcaption>{% endif %}
     </figure>
 
     <!-- Ad Slot Before Article Content -->

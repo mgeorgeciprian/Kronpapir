@@ -10,6 +10,8 @@ data/contributors/
 data/analytics/
 data/jobs/
 data/cache/
+data/costs/
+static/ilustratii/
 
 # Logs
 logs/

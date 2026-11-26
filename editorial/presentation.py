@@ -126,6 +126,8 @@ def absolute_url(path_or_url: str) -> str:
 
 def og_image(article: dict) -> str:
     img = safe_image(article)
+    if img and img.lower().endswith(".svg"):  # Facebook și X nu afișează SVG în previzualizări
+        img = None
     return absolute_url(img) if img else DEFAULT_OG_IMAGE
 
 
