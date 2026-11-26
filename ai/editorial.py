@@ -33,6 +33,17 @@ TEME_ZILNICE = {
 }
 
 # Personalitatea editorialistului
+from ai.rewriter import EDITORIAL_MIN_CHARS, EDITORIAL_SOURCE_CHARS, editorial_text  # noqa: E402
+
+MIN_EDITORIAL_STORIES = 3
+TRUTH_RULES = """ADEVĂRUL ÎNAINTE DE TOATE (regula care nu se negociază):
+- Fiecare fapt (nume, funcție, cifră, dată, loc, citat, eveniment) trebuie să fie în textele știrilor de mai jos. Nu adăuga nimic din memorie, nici „context istoric” pe care știrile nu îl dau.
+- Funcțiile oamenilor le scrii exact cum apar în știri; dacă nu apar, nu le scrii.
+- O acuzație rămâne acuzație („X susține că…”), nu o prezinți ca fapt.
+- Opinia e permisă doar formulată clar ca opinie, fără fapte noi.
+- Nu inventa legături cu Brașovul: îl pomenești doar dacă o știre vorbește despre el.
+- Dacă o știre are prea puțin text ca să spui ceva sigur, o lași deoparte."""
+
 EDITORIAL_PERSONA = """Scrii editorialele Redacției KronPapir (kronpapir.ro), ziarul online local al Brașovului.
 Nu ești o persoană anume și nu semnezi cu un nume: editorialul apare cu semnătura redacției.
 
@@ -139,14 +150,20 @@ class EditorialAgent:
             return None
 
     def _format_stiri(self, articles: List[Dict]) -> str:
-        """Formatează lista de știri pentru prompt."""
+        """Formatează lista de știri pentru prompt (text simplu, până la EDITORIAL_SOURCE_CHARS pe știre)."""
         text = ""
+        self._last_inputs = list(articles)
         for i, art in enumerate(articles, 1):
             title = art.get('title', 'Fără titlu')
-            content = (art.get('content') or art.get('text') or '')[:600]
+            content = editorial_text(art)[:EDITORIAL_SOURCE_CHARS]
             source = art.get('source', 'Necunoscut')
-            text += f"\n--- Știrea {i} ---\nTitlu: {title}\nSursă: {source}\nConținut: {content}\n"
+            text += f"\n--- Știrea {i} ---\nTitlu: {title}\nSursă: {source}\nLink: {art.get('url', '')}\nConținut: {content}\n"
         return text
+
+    @staticmethod
+    def _usable(articles: List[Dict], limit: int) -> List[Dict]:
+        """Doar știrile cu text suficient: din titlu și o frază modelul ar inventa restul."""
+        return [a for a in articles if len(editorial_text(a)) >= EDITORIAL_MIN_CHARS][:limit]
 
     @staticmethod
     def _markdown_to_html(text: str) -> str:
@@ -243,6 +260,9 @@ class EditorialAgent:
             'is_editorial': True,
             'editorial_type': editorial_type,
             'sources_used': list(set(sources)),
+            'sources': [{'source': x.get('source', ''), 'title': x.get('title', ''), 'url': x.get('url', '')}
+                        for x in getattr(self, '_last_inputs', [])],
+            '_inputs': list(getattr(self, '_last_inputs', [])),  # pentru fact-check; nu se salvează
         }
 
     def write_national(self, articles: List[Dict]) -> Optional[Dict]:
@@ -251,8 +271,12 @@ class EditorialAgent:
             logger.warning("⚠️ Nu sunt știri naționale pentru editorial.")
             return None
 
-        stiri = self._format_stiri(articles[:5])
-        sources = [a.get('source', '') for a in articles[:5]]
+        articles = self._usable(articles, 5)
+        if len(articles) < MIN_EDITORIAL_STORIES:
+            logger.warning(f"⚠️ Doar {len(articles)} știri cu text suficient; nu scriu editorialul.")
+            return None
+        stiri = self._format_stiri(articles)
+        sources = [a.get('source', '') for a in articles]
 
         prompt = f"""{EDITORIAL_PERSONA}
 
@@ -260,10 +284,10 @@ MISIUNEA TA ACUM: Scrie EDITORIALUL NAȚIONAL al zilei pentru KronPapir.ro.
 
 INSTRUCȚIUNI:
 - Compilează și analizează cele mai importante știri NAȚIONALE ale zilei
-- Oferă context — de ce contează aceste evenimente pentru România și pentru brașoveni
-- Conectează știrile între ele dacă e posibil
-- Adaugă perspectiva ta de editorialist experimentat
-- Lungime: 600-800 cuvinte
+{TRUTH_RULES}
+- Explică de ce contează, doar cu ce spun știrile
+- Leagă știrile între ele doar unde legătura e reală
+- Lungime: 350-600 cuvinte
 - Structura: intro puternica → sectiuni cu subtitluri <h2> pe teme → concluzie cu perspectiva
 - IMPORTANT: Scrie continutul in HTML cu tag-uri <h2> pentru subtitluri si <p> pentru paragrafe. NU folosi Markdown.
 
@@ -301,8 +325,12 @@ Returnează DOAR JSON valid (fără markdown, fără ```):
             logger.warning("⚠️ Nu sunt știri internaționale pentru editorial.")
             return None
 
-        stiri = self._format_stiri(articles[:5])
-        sources = [a.get('source', '') for a in articles[:5]]
+        articles = self._usable(articles, 5)
+        if len(articles) < MIN_EDITORIAL_STORIES:
+            logger.warning(f"⚠️ Doar {len(articles)} știri cu text suficient; nu scriu editorialul.")
+            return None
+        stiri = self._format_stiri(articles)
+        sources = [a.get('source', '') for a in articles]
 
         prompt = f"""{EDITORIAL_PERSONA}
 
@@ -310,10 +338,9 @@ MISIUNEA TA ACUM: Scrie EDITORIALUL INTERNAȚIONAL & EUROPEAN al zilei pentru Kr
 
 INSTRUCȚIUNI:
 - Compilează cele mai importante știri din Europa și din lume
-- Explică CE ÎNSEAMNĂ pentru România și pentru brașoveni fiecare eveniment major
-- Conectează geopolitica cu viața de zi cu zi
-- Oferă context istoric și perspective de viitor
-- Lungime: 500-700 cuvinte
+{TRUTH_RULES}
+- Spune ce înseamnă pentru România doar dacă știrile o spun; altfel rămâi la ce s-a întâmplat
+- Lungime: 350-600 cuvinte
 - Structura: intro cu cele 2-3 stiri majore → sectiuni cu <h2> subtitluri → perspectiva ta
 - IMPORTANT: Scrie continutul in HTML cu tag-uri <h2> si <p>. NU folosi Markdown.
 
@@ -359,8 +386,12 @@ Returnează DOAR JSON valid:
             logger.warning(f"⚠️ Nu sunt știri pentru editorialul tematic: {tema}")
             return None
 
-        stiri = self._format_stiri(articles[:7])
-        sources = [a.get('source', '') for a in articles[:7]]
+        articles = self._usable(articles, 7)
+        if len(articles) < MIN_EDITORIAL_STORIES:
+            logger.warning(f"⚠️ Doar {len(articles)} știri cu text suficient; nu scriu editorialul tematic.")
+            return None
+        stiri = self._format_stiri(articles)
+        sources = [a.get('source', '') for a in articles]
 
         zile_ro = ['Luni', 'Marți', 'Miercuri', 'Joi', 'Vineri', 'Sâmbătă', 'Duminică']
         zi_ro = zile_ro[day_of_week]
@@ -374,11 +405,11 @@ FOCUSUL: {focus}
 
 INSTRUCȚIUNI:
 - Scrie un editorial analitic pe tema "{tema}"
-- Folosește știrile de mai jos ca punct de plecare, dar adaugă context și analiză proprie
-- Conectează totul la viața din Brașov
-- Fii mai personal decât la editoriale — e o rubrică cu caracter
+{TRUTH_RULES}
+- Folosește doar faptele din știrile de mai jos; analiza ta e opinie, formulată ca opinie
+- Fii mai personal decât la editoriale, dar fără fapte noi
 - Dacă e retrospectivă (luni/duminică), fă un rezumat cronologic al evenimentelor
-- Lungime: 700-1000 cuvinte
+- Lungime: 400-700 cuvinte
 - Structura: intro tematica → sectiuni cu <h2> subtitluri → concluzie reflexiva
 - IMPORTANT: Scrie continutul in HTML cu tag-uri <h2> si <p>. NU folosi Markdown.
 

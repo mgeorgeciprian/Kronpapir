@@ -64,13 +64,42 @@ logging.basicConfig(
 )
 logger = logging.getLogger("KronPapir")
 
+def fact_check_editorial(editorial, inputs):
+    """Fact-check-ul editorialului față de știrile din care a fost scris. None dacă nu se poate."""
+    if not inputs:
+        return None
+    try:
+        from ai import costs
+        from ai.factcheck_llm import _prompt
+        from anthropic import Anthropic
+        from editorial import review_editorials
+        cfg = costs.settings(review_editorials.AGENT, "claude-sonnet-5-5")
+        result, usd = review_editorials.check(Anthropic(), cfg, _prompt(), editorial, inputs)
+        if result:
+            logger.info(f"   🔎 Fact-check editorial: scor {result['scor']}, "
+                        f"{len(result.get('erori_blocante') or [])} erori ({usd:.3f} USD)")
+        return result
+    except Exception as e:
+        logger.warning(f"   ⚠️ Fact-check editorial eșuat: {e}")
+        return None
+
+
 def save_editorial_draft(editorial):
-    """Editorialele nu se publică niciodată automat: ajung în Ciorne, pentru George."""
+    """Editorialele nu se publică niciodată automat: ajung în Ciorne, pentru George, cu fact-check-ul atașat."""
     from editorial.store import save_draft
     editorial = dict(editorial)
+    inputs = editorial.pop('_inputs', None) or []
     editorial['source_type'] = 'editorial'
     editorial['author'] = 'Redacția KronPapir'
-    return save_draft(editorial, reason='Editorial: se publică doar după aprobarea editorului.')
+    reason = 'Editorial: se publică doar după aprobarea editorului.'
+    result = fact_check_editorial(editorial, inputs)
+    if result:
+        editorial['fact_check'] = {k: result.get(k) for k in ('scor', 'erori_blocante', 'recomandari', 'model')}
+        errors = len(result.get('erori_blocante') or [])
+        reason += f" Fact-check automat: scor {result['scor']}/10, {errors} {'eroare' if errors == 1 else 'erori'}."
+    else:
+        reason += " Fact-check automat indisponibil: verifică faptele manual."
+    return save_draft(editorial, reason=reason)
 
 
 # Event pentru oprire gracioasă

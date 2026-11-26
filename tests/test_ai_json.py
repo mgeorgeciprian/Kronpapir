@@ -59,7 +59,7 @@ class RewriterJson(unittest.TestCase):
 
     def test_write_editorial_end_to_end(self):
         r = make(rw.ArticleRewriter, reply(json.dumps(GOOD)))
-        arts = [{'title': f'Stire {i}', 'content': 'text', 'source': 'S', 'url': f'u{i}'} for i in range(5)]
+        arts = [{'title': f'Stire {i}', 'content': 'text ' * 120, 'source': 'S', 'url': f'u{i}'} for i in range(5)]
         result = r.write_editorial(arts, 'national')
         self.assertEqual(result['content'], GOOD['content'])
         self.assertTrue(result['is_editorial'])

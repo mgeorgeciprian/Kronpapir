@@ -39,6 +39,18 @@ ARTICLE_SCHEMA = {
 }
 
 
+
+EDITORIAL_SOURCE_CHARS = 3000
+EDITORIAL_MIN_CHARS = 400  # știrile mai scurte (doar titlu și o frază) nu intră în editorial
+
+
+def editorial_text(article):
+    """Textul simplu al unei știri pentru editorial (fără HTML)."""
+    import re as _re
+    raw = article.get('content') or article.get('text') or article.get('original_text') or ''
+    return _re.sub(r'\s+', ' ', _re.sub(r'<[^>]+>', ' ', raw)).strip()
+
+
 class ArticleRewriter:
     """
     Rescrie articole folosind Claude AI cu stil de jurnalist local.
@@ -516,16 +528,22 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
         if not articles:
             logger.warning("⚠️  Nu sunt articole pentru editorial.")
             return None
+        articles = [a for a in articles if len(editorial_text(a)) >= EDITORIAL_MIN_CHARS]
+        if len(articles) < 3:
+            logger.warning(f"⚠️  Doar {len(articles)} știri cu text suficient; nu scriu editorialul.")
+            return None
 
         # Construiesc rezumatul știrilor pentru prompt
         stiri_text = ""
         sources_list = []
+        sources_detail = []
         for i, art in enumerate(articles, 1):
             title = art.get('title', 'Fără titlu')
-            content = (art.get('content') or art.get('text') or '')[:500]
+            content = editorial_text(art)[:EDITORIAL_SOURCE_CHARS]
             source = art.get('source', 'Necunoscut')
-            stiri_text += f"\n--- Știrea {i} ---\nTitlu: {title}\nSursă: {source}\nConținut: {content}\n"
+            stiri_text += f"\n--- Știrea {i} ---\nTitlu: {title}\nSursă: {source}\nLink: {art.get('url', '')}\nConținut: {content}\n"
             sources_list.append(source)
+            sources_detail.append({'source': source, 'title': title, 'url': art.get('url', '')})
 
         type_label = "naționale" if editorial_type == "national" else "europene și internaționale"
         type_cat = "national" if editorial_type == "national" else "international"
@@ -534,12 +552,17 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
 
 MISIUNEA TA: Scrie un EDITORIAL ZILNIC care compilează și analizează cele mai importante știri {type_label} ale zilei. NU copia textele originale — scrie un articol original de analiză.
 
+ADEVĂRUL ÎNAINTE DE TOATE (regula care nu se negociază):
+- Fiecare fapt (nume, funcție, cifră, dată, loc, citat, eveniment) trebuie să fie în textele știrilor de mai jos. Nu adăuga nimic din memorie, nici „context” pe care știrile nu îl dau.
+- Funcțiile oamenilor le scrii exact cum apar în știri. Dacă o știre nu spune funcția cuiva, nu o scrie.
+- O acuzație rămâne acuzație („X susține că…”), nu o prezinți ca fapt.
+- Opinia și interpretarea sunt permise doar formulate clar ca opinie („pare că”, „rămâne de văzut”), fără fapte noi.
+- Nu inventa legături cu Brașovul. Pomenești Brașovul doar dacă o știre vorbește despre el.
+- Dacă o știre are prea puțin text ca să spui ceva sigur, o lași deoparte.
+
 STIL:
-- Stil editorial de analiză — nu doar rezumat, ci și context și perspectivă
-- Conectează știrile între ele unde e posibil
-- Adaugă perspectiva locală (cum afectează Brașovul/România)
-- Ton profesional dar accesibil, cu personalitate
-- Fii obiectiv dar oferă context critic
+- Analiză scurtă, nu doar rezumat: legi știrile între ele doar unde legătura e reală
+- Ton profesional dar accesibil, fără clișee și fără superlative goale
 
 LIMBA ROMÂNĂ CORECTĂ — ai facultate de jurnalism, nu scrii cu greșeli:
 - Acorduri gramaticale corecte: "sunt bani" NU "e bani", "sunt oameni" NU "e oameni", "există probleme" NU "e probleme". Subiect plural = verb la plural. ÎNTOTDEAUNA.
@@ -555,7 +578,7 @@ STRUCTURĂ:
 - Paragraf introductiv cu cele mai importante 2-3 știri
 - Secțiuni <h2> pentru fiecare știre majoră cu analiză scurtă
 - Paragraf final cu perspectivă de ansamblu
-- Lungime totală: 600-900 cuvinte
+- Lungime: 350-600 cuvinte; mai scurt e mai bine decât umplut cu fapte nesigure
 
 SEO:
 - Meta description: 150-160 caractere
@@ -602,6 +625,8 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
                 'processed': True,
                 'is_editorial': True,
                 'sources_used': list(set(sources_list)),
+                'sources': sources_detail,
+                '_inputs': list(articles),  # pentru fact-check; nu se salvează
             }
 
             logger.info(f"✅ Editorial {type_label}: {editorial['title'][:50]}...")
