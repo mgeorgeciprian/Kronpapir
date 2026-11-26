@@ -28,6 +28,7 @@ _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from editorial import presentation as pres  # noqa: E402
 from editorial import store as editorial_store  # noqa: E402
 from web import jobs as jobs_web  # noqa: E402
+from web import business as business_web  # noqa: E402
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.config['JSON_SORT_KEYS'] = False
@@ -2230,6 +2231,9 @@ app.add_template_global(pres.absolute_url, 'absolute_url')
 # Locuri de muncă Brașov (AJOFM): hub, pagini de ofertă, JobPosting (web/jobs.py)
 jobs_web.register(app, CATEGORIES)
 
+# Afaceri în Brașov: firme (ONRC), licitații, joburi, știri economice (web/business.py)
+business_web.register(app, CATEGORIES, load_articles)
+
 
 # ============================================================
 # Ciorne (editorial/store.py): tot ce nu se publică automat
@@ -2381,8 +2385,8 @@ def _sitemap_lastmod(article):
 
 def _sitemap_page_entries():
     today = datetime.now().strftime('%Y-%m-%d')
-    paths = ['/', '/local', '/national', '/editoriale', '/despre', '/politica-editoriala', '/surse',
-             '/confidentialitate', '/termeni', '/contact']
+    paths = ['/', '/local', '/national', '/editoriale', '/afaceri-brasov', '/despre', '/politica-editoriala',
+             '/surse', '/confidentialitate', '/termeni', '/contact']
     paths += [f'/categorie/{c}' for c in CATEGORIES]
     entries = [{'loc': SITEMAP_BASE + p, 'lastmod': today} for p in paths]
     try:

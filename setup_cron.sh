@@ -9,6 +9,7 @@
 #   05:00 - PageSpeed Insights (duminica, seo/pagespeed.py)
 #   05:40, 13:40 - Locuri de muncă AJOFM Brașov (sources/ajofm.py)
 #   05:50, 13:50 - Proiecte HCL, licitații și achiziții de pe brasovcity.ro (sources/brasovcity.py)
+#   07:20         - Statistici ONRC pe județe (sources/onrc.py) și raportul lunar ONRC, publicat o dată pe lună (reports/onrc_report.py)
 #   06:30 pe 1 ale lunii - Raport lunar AJOFM, ca ciornă (reports/ajofm_report.py)
 #   06:45, 14:45 - Ilustrator: o schiță în creion pentru cel mai nou articol fără imagine (ai/illustrator.py)
 
@@ -37,7 +38,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Elimină cron-urile vechi KronPapir
-crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "sources.brasovcity" -e "reports.ajofm_report" -e "ai.illustrator" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
+crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "sources.brasovcity" -e "sources.onrc" -e "reports.ajofm_report" -e "ai.illustrator" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
 
 # Adaugă cron jobs
 (crontab -l 2>/dev/null; cat <<CRONEOF
@@ -48,6 +49,7 @@ crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "sources.brasovcity" -e "
 
 # 05:50, 13:50 - Documente oficiale Primăria Brașov (HCL în dezbatere, decizii HCL, licitații, achiziții)
 50 5,13 * * * cd $APP_DIR && ${ENV_LOAD}timeout 600 $VENV_PYTHON -m sources.brasovcity >> $LOG_DIR/cron_brasovcity.log 2>&1
+20 7 * * * cd $APP_DIR && ${ENV_LOAD}timeout 600 $VENV_PYTHON -m sources.onrc >> $LOG_DIR/cron_onrc.log 2>&1 && timeout 120 $VENV_PYTHON -m reports.onrc_report >> $LOG_DIR/cron_onrc.log 2>&1
 
 # Pe 1 ale lunii 06:30 - Raport lunar AJOFM (ciornă pentru George; fără LLM)
 30 6 1 * * cd $APP_DIR && ${ENV_LOAD}timeout 300 $VENV_PYTHON -m reports.ajofm_report >> $LOG_DIR/cron_ajofm_report.log 2>&1
