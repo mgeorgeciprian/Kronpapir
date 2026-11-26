@@ -49,6 +49,13 @@ def row(job_id, **extra):
     return base
 
 
+
+def all_sitemaps(client):
+    """Textul tuturor sitemap-urilor din indexul /sitemap.xml, lipite."""
+    index = client.get('/sitemap.xml').get_data(as_text=True)
+    paths = re.findall(r'<loc>https://kronpapir\.ro(/[^<]+)</loc>', index)
+    return '\n'.join(client.get(p).get_data(as_text=True) for p in paths)
+
 class FakeClient:
     """Imită API-ul: întoarce rândurile pe pagini."""
     def __init__(self, rows, total=None):
@@ -280,7 +287,7 @@ class WebTests(unittest.TestCase):
         self.assertEqual(self.client.get('/locuri-de-munca-brasov/abc').status_code, 404)
 
     def test_sitemap_has_hub_and_active_jobs_only(self):
-        xml = self.client.get('/sitemap.xml').get_data(as_text=True)
+        xml = all_sitemaps(self.client)
         self.assertIn('https://kronpapir.ro/locuri-de-munca-brasov</loc>', xml)
         self.assertIn(self.jobs['10']['slug'], xml)
         self.assertNotIn(self.jobs['12']['slug'], xml)

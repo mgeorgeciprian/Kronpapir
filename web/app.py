@@ -2282,102 +2282,123 @@ Crawl-delay: 1
     return Response(robots_content, mimetype='text/plain')
 
 
-@app.route('/sitemap.xml')
-def sitemap_xml():
-    """Generate sitemap.xml dynamically."""
+# ---------- Sitemap-uri: un index și câte un fișier pe secțiune ----------
+# Google citește /sitemap.xml (index) și apoi fiecare sitemap din el. Împărțirea pe
+# categorii arată în Search Console câte pagini din fiecare secțiune sunt indexate.
+
+SITEMAP_BASE = 'https://kronpapir.ro'
+# Grupuri de știri cu sitemap propriu: categoriile site-ului + editoriale + național.
+SITEMAP_NEWS_GROUPS = list(CATEGORIES.keys()) + ['editoriale', 'national', 'altele']
+_SITEMAP_ALIASES = {'culture': 'cultura', 'nacional': 'national', 'editorial': 'editoriale'}
+
+
+def _sitemap_group(article):
+    """În ce sitemap de știri intră articolul (categoriile rare merg în «altele»)."""
+    if article.get('is_editorial'):
+        return 'editoriale'
+    cat = (article.get('category') or '').strip().lower()
+    cat = _SITEMAP_ALIASES.get(cat, cat)
+    if cat in SITEMAP_NEWS_GROUPS:
+        return cat
+    if article.get('type') == 'national':
+        return 'national'
+    return 'altele'
+
+
+def _sitemap_lastmod(article):
+    """Data ultimei modificări (YYYY-MM-DD): actualizare > verificare > publicare."""
+    value = article.get('updated') or article.get('reviewed_at') or article.get('date') or ''
+    return str(value)[:10] or datetime.now().strftime('%Y-%m-%d')
+
+
+def _sitemap_page_entries():
+    today = datetime.now().strftime('%Y-%m-%d')
+    paths = ['/', '/local', '/national', '/editoriale', '/despre', '/politica-editoriala',
+             '/confidentialitate', '/termeni', '/contact']
+    paths += [f'/categorie/{c}' for c in CATEGORIES]
+    entries = [{'loc': SITEMAP_BASE + p, 'lastmod': today} for p in paths]
+    try:
+        for contributor in load_contributors():
+            if contributor.get('status') == 'active' and contributor.get('article_count', 0) > 0:
+                entries.append({'loc': f"{SITEMAP_BASE}/colaborator/{contributor['id']}", 'lastmod': today})
+    except Exception:
+        pass
+    return entries
+
+
+def _sitemap_job_entries():
+    try:
+        return [{'loc': e['loc'], 'lastmod': e['lastmod']} for e in jobs_web.sitemap_entries()]
+    except Exception as e:
+        app.logger.warning('Sitemap: joburile nu s-au putut adăuga: %s', e)
+        return []
+
+
+def _sitemap_news_entries():
+    """{grup: [intrări]} pentru articolele indexabile (fără cele cu noindex)."""
     try:
         all_articles = load_articles(all_types=True)
     except Exception:
         all_articles = []
-
-    sitemap_urls = []
-
-    # Homepage
-    sitemap_urls.append({
-        'loc': 'https://kronpapir.ro/',
-        'lastmod': datetime.now().strftime('%Y-%m-%d'),
-        'changefreq': 'daily',
-        'priority': '1.0'
-    })
-
-    # Static pages
-    static_pages = [
-        ('/local', 'daily', '0.8'),
-        ('/national', 'daily', '0.7'),
-        ('/editoriale', 'daily', '0.8'),
-        ('/despre', 'monthly', '0.7'),
-        ('/confidentialitate', 'monthly', '0.5'),
-        ('/termeni', 'monthly', '0.5'),
-        ('/contact', 'monthly', '0.5'),
-    ]
-
-    for page_url, changefreq, priority in static_pages:
-        sitemap_urls.append({
-            'loc': f'https://kronpapir.ro{page_url}',
-            'lastmod': datetime.now().strftime('%Y-%m-%d'),
-            'changefreq': changefreq,
-            'priority': priority
-        })
-
-    # Category pages
-    for category in CATEGORIES.keys():
-        sitemap_urls.append({
-            'loc': f'https://kronpapir.ro/categorie/{category}',
-            'lastmod': datetime.now().strftime('%Y-%m-%d'),
-            'changefreq': 'daily',
-            'priority': '0.6'
-        })
-
-    # Contributor profile pages
-    try:
-        for contributor in load_contributors():
-            if contributor.get('status') == 'active' and contributor.get('article_count', 0) > 0:
-                sitemap_urls.append({
-                    'loc': f"https://kronpapir.ro/colaborator/{contributor['id']}",
-                    'lastmod': datetime.now().strftime('%Y-%m-%d'),
-                    'changefreq': 'weekly',
-                    'priority': '0.5'
-                })
-    except Exception:
-        pass
-
-    # Locuri de muncă: hub-ul și ofertele active (web/jobs.py)
-    try:
-        sitemap_urls.extend(jobs_web.sitemap_entries())
-    except Exception as e:
-        app.logger.warning('Sitemap: joburile nu s-au putut adăuga: %s', e)
-
-    # Article pages (fără cele marcate noindex: Google nu le vrea în sitemap)
+    groups = {g: [] for g in SITEMAP_NEWS_GROUPS}
+    seen = set()
     for article in all_articles:
         if pres.should_noindex(article):
             continue
-        article_slug = article.get('slug') or generate_slug(article.get('title', ''))
-        article_date = article.get('date', datetime.now().isoformat())
-        if 'T' in article_date:
-            article_date = article_date.split('T')[0]
+        slug = article.get('slug') or generate_slug(article.get('title', ''))
+        loc = f'{SITEMAP_BASE}/stiri/{slug}'
+        if loc in seen:
+            continue
+        seen.add(loc)
+        groups[_sitemap_group(article)].append({'loc': loc, 'lastmod': _sitemap_lastmod(article)})
+    return groups
 
-        sitemap_urls.append({
-            'loc': f'https://kronpapir.ro/stiri/{article_slug}',
-            'lastmod': article_date,
-            'changefreq': 'weekly',
-            'priority': '0.8'
-        })
 
-    # Generate XML
-    sitemap_xml_content = '<?xml version="1.0" encoding="UTF-8"?>\n'
-    sitemap_xml_content += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+def _urlset(entries):
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+           '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for e in entries:
+        xml.append(f'  <url><loc>{html_escape(e["loc"])}</loc><lastmod>{e["lastmod"]}</lastmod></url>')
+    xml.append('</urlset>')
+    return Response('\n'.join(xml) + '\n', mimetype='application/xml')
 
-    for url in sitemap_urls:
-        sitemap_xml_content += '  <url>\n'
-        sitemap_xml_content += f'    <loc>{url["loc"]}</loc>\n'
-        sitemap_xml_content += f'    <lastmod>{url["lastmod"]}</lastmod>\n'
-        sitemap_xml_content += f'    <changefreq>{url["changefreq"]}</changefreq>\n'
-        sitemap_xml_content += f'    <priority>{url["priority"]}</priority>\n'
-        sitemap_xml_content += '  </url>\n'
 
-    sitemap_xml_content += '</urlset>'
+@app.route('/sitemap.xml')
+def sitemap_xml():
+    """Indexul de sitemap-uri: pagini, locuri de muncă, știri pe categorii, Google News."""
+    today = datetime.now().strftime('%Y-%m-%d')
+    parts = [('sitemap-pagini.xml', today)]
+    jobs = _sitemap_job_entries()
+    if jobs:
+        parts.append(('sitemap-locuri-de-munca.xml', max(e['lastmod'] for e in jobs)))
+    for group, entries in _sitemap_news_entries().items():
+        if entries:
+            parts.append((f'sitemap-stiri-{group}.xml', max(e['lastmod'] for e in entries)))
+    parts.append(('news-sitemap.xml', today))
 
-    return Response(sitemap_xml_content, mimetype='application/xml')
+    xml = ['<?xml version="1.0" encoding="UTF-8"?>',
+           '<sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">']
+    for name, lastmod in parts:
+        xml.append(f'  <sitemap><loc>{SITEMAP_BASE}/{name}</loc><lastmod>{lastmod}</lastmod></sitemap>')
+    xml.append('</sitemapindex>')
+    return Response('\n'.join(xml) + '\n', mimetype='application/xml')
+
+
+@app.route('/sitemap-pagini.xml')
+def sitemap_pages_xml():
+    return _urlset(_sitemap_page_entries())
+
+
+@app.route('/sitemap-locuri-de-munca.xml')
+def sitemap_jobs_xml():
+    return _urlset(_sitemap_job_entries())
+
+
+@app.route('/sitemap-stiri-<group>.xml')
+def sitemap_news_group_xml(group):
+    if group not in SITEMAP_NEWS_GROUPS:
+        abort(404)
+    return _urlset(_sitemap_news_entries()[group])
 
 
 @app.route('/news-sitemap.xml')

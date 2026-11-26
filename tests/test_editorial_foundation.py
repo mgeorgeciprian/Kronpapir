@@ -24,6 +24,13 @@ from editorial import store  # noqa: E402
 from web import app as webapp  # noqa: E402
 
 
+def all_sitemaps(client):
+    """Textul tuturor sitemap-urilor din indexul /sitemap.xml, lipite."""
+    index = client.get('/sitemap.xml').get_data(as_text=True)
+    paths = re.findall(r'<loc>https://kronpapir\.ro(/[^<]+)</loc>', index)
+    return '\n'.join(client.get(p).get_data(as_text=True) for p in paths)
+
+
 def art(art_id, **extra):
     base = {'id': art_id, 'title': f'Titlu {art_id}', 'slug': f'slug-{art_id}', 'category': 'local',
             'type': 'local', 'content': '<p>Conținut de test.</p>', 'source': 'Test',
@@ -182,7 +189,7 @@ class WebTests(unittest.TestCase):
     def test_draft_is_invisible_until_published(self):
         store.save_draft(art('dr1', title='Ciornă secretă', slug='ciorna-secreta'))
         self.assertEqual(self.client.get('/stiri/ciorna-secreta').status_code, 404)
-        self.assertNotIn(b'ciorna-secreta', self.client.get('/sitemap.xml').data)
+        self.assertNotIn('ciorna-secreta', all_sitemaps(self.client))
         self.assertNotIn('Ciornă secretă', self.client.get('/feed').get_data(as_text=True))
         # neautentificat: fără acces la previzualizare
         self.assertNotEqual(self.client.get('/admin/ciorne/dr1').status_code, 200)
@@ -210,7 +217,7 @@ class WebTests(unittest.TestCase):
         page = self.client.get('/stiri/rescriere').get_data(as_text=True)
         self.assertIn('content="noindex, follow"', page)
         self.assertNotIn('brasovstiri.ro/poza.jpg', page)  # fără hotlink
-        sitemap = self.client.get('/sitemap.xml').get_data(as_text=True)
+        sitemap = all_sitemaps(self.client)
         self.assertNotIn('/stiri/rescriere', sitemap)
         self.assertIn('/stiri/date-oficiale', sitemap)
 
