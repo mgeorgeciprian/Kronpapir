@@ -52,14 +52,16 @@ class PoliteClient:
         with urllib.request.urlopen(req, timeout=self.timeout) as resp:
             return resp.status, resp.read()
 
-    def request_json(self, url, payload=None, method=None):
+    def request_json(self, url, payload=None, method=None, headers=None):
+        """`headers` în plus (ex. chei API): nu intră în cache-key și nici în loguri."""
         body = json.dumps(payload, ensure_ascii=False, sort_keys=True) if payload is not None else None
         method = method or ("POST" if body is not None else "GET")
         cache = self._cache_path(method, url, body)
         if cache and cache.exists() and time.time() - cache.stat().st_mtime < self.cache_ttl:
             return json.loads(cache.read_text(encoding="utf-8"))
 
-        headers = {"User-Agent": USER_AGENT, "Accept": "application/json"}
+        extra = headers or {}
+        headers = {"User-Agent": USER_AGENT, "Accept": "application/json", **extra}
         if body is not None:
             headers["Content-Type"] = "application/json"
         last_err = None

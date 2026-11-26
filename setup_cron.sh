@@ -6,6 +6,7 @@
 #   22:00 - Editoriale zilnice (3 editoriale: național, internațional, tematic)
 #   03:30 - Arhivare articole brute (zilnic)
 #   04:30 - Audit SEO (duminica)
+#   05:00 - PageSpeed Insights (duminica, seo/pagespeed.py)
 #   05:40, 13:40 - Locuri de muncă AJOFM Brașov (sources/ajofm.py)
 
 set -e
@@ -33,7 +34,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Elimină cron-urile vechi KronPapir
-crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
+crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
 
 # Adaugă cron jobs
 (crontab -l 2>/dev/null; cat <<CRONEOF
@@ -41,6 +42,9 @@ crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "run_pipeline.py" -e "arc
 # === KronPapir.ro - Pipeline Automat ===
 # 05:40 si 13:40 - Locuri de munca AJOFM Brasov (max 10 min; retry intern, o cerere la 2 s)
 40 5,13 * * * cd $APP_DIR && ${ENV_LOAD}timeout 600 $VENV_PYTHON -m sources.ajofm >> $LOG_DIR/cron_jobs_ajofm.log 2>&1
+
+# Duminica 05:00 - PageSpeed Insights pentru paginile principale (max 45 min; raport in data/seo/pagespeed/)
+0 5 * * 0 cd $APP_DIR && ${ENV_LOAD}timeout 2700 $VENV_PYTHON -m seo.pagespeed >> $LOG_DIR/cron_pagespeed.log 2>&1
 
 # Dimineata 06:00 - Scrape + 5 articole locale
 0 6 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE full >> $LOG_DIR/cron_morning.log 2>&1
@@ -68,6 +72,7 @@ echo "  14:00 - Scrape + 5 articole locale rescrise AI"
 echo "  22:00 - 3 editoriale: national + international + tematic"
 echo "  03:30 - Arhivare articole brute vechi"
 echo "  04:30 - Audit SEO (doar duminica)"
+echo "  05:00 - PageSpeed Insights (doar duminica)"
 echo ""
 echo "Total zilnic: ~10 articole locale + 3 editoriale = 13 articole/zi"
 echo "Cost estimat: ~0.05-0.10 USD/zi (Claude Haiku)"
