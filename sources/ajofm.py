@@ -180,7 +180,11 @@ def nice_occupation(raw):
         low = w.lower()
         if low in ACRONYMS:
             return low.upper()
-        return OCCUPATION_WORDS.get(low, w) if w == low else w
+        if w == low:
+            return OCCUPATION_WORDS.get(low, w)
+        if w == low.capitalize() and low in OCCUPATION_WORDS:  # „Conducator” -> „Conducător”
+            return OCCUPATION_WORDS[low].capitalize()
+        return w
 
     text = re.sub(r"[^\W\d_]+", fix, text)
     return text[0].upper() + text[1:]
