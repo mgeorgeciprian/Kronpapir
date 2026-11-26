@@ -43,7 +43,7 @@ Methods:
 Features:
 - Automatic rate limiting and request queuing
 - Real-time token usage tracking
-- Cost estimation ($3 input, $15 output per 1M tokens - Claude Sonnet 4.5)
+- Cost estimation ($3 input, $15 output per 1M tokens - Claude Sonnet 5.5)
 - Daily token budget enforcement
 - Comprehensive error handling with fallbacks
 - Structured logging to file and console
@@ -78,7 +78,7 @@ Features:
 Environment variables template with:
 ```
 ANTHROPIC_API_KEY=your-api-key-here
-CLAUDE_MODEL=claude-sonnet-4-5-20250929
+CLAUDE_MODEL=claude-sonnet-5-5
 MAX_TOKENS_PER_ARTICLE=1500
 DAILY_TOKEN_BUDGET=500000
 BATCH_SIZE=5
@@ -359,7 +359,7 @@ Testing:
 
 ## API Configuration
 
-**Model:** Claude Sonnet 4.5 (claude-sonnet-4-5-20250929)
+**Model:** Claude Sonnet 5.5 (claude-sonnet-5-5)
 **Language:** Romanian (all prompts)
 **Pricing:** $3 input, $15 output per 1M tokens
 

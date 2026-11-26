@@ -66,7 +66,7 @@ Represents a scheduled content generation task.
 ```python
 ContentGenerator(
     api_key: Optional[str] = None,
-    model: str = "claude-sonnet-4-5-20250929",
+    model: str = "claude-sonnet-5-5",
     max_tokens_per_article: int = 2000,
     daily_token_budget: int = 500_000,
     rate_limit_requests_per_minute: int = 60,
@@ -406,7 +406,7 @@ if datetime.datetime.now().weekday() == 0:  # Monday
 
 ## Token Cost Management
 
-**Pricing (Claude Sonnet 4.5):**
+**Pricing (Claude Sonnet 5.5):**
 - Input: $3 per 1M tokens
 - Output: $15 per 1M tokens
 
@@ -440,7 +440,7 @@ elif result['status'] == 'error':
 All operations are logged to `logs/content_generator.log`:
 
 ```
-2025-02-09 15:30:00 - kronpapir.content_generator - INFO - ContentGenerator initialized with model: claude-sonnet-4-5-20250929
+2025-02-09 15:30:00 - kronpapir.content_generator - INFO - ContentGenerator initialized with model: claude-sonnet-5-5
 2025-02-09 15:35:00 - kronpapir.content_generator - INFO - Weekly summary generated. Articles: 15, Tokens: 1456, Cost: $0.0219
 ```
 

@@ -20,7 +20,7 @@ Edit `.env` and add your Anthropic API key:
 
 ```
 ANTHROPIC_API_KEY=sk-ant-your-key-here
-CLAUDE_MODEL=claude-sonnet-4-5-20250929
+CLAUDE_MODEL=claude-sonnet-5-5
 MAX_TOKENS_PER_ARTICLE=1500
 DAILY_TOKEN_BUDGET=500000
 ```
@@ -243,7 +243,7 @@ Token usage is tracked automatically:
 ```python
 stats = rewriter.get_usage_stats()
 
-# Cost per model (Claude Sonnet 4.5):
+# Cost per model (Claude Sonnet 5.5):
 # Input: $3 per 1M tokens
 # Output: $15 per 1M tokens
 
@@ -278,7 +278,7 @@ tail -f logs/processor.log
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `ANTHROPIC_API_KEY` | Claude API key (required) | - |
-| `CLAUDE_MODEL` | Model to use | `claude-sonnet-4-5-20250929` |
+| `CLAUDE_MODEL` | Model to use | `claude-sonnet-5-5` |
 | `MAX_TOKENS_PER_ARTICLE` | Max tokens per article | `1500` |
 | `DAILY_TOKEN_BUDGET` | Daily token budget | `500000` |
 | `BATCH_SIZE` | Articles per batch | `5` |
@@ -289,7 +289,7 @@ tail -f logs/processor.log
 ```python
 ArticleRewriter(
     api_key: str,                        # Anthropic API key
-    model: str = "claude-sonnet-4-5-20250929",
+    model: str = "claude-sonnet-5-5",
     max_tokens_per_article: int = 1500,
     daily_token_budget: int = 500_000,
     rate_limit_requests_per_minute: int = 60

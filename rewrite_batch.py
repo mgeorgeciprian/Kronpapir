@@ -77,7 +77,7 @@ def run_batch(days=5, limit=None, dry_run=False):
     from ai.rewriter import ArticleRewriter
     rewriter = ArticleRewriter(
         api_key=api_key,
-        model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-4-5-20250929"),
+        model=os.environ.get("CLAUDE_MODEL", "claude-sonnet-5-5"),
     )
 
     rewritten_count = 0

@@ -54,7 +54,7 @@ class ArticleRewriter:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-5-20250929",
+        model: str = "claude-sonnet-5-5",
         rate_limit_delay: float = 1.0,
     ):
         """
@@ -170,8 +170,8 @@ class ArticleRewriter:
             self._rate_limit()
             message = self.client.messages.create(
                 model=self.model,
-                max_tokens=8192,
-                output_config={"format": {"type": "json_schema", "schema": schema}},
+                max_tokens=16000,  # include și gândirea modelului (Sonnet 5.5 gândește implicit)
+                output_config={"effort": "medium", "format": {"type": "json_schema", "schema": schema}},
                 messages=[{"role": "user", "content": prompt}],
             )
             if message.stop_reason == "end_turn":

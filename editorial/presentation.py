@@ -72,6 +72,8 @@ def should_noindex(article: dict) -> bool:
     - editorialele vechi, publicate automat înainte de regula „editorial = aprobat de George”.
     Editorialele noi trec prin ciorne și primesc reviewed_by/at la publicare, deci se indexează.
     """
+    if article.get("duplicate_of"):  # dublură: pagina redirecționează spre articolul păstrat
+        return True
     if not noindex_rewrites_enabled():
         return False
     return source_type(article) in ("rescriere_veche", "editorial") and not is_reviewed(article)

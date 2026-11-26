@@ -366,6 +366,10 @@ def load_articles(limit=None, category=None, is_national=False, all_types=False,
     except Exception as e:
         print(f"Error loading articles: {e}")
 
+    # Dublurile (aceeași știre din altă sursă) nu apar în liste; pagina lor face 301 spre original
+    if not all_types:
+        articles = [a for a in articles if not a.get('duplicate_of')]
+
     # Filter editorials only
     if editorials_only:
         articles = [a for a in articles if a.get('is_editorial') or a.get('category') == 'editorial']
@@ -702,6 +706,12 @@ def article(article_id):
     if not current_article:
         abort(404)
 
+    # Dublură a altei știri (aceeași știre din altă sursă): trimitem la articolul păstrat
+    dup = current_article.get('duplicate_of') or {}
+    if dup.get('slug') or dup.get('id'):
+        target = f"/stiri/{dup['slug']}" if dup.get('slug') else f"/articol/{dup['id']}"
+        return redirect(target, code=301)
+
     # Get related articles (same category, different article)
     category = current_article.get('category')
     related = []
@@ -742,6 +752,12 @@ def article_by_slug(slug):
 
     if not current_article:
         abort(404)
+
+    # Dublură a altei știri (aceeași știre din altă sursă): trimitem la articolul păstrat
+    dup = current_article.get('duplicate_of') or {}
+    if dup.get('slug') or dup.get('id'):
+        target = f"/stiri/{dup['slug']}" if dup.get('slug') else f"/articol/{dup['id']}"
+        return redirect(target, code=301)
 
     # Get related articles (same category, different article)
     category = current_article.get('category')
@@ -1460,7 +1476,7 @@ def admin_process():
             from ai.rewriter import ArticleRewriter
             rewriter = ArticleRewriter(
                 api_key=api_key,
-                model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
+                model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-5-5'),
             )
         except Exception as e:
             print(f"Could not initialize AI rewriter: {e}")
@@ -1620,7 +1636,7 @@ def admin_reprocess(processed_filename):
         from ai.rewriter import ArticleRewriter
         rewriter = ArticleRewriter(
             api_key=api_key,
-            model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
+            model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-5-5'),
         )
         result = rewriter.rewrite_article(raw)
         if result:
@@ -1702,11 +1718,12 @@ def admin_api_suggest_keywords():
             client = anthropic.Anthropic(api_key=api_key)
             prompt = f"Genereaza 8 cuvinte cheie SEO relevante pentru acest articol romanesc. Returneaza DOAR cuvintele cheie separate prin virgula, fara numerotare.\n\nTitlu: {title}\nContinut: {content[:500]}"
             response = client.messages.create(
-                model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-4-5-20250929'),
-                max_tokens=200,
+                model=os.environ.get('CLAUDE_MODEL', 'claude-sonnet-5-5'),
+                max_tokens=2000,
+                output_config={"effort": "low"},
                 messages=[{"role": "user", "content": prompt}]
             )
-            text = response.content[0].text.strip()
+            text = next((b.text for b in response.content if getattr(b, 'type', '') == 'text'), '').strip()
             keywords = [k.strip() for k in text.split(',') if k.strip()]
             if keywords:
                 return jsonify({'keywords': keywords[:10]})

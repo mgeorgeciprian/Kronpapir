@@ -86,7 +86,7 @@ class EditorialAgent:
     def __init__(
         self,
         api_key: Optional[str] = None,
-        model: str = "claude-sonnet-4-5-20250929",
+        model: str = "claude-sonnet-5-5",
         rate_limit_delay: float = 1.5,
     ):
         self.model = model
@@ -111,7 +111,7 @@ class EditorialAgent:
             time.sleep(self.rate_limit_delay - elapsed)
         self.last_api_call = time.time()
 
-    def _call_claude(self, prompt: str, max_tokens: int = 8192) -> Optional[Dict]:
+    def _call_claude(self, prompt: str, max_tokens: int = 16000) -> Optional[Dict]:
         """Apelează Claude cu schema JSON, cu o reîncercare; returnează JSON parsat."""
         if not self.client:
             return None

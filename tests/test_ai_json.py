@@ -76,7 +76,7 @@ class EditorialAgentJson(unittest.TestCase):
         a = make(self.cls, reply(json.dumps(GOOD)))
         self.assertEqual(a._call_claude('p')['slug'], 'titlu')
         kw = a.client.messages.create.call_args.kwargs
-        self.assertEqual(kw['max_tokens'], 8192)
+        self.assertEqual(kw['max_tokens'], 16000)
         self.assertEqual(kw['output_config']['format']['schema'], ed.EDITORIAL_SCHEMA)
 
     def test_retry_after_bad_json(self):

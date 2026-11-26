@@ -126,7 +126,7 @@ print(stats['daily']['budget_remaining_percent'])
 ### Environment Variables
 ```bash
 export ANTHROPIC_API_KEY="sk-..."
-export CLAUDE_MODEL="claude-sonnet-4-5-20250929"  # Optional
+export CLAUDE_MODEL="claude-sonnet-5-5"  # Optional
 export DAILY_TOKEN_BUDGET="500000"  # Optional
 ```
 
@@ -134,7 +134,7 @@ export DAILY_TOKEN_BUDGET="500000"  # Optional
 ```python
 ContentGenerator(
     api_key="sk-...",  # Or env var
-    model="claude-sonnet-4-5-20250929",
+    model="claude-sonnet-5-5",
     max_tokens_per_article=2000,
     daily_token_budget=500_000,
     rate_limit_requests_per_minute=60,

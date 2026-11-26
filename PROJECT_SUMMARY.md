@@ -2,7 +2,7 @@
 
 ## Overview
 
-A production-quality Claude AI article rewriting system for the Romanian news aggregator **kronpapir.ro**. The system uses Anthropic's Claude Sonnet 4.5 model to intelligently rewrite articles while preserving factual accuracy, generate catchy headlines, auto-categorize content, and create daily national summaries.
+A production-quality Claude AI article rewriting system for the Romanian news aggregator **kronpapir.ro**. The system uses Anthropic's Claude Sonnet 5.5 model to intelligently rewrite articles while preserving factual accuracy, generate catchy headlines, auto-categorize content, and create daily national summaries.
 
 ## Files Created
 
@@ -103,7 +103,7 @@ Environment variables template.
 **Variables:**
 ```
 ANTHROPIC_API_KEY=your-api-key-here
-CLAUDE_MODEL=claude-sonnet-4-5-20250929
+CLAUDE_MODEL=claude-sonnet-5-5
 MAX_TOKENS_PER_ARTICLE=1500
 DAILY_TOKEN_BUDGET=500000
 BATCH_SIZE=5
@@ -274,7 +274,7 @@ Update Request Timestamp
 ## API Integration
 
 ### Model Used
-- **Claude Sonnet 4.5** (`claude-sonnet-4-5-20250929`)
+- **Claude Sonnet 5.5** (`claude-sonnet-5-5`)
 - Production-grade model with strong reasoning
 - Excellent for Romanian language tasks
 
@@ -287,7 +287,7 @@ Update Request Timestamp
 - Daily summary: ~800-1500 tokens per 5-10 articles
 
 ### Cost Estimation
-Based on Claude Sonnet 4.5 pricing:
+Based on Claude Sonnet 5.5 pricing:
 - Input tokens: $3 per 1M tokens
 - Output tokens: $15 per 1M tokens
 
