@@ -12,12 +12,16 @@ from typing import Optional, Dict, Any, List
 from urllib.parse import urljoin, urlparse
 from abc import ABC, abstractmethod
 import time
-import random
+import urllib.robotparser
 
 import requests
 from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
+# CLAUDE.md: scraperele se prezintă cu un User-Agent identificabil și respectă robots.txt.
+USER_AGENT = "KronPapirBot/1.0 (+https://kronpapir.ro/surse)"
+MIN_DELAY = 2.0  # maximum o cerere la 2 secunde
 
 
 class Article:
@@ -98,10 +102,12 @@ class BaseScraper(ABC):
 
         # Rate limiting
         self.last_request_time = 0
-        self.rate_limit_delay = source_config.get("rate_limit_delay", 1)
+        self.rate_limit_delay = max(MIN_DELAY, float(source_config.get("rate_limit_delay", MIN_DELAY)))
 
-        # User agents for rotation
-        self.user_agents = source_config.get("user_agents", self._get_default_user_agents())
+        # robots.txt, citit o singură dată pe domeniu
+        self._robots = {}
+        # Unele site-uri oficiale răspund cu 404 deși pagina are conținut (de ex. brasovcity.ro)
+        self.accept_error_status = set(source_config.get("accept_error_status") or [])
 
         # Deduplication tracking
         self.processed_urls = self._load_processed_urls()
@@ -154,20 +160,24 @@ class BaseScraper(ABC):
 
         return session
 
-    @staticmethod
-    def _get_default_user_agents() -> List[str]:
-        """Get list of default user agents."""
-        return [
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36",
-            "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:89.0) Gecko/20100101 Firefox/89.0",
-            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/14.1.1 Safari/605.1.15",
-        ]
-
-    def _get_random_user_agent(self) -> str:
-        """Get a random user agent for request."""
-        return random.choice(self.user_agents)
+    def allowed_by_robots(self, url: str) -> bool:
+        """True dacă robots.txt al site-ului permite URL-ul pentru KronPapirBot (lipsă/eroare = permis)."""
+        parts = urlparse(url)
+        host = f"{parts.scheme}://{parts.netloc}"
+        parser = self._robots.get(host)
+        if parser is None:
+            parser = urllib.robotparser.RobotFileParser()
+            try:
+                resp = self.session.get(f"{host}/robots.txt", headers={"User-Agent": USER_AGENT}, timeout=10)
+                ctype = resp.headers.get("Content-Type", "")
+                if resp.status_code == 200 and "html" not in ctype:
+                    parser.parse(resp.text.splitlines())
+                else:
+                    parser.parse([])  # fără robots.txt valid: totul e permis
+            except requests.RequestException:
+                parser.parse([])
+            self._robots[host] = parser
+        return parser.can_fetch(USER_AGENT, url)
 
     def fetch_page(
         self,
@@ -186,6 +196,10 @@ class BaseScraper(ABC):
         Returns:
             Page content as string, or None if failed
         """
+        if not self.allowed_by_robots(url):
+            self.logger.warning(f"robots.txt nu permite: {url}")
+            return None
+
         # Rate limiting
         time_since_last = time.time() - self.last_request_time
         if time_since_last < self.rate_limit_delay:
@@ -195,7 +209,7 @@ class BaseScraper(ABC):
 
         try:
             headers = {
-                "User-Agent": self._get_random_user_agent(),
+                "User-Agent": USER_AGENT,
                 "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
                 "Accept-Language": "ro-RO,ro;q=0.9",
                 "Accept-Encoding": "gzip, deflate",
@@ -208,10 +222,13 @@ class BaseScraper(ABC):
                 timeout=timeout,
                 verify=verify_ssl,
             )
-            response.raise_for_status()
+            self.last_request_time = time.time()
+            if response.status_code in self.accept_error_status and response.text:
+                self.logger.debug(f"Accept {response.status_code} cu conținut: {url}")
+            else:
+                response.raise_for_status()
             response.encoding = response.apparent_encoding or "utf-8"
 
-            self.last_request_time = time.time()
             self.logger.debug(f"Successfully fetched: {url}")
             return response.text
 

@@ -3,9 +3,13 @@ Web page scraper for Kronpapir news aggregator.
 Scrapes article listings from homepages and category pages, then follows individual links.
 """
 
+import re
 from typing import List, Dict, Any, Optional
 from datetime import datetime
 from urllib.parse import urljoin
+
+RO_MONTHS = {m: i for i, m in enumerate(["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie",
+                                         "august", "septembrie", "octombrie", "noiembrie", "decembrie"], 1)}
 
 from .base_scraper import BaseScraper, Article
 
@@ -88,7 +92,8 @@ class WebScraper(BaseScraper):
                 return article_urls
 
             selectors = self.source_config.get("selectors", {})
-            article_link_selector = selectors.get("article_link", "a.post-link, h2 a, article a")
+            article_link_selector = (selectors.get("article_links") or selectors.get("article_link")
+                                     or "a.post-link, h2 a, article a")
 
             # Extract all article links
             links = self.extract_attribute(soup, article_link_selector, "href")
@@ -98,9 +103,10 @@ class WebScraper(BaseScraper):
                 absolute_url = urljoin(self.base_url, link)
 
                 # Validate URL
-                if absolute_url.startswith("http") and absolute_url.startswith(
-                    self.base_url
-                ):
+                pattern = self.source_config.get("article_url_pattern")
+                if (absolute_url.startswith("http") and absolute_url.startswith(self.base_url)
+                        and (not pattern or re.search(pattern, absolute_url))
+                        and absolute_url not in article_urls):
                     article_urls.append(absolute_url)
 
             self.logger.debug(
@@ -181,6 +187,14 @@ class WebScraper(BaseScraper):
                     return datetime.strptime(date_text.strip(), date_format)
                 except ValueError:
                     continue
+
+            # Data în mijlocul unui text („Data publicării: 02.11.2026”, „3 noiembrie 2026”)
+            m = re.search(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", date_text)
+            if m:
+                return datetime(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+            m = re.search(r"(\d{1,2})\s+([a-zăâîșț]+)\s+(\d{4})", date_text.lower())
+            if m and m.group(2) in RO_MONTHS:
+                return datetime(int(m.group(3)), RO_MONTHS[m.group(2)], int(m.group(1)))
 
             self.logger.debug(f"Could not parse date: {date_text}")
             return None

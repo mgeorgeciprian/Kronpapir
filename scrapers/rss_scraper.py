@@ -10,7 +10,7 @@ import logging
 
 import feedparser
 
-from .base_scraper import BaseScraper, Article
+from .base_scraper import BaseScraper, Article, USER_AGENT
 
 
 class RSSscraper(BaseScraper):
@@ -41,7 +41,7 @@ class RSSscraper(BaseScraper):
 
         try:
             # Fetch and parse RSS feed
-            feed = feedparser.parse(self.rss_url)
+            feed = feedparser.parse(self.rss_url, agent=USER_AGENT)
 
             if feed.bozo:
                 self.logger.warning(

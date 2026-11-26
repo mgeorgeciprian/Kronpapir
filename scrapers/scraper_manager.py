@@ -118,7 +118,6 @@ class ScraperManager:
 
             # Add global config to source config
             source_config.update({
-                "user_agents": self.scraper_config.get("user_agents", []),
                 "rate_limit_delay": self.scraper_config.get("rate_limit_delay", 1),
                 "dedup_strategy": self.scraper_config.get("deduplication", {}).get("strategy", "url_hash"),
             })

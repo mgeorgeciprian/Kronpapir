@@ -139,6 +139,20 @@ def run_scraping(sources_filter="all"):
         return {"status": "error", "error": str(e)}
 
 
+MAX_STORY_AGE_HOURS = 72
+
+
+def is_stale(art, now=None):
+    """Știre mai veche de 3 zile după data ei (nu după data fișierului): nu o mai publicăm ca nouă."""
+    raw = str(art.get('date') or art.get('published') or '')[:19]
+    try:
+        published = datetime.fromisoformat(raw)
+    except ValueError:
+        return False  # fără dată: decide fereastra de 48h a fișierelor
+    now = now or datetime.now()
+    return (now - published.replace(tzinfo=None)).total_seconds() > MAX_STORY_AGE_HOURS * 3600
+
+
 def seen_article_files():
     """Fișierele articolelor deja tratate: publicate (data/processed) și ciorne/respinse (data/drafts)."""
     from editorial import store as editorial_store
@@ -347,7 +361,7 @@ def run_ai_processing():
                     articles_list = article if isinstance(article, list) else [article]
 
                     for art in articles_list:
-                        if art.get('url') in processed_urls:
+                        if art.get('url') in processed_urls or is_stale(art):
                             continue
 
                         # Clasificare: local vs national vs international
@@ -473,6 +487,8 @@ def run_ai_processing():
             articles_list = article if isinstance(article, list) else [article]
 
             for art in articles_list:
+                if is_stale(art):
+                    continue
                 # Verifică dacă e deja procesat (are id în processed dir)
                 art_id = art.get('id') or art.get('url_hash') or str(uuid.uuid4())
                 dest = PROCESSED_DIR / f"{art_id}.json"
@@ -562,7 +578,7 @@ def run_ai_processing_balanced():
                 data = json.load(fh)
             articles_list = data if isinstance(data, list) else [data]
             for art in articles_list:
-                if art.get('url') in processed_urls:
+                if art.get('url') in processed_urls or is_stale(art):
                     continue
                 art_id = art.get('id') or art.get('url_hash') or f.stem
                 art['id'] = art_id

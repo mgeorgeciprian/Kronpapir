@@ -176,12 +176,14 @@ sources:
   # INSTITUTIONAL SOURCES - Consilii Județene
   # =============================================
 
+  # Dezactivat 2026-11-26: cjbrasov.ro are o protecție anti-bot (verificare JavaScript în browser,
+  # răspuns 503 pentru clienți automați). Nu o ocolim. De reactivat dacă CJ oferă RSS/API sau ne permite accesul.
   - id: cjbrasov
     name: "Consiliul Județean Brașov"
     url: "https://cjbrasov.ro/"
     type: "scrape"
     category: "local"
-    enabled: true
+    enabled: false
     selectors:
       article_links: "a[href*='comunicat'], a[href*='anunt'], .entry-title a, article a, .post-title a"
       title: "h1, .entry-title, .page-title"
@@ -210,17 +212,25 @@ sources:
   # INSTITUTIONAL SOURCES - Primării Brașov
   # =============================================
 
+  # Actualizat 2026-11-26: lista e pe /noutati/, articolele la /detalii-articol/<categorie>/<titlu>/<id>.
+  # Fluxul RSS (/stiri-wp/feed/) e blocat (403). Paginile de articol răspund cu 404 deși au conținut.
   - id: primaria_brasov
     name: "Primăria Brașov"
-    url: "https://www.brasovcity.ro/ro/ultimele_noutati/"
+    url: "https://www.brasovcity.ro"
+    homepage: "https://www.brasovcity.ro/noutati/"
     type: "scrape"
     category: "local"
     enabled: true
+    max_pages: 1
+    max_articles_per_source: 20
+    article_url_pattern: "/detalii-articol/"
+    accept_error_status: [404]
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
+      article_links: "a[href*='/detalii-articol/']"
+      title: "h1"
+      content: "div.continut-anunt"
+      date: "span.anunt-data"
+      image: "meta[property='og:image']"
     description: "Primăria Brașov - Anunțuri și noutăți oficiale"
     retry_attempts: 3
     timeout: 15
@@ -334,12 +344,13 @@ sources:
     retry_attempts: 3
     timeout: 15
 
+  # Dezactivat 2026-11-26: același tip de protecție anti-bot ca cjbrasov.ro (503 + verificare JavaScript). Nu o ocolim.
   - id: primaria_intorsura
     name: "Primăria Întorsura Buzăului"
     url: "http://www.intorsura.info/primaria-orasului/starea-civila/anunturi/"
     type: "scrape"
     category: "local"
-    enabled: true
+    enabled: false
     selectors:
       article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
       title: "h1, .entry-title, .page-title, .post-title"
@@ -454,11 +465,6 @@ scraper_config:
   default_timeout: 15
   max_retries: 3
   rate_limit_delay: 2  # seconds between requests to same domain
-  user_agents:
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
-    - "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:120.0) Gecko/20100101 Firefox/120.0"
 
   deduplication:
     enabled: true
