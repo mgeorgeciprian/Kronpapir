@@ -51,7 +51,10 @@ class PresentationTests(unittest.TestCase):
         self.assertEqual(pres.safe_image({'image': '/static/media/a.webp'}), '/static/media/a.webp')
         self.assertEqual(pres.safe_image({'image': 'https://kronpapir.ro/media/a.webp'}),
                          'https://kronpapir.ro/media/a.webp')
-        self.assertEqual(pres.og_image({'image': 'https://g4media.ro/a.webp'}), pres.DEFAULT_OG_IMAGE)
+        # poza străină nu ajunge în og:image; în locul ei vine o poză ilustrativă liberă
+        og = pres.og_image({'image': 'https://g4media.ro/a.webp'})
+        self.assertNotIn('g4media', og)
+        self.assertTrue(og.startswith('https://kronpapir.ro/static/images/'))
 
     def test_source_types_and_noindex(self):
         legacy = art('a', url='https://www.brasovstiri.ro/stire')

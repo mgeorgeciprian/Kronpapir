@@ -90,8 +90,9 @@
 
     <!-- Featured Image -->
     <figure class="article-featured-image">
-      <img src="{{ article|safe_image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.image_alt or article.title }}" loading="eager" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
-      {% if article.image_credit and article|safe_image %}<figcaption class="image-credit">{{ article.image_credit }}</figcaption>{% endif %}
+      <img src="{{ article|display_image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.image_alt or (stock_photo(article).caption if stock_photo(article) else article.title) }}" loading="eager" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+      {% if article.image_credit and article|safe_image %}<figcaption class="image-credit">{{ article.image_credit }}</figcaption>
+      {% else %}{% set photo = stock_photo(article) %}{% if photo %}<figcaption class="image-credit">Foto ilustrativă: {{ photo.caption }}. {% if photo.author %}Autor: {{ photo.author }}, {% endif %}{% if photo.license_url %}<a href="{{ photo.license_url }}" rel="license noopener" target="_blank">{{ photo.license }}</a>{% else %}{{ photo.license }}{% endif %}, <a href="{{ photo.source_url }}" rel="noopener" target="_blank">Wikimedia Commons</a></figcaption>{% endif %}{% endif %}
     </figure>
 
     <!-- Ad Slot Before Article Content -->
@@ -165,7 +166,7 @@
         {% for rel_article in related %}
         <article class="article-card">
           <div class="article-card-image">
-            <img src="{{ rel_article|safe_image or url_for('static', filename='images/placeholders/' + (rel_article.category|default('default')) + '.svg') }}" alt="{{ rel_article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+            <img src="{{ rel_article|display_image or url_for('static', filename='images/placeholders/' + (rel_article.category|default('default')) + '.svg') }}" alt="{{ rel_article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
           </div>
           <div class="article-card-content">
             {% if rel_article.category %}

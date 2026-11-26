@@ -26,6 +26,7 @@ from pathlib import Path
 import yaml
 
 from editorial import presentation as pres
+from editorial import stock_photos
 from editorial import store as editorial_store
 
 log = logging.getLogger("ai.illustrator")
@@ -199,7 +200,7 @@ def _read(path):
 
 
 def candidates(limit=None, only_id=None):
-    """Articolele publicate fără imagine proprie, cele mai noi primele.
+    """Articolele publicate de noi (verificate sau din date oficiale) fără imagine proprie, cele mai noi primele.
 
     Doar fișierele .json (cele arhivate .json.gz sunt vechi și rămân cu desenul generic).
     """
@@ -215,6 +216,12 @@ def candidates(limit=None, only_id=None):
         if only_id and art["id"] != only_id:
             continue
         if pres.safe_image(art) or art.get("illustration_failed"):
+            continue
+        # doar ce publicăm noi (verificat de George sau articol de date oficiale);
+        # restul rămâne cu poza ilustrativă din static/images/foto/
+        if not (pres.is_reviewed(art) or pres.source_type(art) == "date_oficiale"):
+            continue
+        if not stock_photos.needs_illustration(art):  # poliție, pompieri...: poza ilustrativă e suficientă
             continue
         items.append((art.get("date") or "", path, art))
     items.sort(key=lambda t: t[0], reverse=True)

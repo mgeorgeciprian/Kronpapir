@@ -8,6 +8,8 @@ import os
 import re
 from urllib.parse import urlparse
 
+from editorial import stock_photos
+
 SITE_URL = "https://kronpapir.ro"
 SITE_NAME = "KronPapir"
 DEFAULT_OG_IMAGE = f"{SITE_URL}/static/images/og-image.png"
@@ -124,10 +126,29 @@ def absolute_url(path_or_url: str) -> str:
     return SITE_URL + ("" if path_or_url.startswith("/") else "/") + path_or_url
 
 
+def stock_photo(article: dict):
+    """Poza ilustrativă (Wikimedia Commons) când articolul nu are o imagine proprie; altfel None."""
+    if safe_image(article):
+        return None
+    return stock_photos.choose(article)
+
+
+def display_image(article: dict):
+    """Imaginea afișată: a noastră dacă există, altfel poza ilustrativă potrivită subiectului."""
+    img = safe_image(article)
+    if img:
+        return img
+    photo = stock_photos.choose(article)
+    return photo["url"] if photo else None
+
+
 def og_image(article: dict) -> str:
     img = safe_image(article)
     if img and img.lower().endswith(".svg"):  # Facebook și X nu afișează SVG în previzualizări
         img = None
+    if not img:
+        photo = stock_photos.choose(article)
+        img = photo["url"] if photo else None
     return absolute_url(img) if img else DEFAULT_OG_IMAGE
 
 

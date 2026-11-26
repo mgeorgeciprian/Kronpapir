@@ -87,7 +87,8 @@ class RunTest(unittest.TestCase):
         self.tmp.cleanup()
 
     def add(self, aid, **kw):
-        art = {"id": aid, "title": f"Titlu {aid}", "content": "<p>Text</p>", "date": f"2026-11-{aid[-2:]}"}
+        art = {"id": aid, "title": f"Titlu {aid}", "content": "<p>Text</p>", "date": f"2026-11-{aid[-2:]}",
+               "reviewed_by": "George", "reviewed_at": "2026-11-26T10:00:00"}
         art.update(kw)
         (self.processed / f"{aid}.json").write_text(json.dumps(art), encoding="utf-8")
 
@@ -108,6 +109,13 @@ class RunTest(unittest.TestCase):
         # poza sursei a fost trimisă ca referință
         content = self.create.call_args.kwargs["messages"][0]["content"]
         self.assertEqual(content[0]["source"]["url"], "https://brasovstiri.ro/poza.jpg")
+
+    def test_only_articles_we_publish(self):
+        self.add("a-20", reviewed_by="", reviewed_at="")                       # neverificat: nu
+        self.add("a-21", reviewed_by="", reviewed_at="", source_type="date_oficiale")  # date oficiale: da
+        self.add("a-22", title="Poliția a reținut un hoț în Săcele")           # poza cu poliția ajunge
+        ids = [a["id"] for _, a in ill.candidates()]
+        self.assertEqual(ids, ["a-21"])
 
     def test_newest_first_and_limit(self):
         for d in ("a-01", "a-05", "a-09"):
@@ -152,7 +160,7 @@ class RunTest(unittest.TestCase):
 class OgImageTest(unittest.TestCase):
     def test_svg_illustration_not_used_for_social_previews(self):
         art = {"image": "/static/ilustratii/x.svg"}
-        self.assertEqual(pres.og_image(art), pres.DEFAULT_OG_IMAGE)
+        self.assertNotIn(".svg", pres.og_image(art))
 
     def test_prompt_has_no_frontmatter(self):
         prompt = ill.load_prompt()
