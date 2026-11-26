@@ -72,6 +72,7 @@
               <option value="sanatate" {% if article.category == 'sanatate' %}selected{% endif %}>Sănătate</option>
               <option value="evenimente" {% if article.category == 'evenimente' %}selected{% endif %}>evenimente</option>
               <option value="accidente" {% if article.category == 'accidente' %}selected{% endif %}>Accidente</option>
+              <option value="editorial" {% if article.category == 'editorial' %}selected{% endif %}>Editorial</option>
             </select>
           </div>
 
@@ -80,6 +81,8 @@
             <select id="type" name="type" required>
               <option value="local" {% if article.type == 'local' %}selected{% endif %}>Local</option>
               <option value="national" {% if article.type == 'national' %}selected{% endif %}>Național</option>
+              <option value="international" {% if article.type == 'international' %}selected{% endif %}>Internațional</option>
+              {% if article.type == 'editorial' or article.is_editorial %}<option value="editorial" {% if article.type == 'editorial' %}selected{% endif %}>Editorial</option>{% endif %}
             </select>
           </div>
         </div>

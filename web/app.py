@@ -1299,7 +1299,8 @@ def admin_articles():
 @admin_required
 def admin_edit(article_id):
     """Edit existing article."""
-    all_articles = load_articles()
+    # Toate tipurile: editoriale și naționale incluse (altfel 404 la editare)
+    all_articles = load_articles(all_types=True)
 
     # Find article by ID
     article = None
