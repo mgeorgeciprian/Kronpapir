@@ -132,12 +132,13 @@ sources:
     retry_attempts: 3
     timeout: 15
 
+  # Dezactivat 2026-11-26: domeniul stiridecovasna.ro nu mai are înregistrare DNS (site închis).
   - id: stiridecovasna
     name: "Știri de Covasna"
     url: "https://stiridecovasna.ro"
     type: "scrape"
     category: "local"
-    enabled: true
+    enabled: false
     selectors:
       title: "h1.entry-title, h1.post-title, h1.title, h1"
       content: "div.entry-content, div.post-content, div.article-content, article .content"
@@ -364,13 +365,17 @@ sources:
   # NATIONAL SOURCES (RSS)
   # =============================================
 
+  # Dezactivat 2026-11-26: condițiile de utilizare Agerpres permit preluarea a cel mult 500 de caractere,
+  # cu „potrivit AGERPRES” în primul paragraf; reproducerea și modificarea conținutului sunt interzise.
+  # Rescrierile noastre au ~5.000 de caractere. Pentru preluare comercială: marketing@agerpres.ro.
+  # În plus, /home.rss redirecționează spre un extractor extern (api.allorigins.win), care nu mai răspunde.
   - id: agerpres
     name: "Agerpres"
     url: "https://www.agerpres.ro"
     type: "rss"
     rss_url: "https://www.agerpres.ro/home.rss"
     category: "national"
-    enabled: true
+    enabled: false
     selectors:
       title: "h1.title, h1.article-title, h1"
       content: "div.article-body, div.article-content, div.content"
@@ -448,7 +453,7 @@ sources:
     name: "Știri Pe Surse"
     url: "https://www.stiripesurse.ro"
     type: "rss"
-    rss_url: "https://www.stiripesurse.ro/rss"
+    rss_url: "https://www.stiripesurse.ro/rss/stiri.xml"  # mutat; /rss dă 404 (verificat 2026-11-26)
     category: "national"
     enabled: true
     selectors:
