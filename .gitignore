@@ -8,6 +8,8 @@ data/articles/
 data/processed/
 data/contributors/
 data/analytics/
+data/jobs/
+data/cache/
 
 # Logs
 logs/
