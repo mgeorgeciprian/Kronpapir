@@ -27,6 +27,7 @@ import sys as _sys
 _sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from editorial import presentation as pres  # noqa: E402
 from editorial import store as editorial_store  # noqa: E402
+from web import jobs as jobs_web  # noqa: E402
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.config['JSON_SORT_KEYS'] = False
@@ -2147,6 +2148,9 @@ app.add_template_global(pres.should_noindex, 'should_noindex')
 app.add_template_global(pres.build_jsonld, 'build_jsonld')
 app.add_template_global(pres.absolute_url, 'absolute_url')
 
+# Locuri de muncă Brașov (AJOFM): hub, pagini de ofertă, JobPosting (web/jobs.py)
+jobs_web.register(app, CATEGORIES)
+
 
 # ============================================================
 # Ciorne (editorial/store.py): tot ce nu se publică automat
@@ -2325,6 +2329,12 @@ def sitemap_xml():
                 })
     except Exception:
         pass
+
+    # Locuri de muncă: hub-ul și ofertele active (web/jobs.py)
+    try:
+        sitemap_urls.extend(jobs_web.sitemap_entries())
+    except Exception as e:
+        app.logger.warning('Sitemap: joburile nu s-au putut adăuga: %s', e)
 
     # Article pages (fără cele marcate noindex: Google nu le vrea în sitemap)
     for article in all_articles:

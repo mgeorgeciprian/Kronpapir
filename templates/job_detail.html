@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+
+{% block title %}{{ job.title }}{% if job.locality %}, {{ job.locality }}{% endif %} | KronPapir{% endblock %}
+
+{% block meta_description %}<meta name="description" content="{{ meta_description }}">{% endblock %}
+
+{% block robots %}
+{% if active %}<meta name="robots" content="index, follow">{% else %}<meta name="robots" content="noindex, follow">{% endif %}
+{% endblock %}
+
+{% block canonical %}<link rel="canonical" href="{{ canonical }}">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ job.title }}{% if job.locality %}, {{ job.locality }}{% endif %}">
+<meta property="og:description" content="{{ meta_description }}">
+<meta property="og:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+<meta property="og:url" content="{{ canonical }}">
+{% endblock %}
+
+{% block twitter_tags %}
+<meta name="twitter:title" content="{{ job.title }}{% if job.locality %}, {{ job.locality }}{% endif %}">
+<meta name="twitter:description" content="{{ meta_description }}">
+<meta name="twitter:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+{% endblock %}
+
+{% block json_ld %}
+{% for block in jsonld %}<script type="application/ld+json">{{ block|tojson }}</script>
+{% endfor %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .job-crumbs { font-size: .9rem; color: var(--text-secondary); margin-bottom: var(--space-sm); }
+  .job-crumbs a { color: var(--primary); }
+  .job-closed { background: color-mix(in srgb, #c0392b 14%, transparent); border: 1px solid #c0392b; padding: 12px 16px; border-radius: var(--radius); margin-bottom: var(--space-md); }
+  .job-lead { font-size: 1.15rem; line-height: 1.55; max-width: 62ch; }
+  .job-table { width: 100%; border-collapse: collapse; margin: var(--space-md) 0; }
+  .job-table th, .job-table td { text-align: left; vertical-align: top; padding: 9px 10px; border-bottom: 1px solid var(--border); }
+  .job-table th { width: 38%; font-weight: 600; color: var(--text-secondary); }
+  .job-table td { overflow-wrap: anywhere; }
+  .job-desc { background: var(--surface); border-left: 3px solid var(--primary); padding: var(--space-md); border-radius: var(--radius); white-space: pre-line; }
+  .job-apply { display: inline-block; margin: var(--space-md) 0; padding: 12px 18px; background: var(--primary); color: #fff; border-radius: var(--radius); font-weight: 700; text-decoration: none; }
+  .job-apply:hover { filter: brightness(1.08); }
+  .job-note { font-size: .92rem; color: var(--text-secondary); }
+  .job-related { list-style: none; padding: 0; }
+  .job-related li { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .job-related a { color: var(--primary); font-weight: 500; }
+  .job-related small { display: block; color: var(--text-secondary); }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <article style="max-width: 800px;">
+    <nav class="job-crumbs" aria-label="Navigare"><a href="/">Acasă</a> › <a href="{{ hub_path }}">Locuri de muncă Brașov</a></nav>
+
+    {% if not active %}
+    <div class="job-closed" role="status"><strong>Oferta nu mai este activă.</strong> A expirat sau angajatorul a retras-o. <a href="{{ hub_path }}">Vezi ofertele active din Brașov</a>.</div>
+    {% endif %}
+
+    <header class="article-header">
+      <h1 class="article-title">{{ job.title }}{% if job.locality %}, {{ job.locality }}{% endif %}</h1>
+    </header>
+
+    <div class="article-body">
+      <p class="job-lead">{{ lead }}</p>
+
+      <table class="job-table">
+        <caption class="sr-only">Detaliile ofertei</caption>
+        <tbody>
+        {% for label, value in rows %}<tr><th scope="row">{{ label }}</th><td>{{ value }}</td></tr>
+        {% endfor %}
+        </tbody>
+      </table>
+
+      {% if job.description %}
+      <h2>Ce scrie angajatorul</h2>
+      <div class="job-desc">{{ job.description }}</div>
+      {% endif %}
+
+      {% if active %}
+      <h2>Cum aplici</h2>
+      <p>Datele de contact ale angajatorului sunt în anunțul oficial de pe ANOFM{% if job.apply_method %}. Selecția se face prin: {{ job.apply_method|lower }}{% endif %}. Poți cere ajutor și la agenția de ocupare (AJOFM Brașov), dacă ești înregistrat acolo.</p>
+      <a class="job-apply" href="{{ job.source_url }}" target="_blank" rel="noopener">Vezi oferta și contactul pe ANOFM →</a>
+      {% endif %}
+
+      <p class="job-note">
+        Sursa: ANOFM / AJOFM Brașov, oferta nr. {{ job.id }} (<a href="{{ job.source_url }}" target="_blank" rel="noopener">mediere.anofm.ro</a>).
+        Generat automat de Redacția AI KronPapir din date oficiale. KronPapir nu intermediază angajări și nu cere bani candidaților.
+        {% if job.last_seen %}Verificat ultima dată în baza ANOFM: {{ fmt_date_ro(job.last_seen) }}.{% endif %}
+      </p>
+    </div>
+  </article>
+
+  <aside class="sidebar">
+    {% if related %}
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">Oferte asemănătoare</h3>
+      <ul class="job-related">
+        {% for r in related %}
+        <li><a href="{{ job_path(r) }}">{{ r.title }}</a><small>{{ job_place(r) or '' }}{% if job_salary(r) %} · {{ job_salary(r) }}{% endif %}</small></li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">Toate ofertele</h3>
+      <p><a href="{{ hub_path }}" style="color: var(--primary); font-weight: 600;">Locuri de muncă în Brașov →</a></p>
+    </div>
+  </aside>
+</div>
+{% endblock %}

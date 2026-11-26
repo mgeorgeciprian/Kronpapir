@@ -1,0 +1,172 @@
+{% extends "base.html" %}
+
+{% block title %}Locuri de muncă în Brașov: {{ ro_count(total_all, "ofertă", "oferte") }} AJOFM | KronPapir{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="{{ ro_count(total_all, "ofertă", "oferte") }} de muncă active în județul Brașov, cu {{ ro_count(positions_all, "post", "posturi") }}, din baza oficială AJOFM. Filtrezi după localitate, domeniu și salariu. Actualizat zilnic.">
+{% endblock %}
+
+{% block robots %}
+{% if filtered %}<meta name="robots" content="noindex, follow">{% else %}<meta name="robots" content="index, follow, max-image-preview:large">{% endif %}
+{% endblock %}
+
+{% block canonical %}<link rel="canonical" href="https://kronpapir.ro{{ hub_path }}{% if page > 1 and not filtered %}?page={{ page }}{% endif %}">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="Locuri de muncă în Brașov: {{ ro_count(total_all, 'ofertă', 'oferte') }} AJOFM">
+<meta property="og:description" content="Ofertele oficiale de muncă din județul Brașov, actualizate zilnic.">
+<meta property="og:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+<meta property="og:url" content="https://kronpapir.ro{{ hub_path }}">
+{% endblock %}
+
+{% block twitter_tags %}
+<meta name="twitter:title" content="Locuri de muncă în Brașov: {{ ro_count(total_all, 'ofertă', 'oferte') }} AJOFM">
+<meta name="twitter:description" content="Ofertele oficiale de muncă din județul Brașov, actualizate zilnic.">
+<meta name="twitter:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+{% endblock %}
+
+{% block json_ld %}
+<script type="application/ld+json">{{ breadcrumbs|tojson }}</script>
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .jobs-intro { color: var(--text-secondary); margin-bottom: var(--space-md); max-width: 62ch; }
+  .jobs-stats { display: flex; flex-wrap: wrap; gap: var(--space-sm) var(--space-lg); margin-bottom: var(--space-lg); font-size: .95rem; }
+  .jobs-stats strong { font-variant-numeric: tabular-nums; }
+  .jobs-stale { background: color-mix(in srgb, #e0a800 18%, transparent); border: 1px solid #e0a800; padding: 10px 14px; border-radius: var(--radius); margin-bottom: var(--space-md); }
+  .jobs-filters { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: var(--space-sm); align-items: end; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-md); margin-bottom: var(--space-lg); }
+  .jobs-filters label { display: block; font-size: .8rem; font-weight: 600; color: var(--text-secondary); margin-bottom: 4px; }
+  .jobs-filters input, .jobs-filters select { width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius); background: var(--background, transparent); color: inherit; font: inherit; }
+  .jobs-filters .check { display: flex; gap: 6px; align-items: center; font-size: .9rem; padding-bottom: 8px; }
+  .jobs-filters .check input { width: auto; }
+  .jobs-filters button { padding: 9px 14px; border: 0; border-radius: var(--radius); background: var(--primary); color: #fff; font-weight: 600; cursor: pointer; }
+  .jobs-count { font-size: .95rem; color: var(--text-secondary); margin-bottom: var(--space-sm); }
+  .jobs-count a { color: var(--primary); }
+  .job-list { list-style: none; padding: 0; margin: 0; display: grid; gap: var(--space-sm); }
+  .job-item { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: var(--space-md); }
+  .job-item h2 { font-size: 1.1rem; margin: 0 0 4px; line-height: 1.35; }
+  .job-item h2 a { color: inherit; text-decoration: none; }
+  .job-item h2 a:hover { color: var(--primary); text-decoration: underline; }
+  .job-employer { font-weight: 500; margin-bottom: 6px; overflow-wrap: anywhere; }
+  .job-facts { display: flex; flex-wrap: wrap; gap: 4px 14px; font-size: .9rem; color: var(--text-secondary); }
+  .job-salary { color: var(--primary); font-weight: 700; font-variant-numeric: tabular-nums; }
+  .jobs-source { font-size: .9rem; color: var(--text-secondary); margin-top: var(--space-lg); }
+  .jobs-source a, .facet a { color: var(--primary); }
+  .facet { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: .95rem; }
+  .facet span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+  .facet.active a { font-weight: 700; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div>
+    <section class="section">
+      <h1 class="section-title">Locuri de muncă în Brașov</h1>
+      <p class="jobs-intro">Toate ofertele de muncă pe care angajatorii din județul Brașov le-au declarat la AJOFM, într-o singură listă. Datele vin din baza oficială ANOFM și le actualizăm de două ori pe zi.</p>
+
+      <div class="jobs-stats">
+        <span><strong>{{ ro_count(total_all, "ofertă activă", "oferte active") }}</strong></span>
+        <span><strong>{{ ro_count(positions_all, "post", "posturi") }}</strong></span>
+        <span><strong>{{ with_salary }}</strong> cu salariul afișat</span>
+        {% if updated %}<span>Actualizat: {{ updated }}</span>{% endif %}
+      </div>
+
+      {% if stale %}
+      <div class="jobs-stale" role="status">Lista nu s-a putut actualiza recent de la ANOFM. Unele oferte pot fi expirate; verifică pe pagina sursei înainte să aplici.</div>
+      {% endif %}
+
+      <form class="jobs-filters" method="get" action="{{ hub_path }}" role="search" aria-label="Filtrează ofertele">
+        <div>
+          <label for="f-q">Caută</label>
+          <input id="f-q" type="search" name="q" value="{{ q }}" placeholder="ex. șofer, contabil">
+        </div>
+        <div>
+          <label for="f-loc">Localitate</label>
+          <select id="f-loc" name="loc">
+            <option value="">Tot județul</option>
+            {% for name, n in localities %}<option value="{{ name }}" {% if name == loc %}selected{% endif %}>{{ name }} ({{ n }})</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="f-dom">Domeniu</label>
+          <select id="f-dom" name="domeniu">
+            <option value="">Toate domeniile</option>
+            {% for name, n in domains %}<option value="{{ name }}" {% if name == dom %}selected{% endif %}>{{ name }} ({{ n }})</option>{% endfor %}
+          </select>
+        </div>
+        <div>
+          <label for="f-sort">Ordine</label>
+          <select id="f-sort" name="sort">
+            <option value="recente" {% if sort != 'salariu' %}selected{% endif %}>Cele mai noi</option>
+            <option value="salariu" {% if sort == 'salariu' %}selected{% endif %}>Salariul cel mai mare</option>
+          </select>
+        </div>
+        <label class="check"><input type="checkbox" name="salariu" value="1" {% if only_salary %}checked{% endif %}> Doar cu salariu afișat</label>
+        <button type="submit">Arată ofertele</button>
+      </form>
+
+      <p class="jobs-count" aria-live="polite">
+        {% if filtered %}{{ ro_count(total, 'ofertă găsită', 'oferte găsite') }} · <a href="{{ hub_path }}">Șterge filtrele</a>
+        {% else %}Cele mai noi oferte primele.{% endif %}
+      </p>
+
+      {% if jobs %}
+      <ul class="job-list">
+        {% for job in jobs %}
+        <li class="job-item">
+          <h2><a href="{{ job_path(job) }}">{{ job.title }}</a></h2>
+          {% if job.employer_name %}<div class="job-employer">{{ job.employer_name }}</div>{% endif %}
+          <div class="job-facts">
+            {% if job_salary(job) %}<span class="job-salary">{{ job_salary(job) }}</span>{% endif %}
+            {% if job_place(job) %}<span>📍 {{ job_place(job) }}</span>{% endif %}
+            {% if job.work_type %}<span>{{ job.work_type }}</span>{% endif %}
+            {% if job_positions(job) %}<span>{{ job_positions(job) }}</span>{% endif %}
+            {% if job.date_posted %}<span>Publicată: {{ fmt_date_ro(job.date_posted) }}</span>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if total_pages > 1 %}
+      <nav class="pagination" aria-label="Pagini">
+        {% if page > 1 %}<a href="{{ page_url(page - 1) }}" rel="prev">‹ Anterior</a>{% endif %}
+        {% for p in range([1, page - 2]|max, [total_pages + 1, page + 3]|min) %}
+          {% if p == page %}<span class="current" aria-current="page">{{ p }}</span>{% else %}<a href="{{ page_url(p) }}">{{ p }}</a>{% endif %}
+        {% endfor %}
+        {% if page < total_pages %}<a href="{{ page_url(page + 1) }}" rel="next">Următor ›</a>{% endif %}
+      </nav>
+      {% endif %}
+
+      {% else %}
+      <div class="job-item">
+        {% if total_all %}Nicio ofertă nu se potrivește filtrelor. <a href="{{ hub_path }}">Vezi toate ofertele ({{ total_all }})</a>.
+        {% else %}Momentan nu avem oferte de afișat. Revino mai târziu.{% endif %}
+      </div>
+      {% endif %}
+
+      <p class="jobs-source">
+        <strong>Sursa:</strong> ANOFM / AJOFM Brașov, <a href="{{ source_url or 'https://mediere.anofm.ro/app/module/mediere/jobs' }}" target="_blank" rel="noopener">mediere.anofm.ro</a>.
+        KronPapir preia ofertele automat și nu intermediază angajări. Datele de contact ale angajatorului sunt pe pagina fiecărei oferte de pe ANOFM.
+        Salariile sunt cele declarate de angajator; unde scrie doar o sumă, angajatorul a declarat o singură valoare.
+      </p>
+    </section>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📍 Pe localități</h3>
+      {% for name, n in localities[:12] %}
+      <div class="facet {% if name == loc %}active{% endif %}"><a href="{{ url_for('jobs.hub', loc=name) }}">{{ name }}</a><span>{{ n }}</span></div>
+      {% endfor %}
+    </div>
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">🏭 Pe domenii</h3>
+      {% for name, n in domains[:12] %}
+      <div class="facet {% if name == dom %}active{% endif %}"><a href="{{ url_for('jobs.hub', domeniu=name) }}">{{ name }}</a><span>{{ n }}</span></div>
+      {% endfor %}
+    </div>
+  </aside>
+</div>
+{% endblock %}
