@@ -66,7 +66,7 @@
     <div class="hero">
       <article class="featured-article">
         <div class="featured-image">
-          <img src="{{ featured.image or url_for('static', filename='images/placeholders/' + (featured.category|default('local')) + '.svg') }}" alt="{{ featured.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+          <img src="{{ featured|safe_image or url_for('static', filename='images/placeholders/' + (featured.category|default('local')) + '.svg') }}" alt="{{ featured.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
         </div>
         <div class="featured-content">
           {% if featured.category %}
@@ -94,7 +94,7 @@
         {% for article in latest %}
         <article class="article-card">
           <div class="article-card-image">
-            <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+            <img src="{{ article|safe_image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
           </div>
           <div class="article-card-content">
             {% if article.category %}
@@ -197,7 +197,7 @@
             </h3>
             <p class="editorial-card-text">{{ editorial.excerpt or editorial.content[:120] + '...' }}</p>
             <div class="editorial-card-author">
-              <span style="font-style: italic;">Andrei Varga</span>
+              <span style="font-style: italic;">Redacția KronPapir</span>
               <span>{{ editorial.date[:10] if editorial.date else '' }}</span>
             </div>
           </div>
@@ -215,7 +215,7 @@
         {% for article in most_read %}
         <article class="article-card">
           <div class="article-card-image">
-            <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+            <img src="{{ article|safe_image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
           </div>
           <div class="article-card-content">
             {% if article.category %}
@@ -275,7 +275,7 @@
           <a href="{{ last_ed|article_url }}" style="color: var(--text-primary); text-decoration: none;">{{ last_ed.title }}</a>
         </h4>
         <p style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: var(--space-xs);">{{ last_ed.excerpt[:100] if last_ed.excerpt else last_ed.content[:100] }}...</p>
-        <span style="font-size: 0.75rem; color: var(--text-secondary);">{{ last_ed.date[:10] if last_ed.date else '' }} — Andrei Varga</span>
+        <span style="font-size: 0.75rem; color: var(--text-secondary);">{{ last_ed.date[:10] if last_ed.date else '' }} — Redacția KronPapir</span>
       </article>
       <a href="/editoriale" style="display: block; margin-top: var(--space-md); padding-top: var(--space-md); border-top: 1px solid var(--border); color: var(--primary); font-weight: 600;">Toate editorialele →</a>
     </div>

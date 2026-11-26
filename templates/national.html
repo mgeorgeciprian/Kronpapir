@@ -60,7 +60,7 @@
         {% for article in articles %}
         <article class="article-card">
           <div class="article-card-image">
-            <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('national')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+            <img src="{{ article|safe_image or url_for('static', filename='images/placeholders/' + (article.category|default('national')) + '.svg') }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
           </div>
           <div class="article-card-content">
             {% if article.category %}

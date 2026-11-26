@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Editoriale - Andrei Varga | KronPapir{% endblock %}
+{% block title %}Editoriale | KronPapir{% endblock %}
 
 {% block canonical %}
 <link rel="canonical" href="https://kronpapir.ro/editoriale">
 {% endblock %}
 
 {% block og_tags %}
-<meta property="og:title" content="Editoriale KronPapir - Andrei Varga">
-<meta property="og:description" content="Editoriale zilnice de Andrei Varga: analize, perspective și opinii despre ce contează în Brașov, România și lume.">
+<meta property="og:title" content="Editoriale KronPapir">
+<meta property="og:description" content="Editoriale zilnice ale Redacției KronPapir: analize, perspective și opinii despre ce contează în Brașov, România și lume.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://kronpapir.ro/editoriale">
 {% endblock %}
@@ -22,10 +22,10 @@
       <div class="editorial-page-header">
         <h1 class="section-title" style="font-size: 2rem; margin-bottom: var(--space-sm);">Editoriale</h1>
         <div class="editorial-author-intro">
-          <div class="editorial-avatar">AV</div>
+          <div class="editorial-avatar">KP</div>
           <div>
-            <h2 style="font-family: var(--font-serif); font-size: 1.2rem; margin-bottom: var(--space-xs);">Andrei Varga</h2>
-            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">Editorialist-șef KronPapir. 15 ani de experiență în presă locală și națională. Brașovean prin adopție, analizez ce contează pentru comunitatea noastră.</p>
+            <h2 style="font-family: var(--font-serif); font-size: 1.2rem; margin-bottom: var(--space-xs);">Redacția KronPapir</h2>
+            <p style="color: var(--text-secondary); font-size: 0.9rem; line-height: 1.5;">Editorialele KronPapir sunt scrise cu ajutorul inteligenței artificiale, pornind de la știrile zilei, și sunt publicate doar după verificarea editorului.</p>
           </div>
         </div>
       </div>
@@ -50,7 +50,7 @@
           </h2>
           <p style="color: var(--text-secondary); font-size: 1rem; line-height: 1.6; margin-bottom: var(--space-md);">{{ featured_editorial.excerpt or featured_editorial.content[:250] + '...' }}</p>
           <div style="display: flex; align-items: center; gap: var(--space-md); font-size: 0.85rem; color: var(--text-secondary);">
-            <span>✍️ Andrei Varga</span>
+            <span>✍️ Redacția KronPapir</span>
             <span>📅 {{ featured_editorial.date[:10] if featured_editorial.date else '' }}</span>
           </div>
           <a href="{{ featured_editorial|article_url }}" class="read-more" style="display: inline-block; margin-top: var(--space-md);">Citește editorialul complet →</a>
@@ -81,7 +81,7 @@
           </h3>
           <p class="editorial-card-excerpt">{{ article.excerpt or article.content[:180] + '...' }}</p>
           <div class="editorial-card-footer">
-            <span style="color: var(--text-secondary); font-size: 0.8rem;">✍️ Andrei Varga</span>
+            <span style="color: var(--text-secondary); font-size: 0.8rem;">✍️ Redacția KronPapir</span>
             <a href="{{ article|article_url }}" style="color: var(--primary); font-weight: 600; font-size: 0.85rem;">Citește →</a>
           </div>
         </article>
@@ -114,7 +114,7 @@
       {% elif not featured_editorial %}
       <div style="background-color: var(--surface); padding: var(--space-2xl); border-radius: var(--radius-lg); text-align: center; margin-top: var(--space-lg);">
         <h3 style="color: var(--text-secondary); margin-bottom: var(--space-md);">Editorialele vor apărea în curând</h3>
-        <p>Andrei Varga pregătește primele editoriale. Reveniți mâine dimineață!</p>
+        <p>Redacția pregătește primele editoriale. Reveniți mâine dimineață!</p>
         <a href="/" style="display: inline-block; margin-top: var(--space-lg); padding: var(--space-md) var(--space-lg); background-color: var(--primary); color: var(--surface); border-radius: var(--radius); font-weight: 600; text-decoration: none;">Înapoi la acasă</a>
       </div>
       {% endif %}
@@ -126,9 +126,9 @@
     <!-- About the editorialist -->
     <div class="sidebar-box" style="background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%); color: var(--surface);">
       <div style="text-align: center; margin-bottom: var(--space-md);">
-        <div class="editorial-avatar" style="margin: 0 auto var(--space-sm); width: 64px; height: 64px; font-size: 1.3rem; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4);">AV</div>
-        <h3 style="color: var(--surface); border-bottom: none; margin-bottom: var(--space-xs); font-size: 1.1rem;">Andrei Varga</h3>
-        <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-bottom: 0;">Editorialist-șef</p>
+        <div class="editorial-avatar" style="margin: 0 auto var(--space-sm); width: 64px; height: 64px; font-size: 1.3rem; background: rgba(255,255,255,0.2); border: 2px solid rgba(255,255,255,0.4);">KP</div>
+        <h3 style="color: var(--surface); border-bottom: none; margin-bottom: var(--space-xs); font-size: 1.1rem;">Redacția KronPapir</h3>
+        <p style="color: rgba(255,255,255,0.7); font-size: 0.8rem; margin-bottom: 0;">Editoriale cu verificare umană</p>
       </div>
       <p style="color: rgba(255,255,255,0.9); font-size: 0.85rem; line-height: 1.5;">Zilnic, trei perspective: ce se întâmplă în România, ce se întâmplă în lume, și un editorial tematic care variază de la cultură la politică, de la tehnologie la finanțe.</p>
     </div>

@@ -1,6 +1,16 @@
 {% extends "base.html" %}
 
-{% block title %}{{ article.seo_title or article.title }} - KronPapir{% endblock %}
+{% block title %}{{ article|page_title }}{% endblock %}
+
+{% block robots %}
+{% if draft_preview %}
+<meta name="robots" content="noindex, nofollow">
+{% elif should_noindex(article) %}
+<meta name="robots" content="noindex, follow">
+{% else %}
+<meta name="robots" content="index, follow, max-image-preview:large">
+{% endif %}
+{% endblock %}
 
 {% block canonical %}
 {% if article.slug %}
@@ -10,35 +20,55 @@
 {% endif %}
 {% endblock %}
 
+{% block meta_description %}
+<meta name="description" content="{{ article.meta_description or article.excerpt or (article.content|striptags)[:160] }}">
+{% if article.keywords %}
+<meta name="keywords" content="{{ article.keywords|join(', ') if article.keywords is not string else article.keywords }}">
+{% endif %}
+{% endblock %}
+
+{% block og_type %}<meta property="og:type" content="article">{% endblock %}
+
 {% block og_tags %}
 <meta property="og:title" content="{{ article.title }}">
-<meta property="og:description" content="{{ article.meta_description or article.excerpt or article.content[:100] }}">
-<meta property="og:type" content="article">
-{% if article.image %}
-<meta property="og:image" content="{{ article.image }}">
-{% endif %}
+<meta property="og:description" content="{{ article.meta_description or article.excerpt or (article.content|striptags)[:100] }}">
+<meta property="og:image" content="{{ article|og_image }}">
 {% if article.slug %}
 <meta property="og:url" content="https://kronpapir.ro/stiri/{{ article.slug }}">
 {% else %}
 <meta property="og:url" content="https://kronpapir.ro/articol/{{ article.id }}">
 {% endif %}
 <meta property="article:published_time" content="{{ article.date }}">
+{% if article.updated %}
+<meta property="article:modified_time" content="{{ article.updated }}">
+{% endif %}
 {% if article.category %}
-<meta property="article:section" content="{{ article.category }}">
+<meta property="article:section" content="{{ categories.get(article.category, article.category) }}">
 {% endif %}
 {% endblock %}
 
-{% block extra_css %}
-<meta name="description" content="{{ article.meta_description or article.excerpt or article.content[:160] }}">
-{% if article.keywords %}
-<meta name="keywords" content="{{ article.keywords }}">
-{% endif %}
+{% block twitter_tags %}
+<meta name="twitter:title" content="{{ article.title }}">
+<meta name="twitter:description" content="{{ article.meta_description or article.excerpt or (article.content|striptags)[:160] }}">
+<meta name="twitter:image" content="{{ article|og_image }}">
 {% endblock %}
 
 {% block content %}
 
 <div class="main-container">
   <article style="max-width: 800px;">
+    {% if draft_preview %}
+    <div class="draft-preview-banner" style="background:#fff3cd;border:1px solid #e0c36a;padding:12px 16px;margin-bottom:16px;border-radius:6px;">
+      <strong>Previzualizare ciornă</strong> (status: {{ article.status }}). Nu e publică.
+      {% if article.draft_reason %}<br>Motiv: {{ article.draft_reason }}{% endif %}
+      {% if article.fact_check %}<br>Fact-check: scor {{ article.fact_check.scor }}{% if article.fact_check.erori %}, {{ article.fact_check.erori|length }} erori{% endif %}{% endif %}
+      <div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">
+        <form method="post" action="{{ url_for('admin_draft_publish', article_id=article.id) }}" onsubmit="return confirm('Publici articolul pe site?');"><button class="btn btn-primary btn-small" type="submit">Publică (verificat de mine)</button></form>
+        <form method="post" action="{{ url_for('admin_draft_reject', article_id=article.id) }}"><input name="motiv" placeholder="Motivul respingerii" style="padding:4px 8px;"><button class="btn btn-secondary btn-small" type="submit">Respinge</button></form>
+        <a class="btn btn-secondary btn-small" href="{{ url_for('admin_drafts') }}">Înapoi la ciorne</a>
+      </div>
+    </div>
+    {% endif %}
     <!-- Article Header -->
     <div class="article-header">
       {% if article.category %}
@@ -50,15 +80,17 @@
         {% if article.source %}
         <span class="article-meta-item">📰 Sursa: <strong>{{ article.source }}</strong></span>
         {% endif %}
-        {% if article.author %}
-        <span class="article-meta-item">✍️ {% if contributor_info %}<a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">{{ article.author }}</a>{% else %}{{ article.author }}{% endif %}</span>
+        {% set by = byline(article) %}
+        <span class="article-meta-item article-byline">✍️ {% if contributor_info %}<a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">{{ by.text }}</a>{% else %}{{ by.text }}{% if by.source_name %} {% if by.source_url %}<a href="{{ by.source_url }}" target="_blank" rel="noopener" style="color: var(--primary);">{{ by.source_name }}</a>{% else %}{{ by.source_name }}{% endif %}{% endif %}{% endif %}</span>
+        {% if article.updated and article.updated[:10] != (article.date or '')[:10] %}
+        <span class="article-meta-item">🔄 Actualizat: {{ article.updated[:10] }}</span>
         {% endif %}
       </div>
     </div>
 
     <!-- Featured Image -->
     <figure class="article-featured-image">
-      <img src="{{ article.image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.title }}" loading="eager" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+      <img src="{{ article|safe_image or url_for('static', filename='images/placeholders/' + (article.category|default('default')) + '.svg') }}" alt="{{ article.image_alt or article.title }}" loading="eager" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
     </figure>
 
     <!-- Ad Slot Before Article Content -->
@@ -77,7 +109,7 @@
       {% if article.excerpt %}
       <p><strong>{{ article.excerpt }}</strong></p>
       {% endif %}
-      {{ article.content | safe }}
+      {{ article.content | clean_content | safe }}
     </div>
 
     <!-- Ad Slot After Article Content -->
@@ -96,9 +128,10 @@
       {% if contributor_info %}
       <strong>Autor colaborator:</strong> Acest articol a fost scris de <a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600;">{{ contributor_info.name }}</a>, colaborator KronPapir.
       {% else %}
-      <strong>Notă de transparență:</strong> Această știre a fost agregată automat de KronPapir din sursa indicată mai sus.
-      {% if article.url %}
-      <a href="{{ article.url }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">Citește versiunea originală →</a>
+      <strong>Notă de transparență:</strong> {{ byline(article).text }}{% if byline(article).source_name %} {{ byline(article).source_name }}{% endif %}.
+      Redacția KronPapir folosește inteligența artificială pentru redactare; <a href="/despre" style="color: var(--primary);">află cum lucrăm</a>.
+      {% if article.source_url or article.url %}
+      <a href="{{ article.source_url or article.url }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">Vezi sursa originală →</a>
       {% endif %}
       {% endif %}
     </div>
@@ -131,7 +164,7 @@
         {% for rel_article in related %}
         <article class="article-card">
           <div class="article-card-image">
-            <img src="{{ rel_article.image or url_for('static', filename='images/placeholders/' + (rel_article.category|default('default')) + '.svg') }}" alt="{{ rel_article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+            <img src="{{ rel_article|safe_image or url_for('static', filename='images/placeholders/' + (rel_article.category|default('default')) + '.svg') }}" alt="{{ rel_article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
           </div>
           <div class="article-card-content">
             {% if rel_article.category %}
@@ -182,71 +215,9 @@
 {% endblock %}
 
 {% block extra_js %}
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "NewsArticle",
-  "headline": "{{ article.title }}",
-  "description": "{{ article.meta_description or article.excerpt or article.content[:160] }}",
-  "mainEntityOfPage": {
-    "@type": "WebPage",
-    "@id": "https://kronpapir.ro{% if article.slug %}/stiri/{{ article.slug }}{% else %}/articol/{{ article.id }}{% endif %}"
-  },
-  {% if article.image %}"image": "{{ article.image }}",{% endif %}
-  "datePublished": "{{ article.date }}",
-  {% if article.updated %}"dateModified": "{{ article.updated }}",{% endif %}
-  {% if article.category %}"articleSection": "{{ categories.get(article.category, article.category) }}",{% endif %}
-  "wordCount": {{ article.content|striptags|wordcount }},
-  "author": {
-    {% if article.author and article.author != 'KronPapir' %}
-    "@type": "Person",
-    "name": "{{ article.author }}"
-    {% else %}
-    "@type": "Organization",
-    "name": "KronPapir",
-    "url": "https://kronpapir.ro"
-    {% endif %}
-  },
-  "publisher": {
-    "@type": "Organization",
-    "name": "KronPapir",
-    "logo": {
-      "@type": "ImageObject",
-      "url": "https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}"
-    }
-  }
-}
-</script>
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "BreadcrumbList",
-  "itemListElement": [
-    {
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Acasă",
-      "item": "https://kronpapir.ro/"
-    },
-    {
-      "@type": "ListItem",
-      "position": 2,
-      {% if article.type == 'national' %}
-      "name": "Știri Naționale",
-      "item": "https://kronpapir.ro/national"
-      {% else %}
-      "name": "Știri Locale",
-      "item": "https://kronpapir.ro/local"
-      {% endif %}
-    },
-    {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "{{ article.title }}"
-    }
-  ]
-}
-</script>
+{% for block in build_jsonld(article, categories.get(article.category, article.category or '')) %}
+<script type="application/ld+json">{{ block|tojson }}</script>
+{% endfor %}
 
 <script>
 // Simple analytics - track article views

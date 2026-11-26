@@ -6,6 +6,13 @@
 <div class="admin-header">
   <div class="admin-title-bar">
     <h1>Editare Articol</h1>
+    {% if article.reviewed_by and article.reviewed_at %}
+    <span class="status-badge" style="background:#e8f5e9;color:#2e7d32;padding:4px 10px;border-radius:12px;">Verificat de {{ article.reviewed_by }} la {{ article.reviewed_at[:16]|replace('T', ' ') }}</span>
+    {% else %}
+    <form method="post" action="{{ url_for('admin_mark_reviewed', article_id=article.id) }}" style="display:inline;" onsubmit="return confirm('Confirmi că ai verificat articolul? Eticheta devine „cu verificare umană”.');">
+      <button type="submit" class="btn btn-secondary btn-small">Marchează ca verificat de mine</button>
+    </form>
+    {% endif %}
     <a href="{{ url_for('admin_articles') }}" class="btn btn-secondary btn-small">
       Înapoi
     </a>

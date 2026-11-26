@@ -15,6 +15,7 @@ import urllib.request
 import urllib.parse
 import xml.etree.ElementTree as ET
 from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from html import escape as html_escape
 from pathlib import Path
 from functools import wraps
@@ -22,9 +23,16 @@ from functools import wraps
 from flask import Flask, render_template, jsonify, request, abort, session, redirect, url_for, Response
 from werkzeug.security import generate_password_hash, check_password_hash
 
+import sys as _sys
+_sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+from editorial import presentation as pres  # noqa: E402
+from editorial import store as editorial_store  # noqa: E402
+
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.config['JSON_SORT_KEYS'] = False
 app.secret_key = os.getenv('FLASK_SECRET_KEY', 'kronpapir-secret-key-change-this')
+
+_BUCHAREST = ZoneInfo('Europe/Bucharest')
 
 # Configuration
 BASE_DIR = Path(__file__).parent.parent
@@ -284,6 +292,67 @@ def find_article_file(article_id):
     return None
 
 
+_articles_cache = {'key': None, 'articles': []}
+_articles_cache_lock = threading.Lock()
+
+
+def _processed_dir_signature():
+    """Amprenta folderului: nume, mtime și mărime pentru fiecare fișier (doar stat, fără citire)."""
+    sig = []
+    with os.scandir(DATA_DIR) as it:
+        for entry in it:
+            if entry.name.endswith(('.json', '.json.gz')):
+                st = entry.stat()
+                sig.append((entry.name, st.st_mtime_ns, st.st_size))
+    sig.sort()
+    return (str(DATA_DIR), hash(tuple(sig)))
+
+
+def _read_all_processed():
+    """Citește de pe disc toate articolele publicate (.json are prioritate față de .json.gz)."""
+    articles = []
+    json_files = sorted(DATA_DIR.glob('*.json'), reverse=True)
+    for json_file in json_files:
+        try:
+            with open(json_file, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+        except Exception as e:
+            print(f"Error loading article {json_file.name}: {e}")
+            continue
+        if isinstance(data, list):
+            articles.extend(data)
+        else:
+            articles.append(data)
+
+    json_names = {f.name for f in json_files}
+    seen_ids = {a.get('id') for a in articles} - {None}
+    for gz_file in sorted(DATA_DIR.glob('*.json.gz'), reverse=True):
+        if gz_file.name.removesuffix('.gz') in json_names:
+            continue
+        try:
+            data = read_article_file(gz_file)
+        except Exception as e:
+            print(f"Error loading article {gz_file.name}: {e}")
+            continue
+        items = data if isinstance(data, list) else [data]
+        articles.extend(a for a in items if a.get('id') not in seen_ids)
+
+    # Plasă de siguranță: o ciornă ajunsă din greșeală în processed nu apare pe site.
+    return [a for a in articles if isinstance(a, dict) and a.get('status') not in editorial_store.DRAFT_STATUSES]
+
+
+def _cached_processed_articles():
+    """Articolele publicate, din memorie; se recitesc doar când se schimbă un fișier."""
+    key = _processed_dir_signature()
+    with _articles_cache_lock:
+        if _articles_cache['key'] != key:
+            _articles_cache['articles'] = _read_all_processed()
+            _articles_cache['key'] = key
+        cached = _articles_cache['articles']
+    # Copii superficiale: apelanții modifică articolele (slug, update) fără să strice cache-ul.
+    return [dict(a) for a in cached]
+
+
 def load_articles(limit=None, category=None, is_national=False, all_types=False, editorials_only=False):
     """Load articles from processed data files (.json and .json.gz)."""
     articles = []
@@ -292,27 +361,7 @@ def load_articles(limit=None, category=None, is_national=False, all_types=False,
         return articles
 
     try:
-        # Citește .json normal
-        json_files = sorted(DATA_DIR.glob('*.json'), reverse=True)
-        for json_file in json_files:
-            with open(json_file, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                if isinstance(data, list):
-                    articles.extend(data)
-                else:
-                    articles.append(data)
-
-        # Citește .json.gz (articole arhivate/comprimate)
-        # .json are prioritate: se sare peste .gz dacă articolul există deja
-        json_names = {f.name for f in json_files}
-        seen_ids = {a.get('id') for a in articles} - {None}
-        for gz_file in sorted(DATA_DIR.glob('*.json.gz'), reverse=True):
-            if gz_file.name.removesuffix('.gz') in json_names:
-                continue
-            data = read_article_file(gz_file)
-            items = data if isinstance(data, list) else [data]
-            articles.extend(a for a in items if a.get('id') not in seen_ids)
-
+        articles = _cached_processed_articles()
     except Exception as e:
         print(f"Error loading articles: {e}")
 
@@ -720,7 +769,7 @@ def article_by_slug(slug):
 
 @app.route('/editoriale')
 def editoriale():
-    """Editorial articles by Andrei Varga."""
+    """Editorialele redacției."""
     page = request.args.get('page', 1, type=int)
     per_page = 10
 
@@ -2088,6 +2137,110 @@ def article_url_filter(article):
     return f"/articol/{article.get('id')}"
 
 
+# Prezentare: imagine sigură, titlu, semnătură, noindex, JSON-LD (editorial/presentation.py)
+app.add_template_filter(pres.safe_image, 'safe_image')
+app.add_template_filter(pres.og_image, 'og_image')
+app.add_template_filter(pres.page_title, 'page_title')
+app.add_template_filter(pres.clean_content, 'clean_content')
+app.add_template_global(pres.byline, 'byline')
+app.add_template_global(pres.should_noindex, 'should_noindex')
+app.add_template_global(pres.build_jsonld, 'build_jsonld')
+app.add_template_global(pres.absolute_url, 'absolute_url')
+
+
+# ============================================================
+# Ciorne (editorial/store.py): tot ce nu se publică automat
+# ============================================================
+
+def _same_origin_post():
+    """Protecție simplă CSRF pentru acțiunile noi: cererea POST trebuie să vină de pe același site."""
+    origin = request.headers.get('Origin') or request.headers.get('Referer') or ''
+    if not origin:
+        return False
+    host = urllib.parse.urlparse(origin).netloc
+    return host == request.host
+
+
+def _reviewer_name():
+    return os.getenv('EDITOR_NAME', 'George')
+
+
+@app.route('/admin/ciorne')
+@admin_required
+def admin_drafts():
+    status = request.args.get('status', 'draft')
+    if status not in ('draft', 'rejected'):
+        status = 'draft'
+    return render_template(
+        'admin_drafts.html',
+        drafts=editorial_store.list_drafts(status),
+        status=status,
+        categories=CATEGORIES,
+    )
+
+
+@app.route('/admin/ciorne/<article_id>')
+@admin_required
+def admin_draft_preview(article_id):
+    try:
+        draft = editorial_store.get_draft(article_id)
+    except ValueError:
+        abort(404)
+    if not draft:
+        abort(404)
+    draft.setdefault('slug', generate_slug(draft.get('title', '')))
+    return render_template(
+        'article.html',
+        article=draft,
+        related=[],
+        contributor_info=None,
+        categories=CATEGORIES,
+        adsense_enabled=False,
+        adsense_client_id=ADSENSE_CLIENT_ID,
+        draft_preview=True,
+    )
+
+
+@app.route('/admin/ciorne/<article_id>/publica', methods=['POST'])
+@admin_required
+def admin_draft_publish(article_id):
+    if not _same_origin_post():
+        abort(403)
+    try:
+        article = editorial_store.publish_draft(article_id, reviewed_by=_reviewer_name())
+    except (FileNotFoundError, ValueError):
+        abort(404)
+    return redirect(url_for('admin_drafts', publicat=article.get('slug') or article['id']))
+
+
+@app.route('/admin/ciorne/<article_id>/respinge', methods=['POST'])
+@admin_required
+def admin_draft_reject(article_id):
+    if not _same_origin_post():
+        abort(403)
+    try:
+        editorial_store.reject_draft(article_id, reason=request.form.get('motiv', '').strip())
+    except (FileNotFoundError, ValueError):
+        abort(404)
+    return redirect(url_for('admin_drafts'))
+
+
+@app.route('/admin/articol/verifica/<article_id>', methods=['POST'])
+@admin_required
+def admin_mark_reviewed(article_id):
+    """George a verificat un articol deja publicat: eticheta devine „cu verificare umană”."""
+    if not _same_origin_post():
+        abort(403)
+    path = find_article_file(article_id)
+    if not path:
+        abort(404)
+    article = editorial_store.mark_reviewed(read_article_file(path), reviewed_by=_reviewer_name())
+    stem = path.name.removesuffix('.gz').removesuffix('.json')
+    editorial_store._write_json_atomic(DATA_DIR / f"{stem}.json", article)
+    (DATA_DIR / f"{stem}.json.gz").unlink(missing_ok=True)
+    return redirect(request.referrer or url_for('admin_articles'))
+
+
 # SEO Routes
 
 @app.route('/google633262e78845128b.html')
@@ -2173,8 +2326,10 @@ def sitemap_xml():
     except Exception:
         pass
 
-    # Article pages
+    # Article pages (fără cele marcate noindex: Google nu le vrea în sitemap)
     for article in all_articles:
+        if pres.should_noindex(article):
+            continue
         article_slug = article.get('slug') or generate_slug(article.get('title', ''))
         article_date = article.get('date', datetime.now().isoformat())
         if 'T' in article_date:
@@ -2228,12 +2383,13 @@ def news_sitemap_xml():
         except (ValueError, TypeError):
             continue
 
-        if article_date < cutoff:
+        if article_date < cutoff or pres.should_noindex(article):
             continue
 
         slug = article.get('slug') or generate_slug(article.get('title', ''))
         title = html_escape(article.get('title', ''))
-        pub_date = article_date.strftime('%Y-%m-%dT%H:%M:%S+03:00')
+        # Ora locală a Brașovului, cu offset-ul corect vară/iarnă (+03:00 / +02:00)
+        pub_date = article_date.replace(tzinfo=_BUCHAREST).isoformat(timespec='seconds')
 
         xml += '  <url>\n'
         xml += f'    <loc>https://kronpapir.ro/stiri/{slug}</loc>\n'

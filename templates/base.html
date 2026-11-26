@@ -6,10 +6,12 @@
   <meta http-equiv="X-UA-Compatible" content="IE=edge">
 
   <!-- SEO Meta Tags -->
+  {% block meta_description %}
   <meta name="description" content="Știri Brașov - KronPapir, agregator de știri locale din Brașov și județul Brașov. Ultimele noutăți din inima Transilvaniei.">
   <meta name="keywords" content="stiri brasov, știri Brașov, noutăți locale, Brașov, județul Brașov, stiri brasov azi, stiri locale brasov">
+  {% endblock %}
   <meta name="author" content="KronPapir">
-  <meta name="robots" content="index, follow, max-image-preview:large">
+  {% block robots %}<meta name="robots" content="index, follow, max-image-preview:large">{% endblock %}
   <meta name="language" content="Romanian">
 
   <!-- Canonical URL -->
@@ -38,22 +40,24 @@
   {% endif %}
 
   <!-- Open Graph Tags -->
-  <meta property="og:type" content="website">
+  {% block og_type %}<meta property="og:type" content="website">{% endblock %}
   <meta property="og:site_name" content="KronPapir">
   <meta property="og:locale" content="ro_RO">
   {% block og_tags %}
   <meta property="og:title" content="KronPapir - Știri din Brașov">
   <meta property="og:description" content="Agregator de știri locale din inima Transilvaniei">
-  <meta property="og:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+  <meta property="og:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
   <meta property="og:url" content="https://kronpapir.ro">
   {% endblock %}
 
   <!-- Twitter Card Tags -->
   <meta name="twitter:card" content="summary_large_image">
   <meta name="twitter:site" content="@kronpapir">
+  {% block twitter_tags %}
   <meta name="twitter:title" content="KronPapir - Știri din Brașov">
   <meta name="twitter:description" content="Agregator de știri locale din inima Transilvaniei">
-  <meta name="twitter:image" content="{{ url_for('static', filename='images/og-image.png') }}">
+  <meta name="twitter:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+  {% endblock %}
 
   <!-- JSON-LD Structured Data -->
   {% block json_ld %}

@@ -1,0 +1,68 @@
+{% extends "base.html" %}
+
+{% block title %}Ciorne - KronPapir Admin{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Ciorne de verificat</h1>
+  </div>
+
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
+    <a href="{{ url_for('admin_drafts') }}" class="admin-nav-link active">Ciorne</a>
+    <a href="{{ url_for('admin_write') }}" class="admin-nav-link">Scrie Articol</a>
+    <a href="{{ url_for('admin_raw_articles') }}" class="admin-nav-link">Articole Brute</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link">Toate Articolele</a>
+    <a href="{{ url_for('admin_contributors') }}" class="admin-nav-link">Colaboratori</a>
+  </div>
+</div>
+
+<div class="articles-admin-container">
+  {% if request.args.get('publicat') %}
+  <p style="background:#e8f5e9;color:#2e7d32;padding:10px 14px;border-radius:6px;">Articol publicat: <a href="/stiri/{{ request.args.get('publicat') }}">/stiri/{{ request.args.get('publicat') }}</a></p>
+  {% endif %}
+
+  <div class="filter-bar">
+    <a href="{{ url_for('admin_drafts') }}" class="filter-btn {% if status == 'draft' %}active{% endif %}">De verificat</a>
+    <a href="{{ url_for('admin_drafts', status='rejected') }}" class="filter-btn {% if status == 'rejected' %}active{% endif %}">Respinse</a>
+  </div>
+
+  <div class="articles-header">
+    <h2>{{ drafts|length }} {{ 'ciorne' if status == 'draft' else 'articole respinse' }}</h2>
+  </div>
+
+  {% if drafts %}
+  <div class="table-responsive">
+    <table class="articles-table">
+      <thead>
+        <tr>
+          <th>Titlu</th>
+          <th>Tip</th>
+          <th>De ce e ciornă</th>
+          <th>Fact-check</th>
+          <th>Actualizat</th>
+          <th>Acțiuni</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for d in drafts %}
+        <tr>
+          <td><a href="{{ url_for('admin_draft_preview', article_id=d.id) }}">{{ d.title }}</a>
+            {% if d.update_of %}<br><small>Actualizare pentru: {{ d.update_of }}</small>{% endif %}</td>
+          <td>{{ d.source_type or '-' }}</td>
+          <td>{{ d.draft_reason or d.rejection_reason or '-' }}</td>
+          <td>{% if d.fact_check %}{{ d.fact_check.scor }}/10{% if d.fact_check.erori %}, {{ d.fact_check.erori|length }} erori{% endif %}{% else %}-{% endif %}</td>
+          <td>{{ (d.updated or d.date or '')[:16]|replace('T', ' ') }}</td>
+          <td><a class="action-btn" href="{{ url_for('admin_draft_preview', article_id=d.id) }}">Previzualizează</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <p>Nu există {{ 'ciorne de verificat' if status == 'draft' else 'articole respinse' }}.</p>
+  {% endif %}
+</div>
+{% endblock %}
