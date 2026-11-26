@@ -139,15 +139,25 @@ def run_scraping(sources_filter="all"):
         return {"status": "error", "error": str(e)}
 
 
+def seen_article_files():
+    """Fișierele articolelor deja tratate: publicate (data/processed) și ciorne/respinse (data/drafts)."""
+    from editorial import store as editorial_store
+    files = list(PROCESSED_DIR.glob("*.json"))
+    if editorial_store.DRAFTS_DIR.exists():
+        files += list(editorial_store.DRAFTS_DIR.glob("*.json"))
+    return files
+
+
 def load_dedup_index():
     """Articolele publicate în ultimele zile, pentru verificarea de duplicate (editorial/dedup.py)."""
     from editorial import dedup
     published = []
-    for f in PROCESSED_DIR.glob("*.json"):
+    for f in seen_article_files():
         try:
             with open(f, 'r', encoding='utf-8') as fh:
                 art = json.load(fh)
-            if isinstance(art, dict) and art.get('title'):
+            # ciornele contează (aceeași știre nu se rescrie din nou), cele respinse nu
+            if isinstance(art, dict) and art.get('title') and art.get('status') != 'rejected':
                 published.append(art)
         except Exception:
             continue
@@ -188,6 +198,67 @@ def is_duplicate(art, index, judge):
         except Exception as e:
             logger.warning(f"   ⚠️ Nu am putut adăuga sursa la articolul existent: {e}")
     return True
+
+
+def make_fact_checker():
+    """Editorul de fact-check (Claude); None fără cheie API (atunci totul merge ca ciornă)."""
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+    try:
+        from ai.factcheck_llm import FactChecker
+        return FactChecker()
+    except Exception as e:
+        logger.warning(f"⚠️ Fact-check-ul AI nu e disponibil: {e}")
+        return None
+
+
+def rewrite_and_route(raw, rewriter, checker):
+    """Rescrie, verifică și decide: published (data/processed), draft sau rejected (data/drafts).
+
+    La o eroare de fapt (cifră sau afirmație care nu e în sursă) rescrierea se reface o dată,
+    cu lista exactă de corectat. Întoarce (articol sau None, decizie).
+    """
+    from editorial import factcheck as fc
+    from editorial import store as editorial_store
+
+    rewritten = rewriter.rewrite_article(raw)
+    if not rewritten:
+        return None, "esuat"
+    source_text = raw.get('content') or raw.get('text') or raw.get('original_text') or ''
+    for attempt in (1, 2):
+        fc.fix_sedilla(rewritten)
+        det = fc.deterministic(source_text, rewritten)
+        llm = checker.check(raw, rewritten) if (checker and not det["erori"]) else None
+        decision, reason = fc.decide(rewritten, det, llm)
+        if decision == "rejected" and attempt == 1:
+            logger.info(f"   🔎 Fact-check: {reason}. Rescriu o dată cu corecturile cerute.")
+            retry = rewriter.rewrite_article(dict(raw, _factcheck_feedback=fc.feedback(det, llm)))
+            if retry:
+                rewritten = retry
+                continue
+        break
+
+    rewritten['fact_check'] = {
+        "scor": (llm or {}).get("scor"),
+        "erori": det["erori"] + (llm or {}).get("erori_blocante", []),
+        "avertismente": det["avertismente"],
+        "subiect_sensibil": (llm or {}).get("subiect_sensibil"),
+        "recomandari": (llm or {}).get("recomandari", []),
+        "decizie": decision, "motiv": reason, "model": (llm or {}).get("model"),
+        "incercari": attempt, "checked_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    if decision == "published":
+        rewritten['status'] = "published"
+        editorial_store._write_json_atomic(PROCESSED_DIR / f"{rewritten['id']}.json", rewritten)
+        logger.info(f"   ✅ Publicat ({reason}): {rewritten.get('title', '')[:60]}")
+    elif decision == "draft":
+        editorial_store.save_draft(rewritten, reason=f"Fact-check: {reason}")
+        logger.info(f"   📝 Ciornă pentru George ({reason}): {rewritten.get('title', '')[:60]}")
+    else:
+        editorial_store.save_draft(rewritten, reason=f"Fact-check: {reason}")
+        editorial_store.reject_draft(rewritten['id'], reason=reason)
+        logger.info(f"   ⛔ Respins ({reason}): {rewritten.get('title', '')[:60]}")
+    return rewritten, decision
 
 
 def distinct_stories(articles, limit):
@@ -238,8 +309,8 @@ def run_ai_processing():
             processed_slugs = []
             processed_urls = set()
 
-            # Citește URL-urile deja procesate pentru deduplicare
-            for f in PROCESSED_DIR.glob("*.json"):
+            # Citește URL-urile deja procesate (publicate, ciorne sau respinse): nu le rescriem din nou
+            for f in seen_article_files():
                 try:
                     with open(f, 'r', encoding='utf-8') as fh:
                         art = json.load(fh)
@@ -302,6 +373,8 @@ def run_ai_processing():
             # Înainte de rescriere: aceeași știre de la altă sursă nu se publică a doua oară.
             dedup_index = load_dedup_index()
             dedup_judge = make_dedup_judge()
+            fact_checker = make_fact_checker()
+            decisions = {}
             duplicates = 0
             local_done = 0
             logger.info(f"📝 Rescriu până la {max_local} articole locale noi (din {len(local_articles)} candidate)...")
@@ -315,19 +388,19 @@ def run_ai_processing():
                 local_done += 1
                 logger.info(f"   Local {local_done}/{max_local}: {title[:60]}...")
 
-                rewritten = rewriter.rewrite_article(art)
+                rewritten, decision = rewrite_and_route(art, rewriter, fact_checker)
+                decisions[decision] = decisions.get(decision, 0) + 1
                 if rewritten:
-                    dedup_index.add(rewritten)
-                    dest = PROCESSED_DIR / f"{rewritten['id']}.json"
-                    with open(dest, 'w', encoding='utf-8') as fh:
-                        json.dump(rewritten, fh, ensure_ascii=False, indent=2)
+                    if decision != "rejected":
+                        dedup_index.add(rewritten)
+                    processed_urls.add(rewritten.get('url', ''))
+                if decision == "published":
                     processed_count += 1
                     processed_slugs.append(rewritten.get('slug') or rewritten.get('id', ''))
-                    processed_urls.add(rewritten.get('url', ''))
-                else:
+                elif not rewritten:
                     logger.warning(f"   ⚠️ Nu s-a putut rescrie: {title[:50]}")
 
-            logger.info(f"   Duplicate evitate: {duplicates}")
+            logger.info(f"   Duplicate evitate: {duplicates}; decizii fact-check: {decisions}")
 
             # Editorialele adună mai multe știri: fără aceeași știre de la două surse
             national_articles = distinct_stories(national_articles, max_national_editorial)
@@ -464,7 +537,7 @@ def run_ai_processing_balanced():
     by_source = defaultdict(list)
     processed_urls = set()
 
-    for f in PROCESSED_DIR.glob("*.json"):
+    for f in seen_article_files():
         try:
             with open(f, 'r', encoding='utf-8') as fh:
                 art = json.load(fh)
@@ -529,20 +602,18 @@ def run_ai_processing_balanced():
             balanced_slugs = []
             dedup_index = load_dedup_index()
             dedup_judge = make_dedup_judge()
+            fact_checker = make_fact_checker()
             for art in to_process:
                 try:
                     if is_duplicate(art, dedup_index, dedup_judge):
                         continue
-                    result = rewriter.rewrite_article(art)
-                    if result:
+                    result, decision = rewrite_and_route(art, rewriter, fact_checker)
+                    if result and decision != "rejected":
                         dedup_index.add(result)
-                        dest = PROCESSED_DIR / f"{result['id']}.json"
-                        with open(dest, 'w', encoding='utf-8') as fh:
-                            json.dump(result, fh, ensure_ascii=False, indent=2)
+                    if decision == "published":
                         processed_count += 1
                         balanced_slugs.append(result.get('slug') or result.get('id', ''))
-                        logger.info(f"   ✅ {result.get('title', '')[:60]}...")
-                    else:
+                    elif not result:
                         failed_count += 1
                 except Exception as e:
                     logger.error(f"   ❌ Eroare la procesarea articolului: {e}")

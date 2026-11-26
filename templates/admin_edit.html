@@ -166,6 +166,16 @@
           </div>
         </div>
 
+        <div class="form-row">
+          <div class="form-group full-width">
+            <label for="correction">Corectură publică (opțional)</label>
+            <textarea id="correction" name="correction" rows="2" maxlength="600"
+              placeholder="Ex.: Am corectat suma alocată: 1,2 milioane de lei, nu 12 milioane, cum scria inițial."></textarea>
+            <div class="char-count">Dacă ai corectat o greșeală de fapt, scrie aici ce s-a schimbat. Apare la începutul articolului ca „Actualizare (data): …” și se actualizează data modificării. Pentru greșeli de tipar nu e nevoie.</div>
+            {% if article.corrections %}<div class="char-count">Corecturi deja publicate: {% for c in article.corrections %}<br>{{ c.date|ro_datetime }}: {{ c.text }}{% endfor %}</div>{% endif %}
+          </div>
+        </div>
+
         <div class="form-actions">
           <button type="submit" class="btn btn-primary btn-large">
             Actualizează Articol

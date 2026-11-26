@@ -106,6 +106,14 @@
     </div>
     {% endif %}
 
+    {% if article.corrections %}
+    <div class="article-corrections" role="note">
+      {% for c in article.corrections|reverse %}
+      <p><strong>Actualizare ({{ c.date|ro_datetime }}):</strong> {{ c.text }}</p>
+      {% endfor %}
+    </div>
+    {% endif %}
+
     <!-- Article Body -->
     <div class="article-body">
       {% if article.excerpt %}

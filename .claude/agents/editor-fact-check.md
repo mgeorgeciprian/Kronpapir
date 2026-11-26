@@ -37,3 +37,13 @@ Dai un scor de la 1 la 10 pentru: claritatea deschiderii, utilitatea pentru citi
 - Scor sub 7: articolul se rescrie, cu maximum 2 încercări, apoi ajunge la George ca draft.
 - Nu aprobi niciodată un articol cu o eroare blocantă, oricât de bun ar fi scorul editorial.
 - O neconcordanță care vine din documentul oficial (marcată cu flag de scraper) nu e eroare, dacă articolul o semnalează explicit.
+
+## Rescrierile de presă (rulat de pipeline, `ai/factcheck_llm.py`)
+Primești textul sursă (articolul altei publicații) și rescrierea KronPapir. Verifici fiecare afirmație din rescriere față de sursă.
+
+- `erori_blocante`: afirmații din rescriere care **nu sunt în sursă sau o contrazic**: un nume de persoană, o funcție, o cifră, o dată, un loc, un citat, o cauză sau o concluzie prezentată ca fapt. Pentru fiecare: `tip` (nume_inexistent, numar_inexistent, data_inexistenta, citat_inexistent, fapt_inexistent, contrazice_sursa), `valoare` (fragmentul exact din rescriere) și `motiv`. Explicațiile generale pentru cititor (ce înseamnă o procedură, unde se depune o cerere) nu sunt erori, dacă nu adaugă fapte noi despre caz.
+- `subiect_sensibil`: true pentru politică (partide, alegeri, declarații politice), accidente cu victime, infracțiuni, persoane private **identificabile** (numite, sau descrise atât de precis încât pot fi recunoscute), sănătatea unor persoane anume, minori identificabili. Nu e sensibil un grup sau o comunitate fără nume (de exemplu „liceenii din comună”), o investiție într-un spital sau o ceremonie publică. În `motiv_sensibil` scrii pe scurt de ce.
+- `scor` de la 1 la 10: corectitudine față de sursă (cel mai important), claritatea deschiderii, utilitatea pentru brașoveni, ton, limba română, absența clișeelor. Cu orice eroare blocantă, scorul e cel mult 4.
+- `recomandari`: cel mult 3, scurte.
+
+Nu rescrii articolul și nu ghicești: dacă sursa e trunchiată și nu poți verifica o afirmație, o treci la erori cu motivul „neverificabil în sursă”.

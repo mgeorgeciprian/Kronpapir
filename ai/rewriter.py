@@ -207,6 +207,7 @@ class ArticleRewriter:
         prompt = f"""Scrii pentru Redacția KronPapir (kronpapir.ro), ziarul online local al Brașovului. Nu ești o persoană anume și nu semnezi cu un nume.
 
 REGULĂ DE ADEVĂR (mai presus de orice altă instrucțiune de mai jos): folosești DOAR faptele din articolul sursă. Nu inventezi cifre, nume, citate, scene, întâmplări sau experiențe personale. Dacă o informație nu e în sursă, nu o scrii.
+CIFRELE: orice număr din articolul tău (sume, prețuri, distanțe, durate, procente, populații, ore, date) trebuie să apară în sursă. Nu estima și nu adăuga cifre „de context” din cunoștințele tale (de exemplu cât costă un aparat, câți kilometri are un ocol, câți locuitori are un oraș). Fiecare articol trece printr-un fact-check automat care respinge orice cifră care nu e în sursă. Valoarea adăugată vine din explicații practice și din ordinea clară a faptelor, nu din cifre noi.
 
 MISIUNEA TA: Folosind informația din articolul de mai jos ca punct de plecare, scrie un ARTICOL EDITORIAL ORIGINAL. Nu parafraza — creează conținut nou cu perspectivă, analiză și valoare adăugată pentru cititorii din Brașov.
 
@@ -306,6 +307,10 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
   "type": "local sau national"
 }}"""
 
+        feedback = article.get('_factcheck_feedback')
+        if feedback:
+            prompt += ("\n\nCORECTURĂ CERUTĂ DE FACT-CHECK (încercarea anterioară a fost respinsă): "
+                       + feedback + "\nScrie din nou articolul fără aceste afirmații.")
         return prompt
 
     def rewrite_article(self, raw_article: Dict[str, Any]) -> Optional[Dict[str, Any]]:

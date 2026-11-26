@@ -844,6 +844,43 @@ def editorial_policy():
                            updated_label=EDITORIAL_POLICY_UPDATED)
 
 
+def _sources_overview(days=30):
+    """Sursele active din config/sources.yaml și câte articole am publicat de la fiecare în `days` zile."""
+    import yaml
+    try:
+        cfg = yaml.safe_load((BASE_DIR / 'config' / 'sources.yaml').read_text(encoding='utf-8')) or {}
+    except (OSError, yaml.YAMLError):
+        cfg = {}
+    cutoff = (datetime.now() - timedelta(days=days)).isoformat()
+    counts, dups = {}, {}
+    for a in load_articles(all_types=True):
+        if (a.get('date') or '') < cutoff or a.get('is_editorial') or a.get('contributor_id'):
+            continue
+        name = a.get('source') or ''
+        if a.get('duplicate_of'):
+            dups[name] = dups.get(name, 0) + 1
+        else:
+            counts[name] = counts.get(name, 0) + 1
+    rows = []
+    for s in cfg.get('sources') or []:
+        if not s.get('enabled', True):
+            continue
+        rows.append({'name': s.get('name') or s.get('id'), 'url': s.get('url'),
+                     'local': (s.get('category') or '') == 'local',
+                     'description': (s.get('description') or '').split(' - ', 1)[-1],
+                     'count': counts.get(s.get('name'), 0)})
+    rows.sort(key=lambda r: (not r['local'], -r['count'], r['name'].lower()))
+    return rows, sum(dups.values())
+
+
+@app.route('/surse')
+def sources_page():
+    """Pagina publică cu sursele din care preluăm și cum le citez."""
+    rows, merged = _sources_overview()
+    return render_template('surse.html', categories=CATEGORIES, sources=rows, merged=merged,
+                           updated_label=EDITORIAL_POLICY_UPDATED)
+
+
 @app.route('/contact', methods=['GET', 'POST'])
 def contact():
     """Contact page - GET shows form, POST handles submission."""
@@ -1347,6 +1384,12 @@ def admin_edit(article_id):
                     categories=CATEGORIES,
                     article_categories=ARTICLE_CATEGORIES
                 )
+
+            # Corectură publică (CLAUDE.md, regula 2): „Actualizare (data): …” vizibil în articol
+            correction = re.sub(r'\s+', ' ', request.form.get('correction', '')).strip()[:600]
+            if correction:
+                article.setdefault('corrections', []).append(
+                    {'date': datetime.now().isoformat(timespec='seconds'), 'text': correction})
 
             # Parse keywords from comma-separated hidden field
             keywords_raw = request.form.get('keywords', '').strip()
@@ -2174,6 +2217,7 @@ def article_url_filter(article):
 # Prezentare: imagine sigură, titlu, semnătură, noindex, JSON-LD (editorial/presentation.py)
 app.add_template_filter(pres.safe_image, 'safe_image')
 app.add_template_filter(pres.display_image, 'display_image')
+app.add_template_filter(pres.ro_datetime, 'ro_datetime')
 app.add_template_global(pres.stock_photo, 'stock_photo')
 app.add_template_filter(pres.og_image, 'og_image')
 app.add_template_filter(pres.page_title, 'page_title')
@@ -2337,7 +2381,7 @@ def _sitemap_lastmod(article):
 
 def _sitemap_page_entries():
     today = datetime.now().strftime('%Y-%m-%d')
-    paths = ['/', '/local', '/national', '/editoriale', '/despre', '/politica-editoriala',
+    paths = ['/', '/local', '/national', '/editoriale', '/despre', '/politica-editoriala', '/surse',
              '/confidentialitate', '/termeni', '/contact']
     paths += [f'/categorie/{c}' for c in CATEGORIES]
     entries = [{'loc': SITEMAP_BASE + p, 'lastmod': today} for p in paths]

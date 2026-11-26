@@ -1721,3 +1721,13 @@ footer .footer-bottom {
   margin-top: 6px;
   text-align: right;
 }
+
+/* Corecturile publice („Actualizare: …”) */
+.article-corrections {
+  border-left: 4px solid #c58b00;
+  background: #fff8e6;
+  padding: 10px 14px;
+  margin: 0 0 18px;
+  font-size: 0.95rem;
+}
+.article-corrections p { margin: 4px 0; }

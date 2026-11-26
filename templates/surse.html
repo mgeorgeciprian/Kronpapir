@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+
+{% block title %}Sursele noastre - KronPapir{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="Din ce publicații și instituții preia KronPapir știri, cum le citează, cum verifică faptele și cum evită să publice aceeași știre de două ori.">
+{% endblock %}
+
+{% block content %}
+
+<div class="main-container">
+  <article style="max-width: 800px;">
+    <header class="article-header">
+      <h1 class="article-title">Sursele noastre</h1>
+      <p style="color: var(--text-secondary); font-size: 0.95rem;">Ultima actualizare: {{ updated_label }}</p>
+    </header>
+
+    <div class="article-body">
+      <p>O parte din știrile de pe KronPapir pornesc de la articolele altor publicații. Pe această pagină găsești care sunt ele, cum le citez și ce verificăm înainte de publicare. Regulile generale sunt în <a href="/politica-editoriala">politica editorială</a>.</p>
+
+      <h2>Date oficiale</h2>
+      <ul>
+        <li><strong>ANOFM / AJOFM Brașov</strong>, <a href="https://mediere.anofm.ro/app/module/mediere/jobs" rel="noopener" target="_blank">mediere.anofm.ro</a>: ofertele de muncă din județ, preluate de două ori pe zi. Fiecare ofertă trimite la anunțul oficial. Vezi <a href="/locuri-de-munca-brasov">Locuri de muncă Brașov</a>.</li>
+      </ul>
+
+      <h2>Publicații din care preluăm</h2>
+      <p>Numărul arată câte articole am publicat pornind de la fiecare sursă în ultimele 30 de zile.</p>
+      <table>
+        <thead><tr><th>Publicație</th><th>Tip</th><th>Articole (30 de zile)</th></tr></thead>
+        <tbody>
+          {% for s in sources %}
+          <tr>
+            <td><a href="{{ s.url }}" rel="noopener" target="_blank">{{ s.name }}</a>{% if s.description %}<br><small>{{ s.description }}</small>{% endif %}</td>
+            <td>{{ 'locală' if s.local else 'națională' }}</td>
+            <td>{{ s.count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+
+      <h2>Cum le citez</h2>
+      <ul>
+        <li>Fiecare articol preluat are numele publicației și un link vizibil spre articolul original („Vezi sursa originală”).</li>
+        <li>Nu folosim fotografiile altor publicații. Pozele de pe site sunt ale noastre, ilustrații generate de AI (marcate „Ilustrație generată de AI”) sau fotografii cu licență liberă de pe Wikimedia Commons, marcate „Foto ilustrativă”, cu autorul și licența.</li>
+        <li>Când mai multe publicații relatează aceeași știre, o publicăm o singură dată și le menționăm pe toate („Au relatat și: …”).{% if merged %} În ultimele 30 de zile am comasat astfel {{ merged }} {{ 'articol dublat' if merged == 1 else 'articole dublate' }}.{% endif %}</li>
+      </ul>
+
+      <h2>Ce verificăm înainte de publicare</h2>
+      <ul>
+        <li><strong>Cifrele:</strong> orice număr din articolul nostru trebuie să apară în textul sursă. Dacă apare o cifră care nu e în sursă, articolul se reface o dată, iar dacă greșeala rămâne, nu se publică.</li>
+        <li><strong>Faptele:</strong> un editor automat (inteligență artificială) compară fiecare afirmație cu sursa și dă un scor de la 1 la 10. Sub 8, articolul așteaptă verificarea editorului uman.</li>
+        <li><strong>Subiectele sensibile</strong> (politică, accidente, infracțiuni, sănătate, persoane identificabile) nu se publică fără editorul uman.</li>
+        <li><strong>Duplicatele:</strong> comparăm fiecare știre nouă cu ce am publicat în ultimele zile, ca aceeași întâmplare să nu apară de două ori.</li>
+      </ul>
+
+      <h2>Pentru publicații</h2>
+      <p>Dacă reprezinți una dintre publicațiile de mai sus și vrei să nu mai fii preluat, să fii citat altfel sau ai găsit o greșeală într-un articol pornit de la textul tău, scrie-ne la <a href="mailto:redactia@kronpapir.ro">redactia@kronpapir.ro</a>.</p>
+    </div>
+  </article>
+</div>
+
+{% endblock %}

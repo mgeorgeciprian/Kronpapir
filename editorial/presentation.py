@@ -120,6 +120,20 @@ def safe_image(article: dict):
     return None
 
 
+RO_MONTHS = ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august",
+             "septembrie", "octombrie", "noiembrie", "decembrie"]
+
+
+def ro_datetime(value: str) -> str:
+    """'2026-11-26T16:20:05' -> '26 noiembrie 2026, ora 16:20'."""
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2}))?", str(value or ""))
+    if not m:
+        return str(value or "")
+    y, mo, d, h, mi = m.groups()
+    text = f"{int(d)} {RO_MONTHS[int(mo) - 1]} {y}"
+    return f"{text}, ora {h}:{mi}" if h else text
+
+
 def absolute_url(path_or_url: str) -> str:
     if not path_or_url:
         return ""
