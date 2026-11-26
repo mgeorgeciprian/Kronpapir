@@ -10,6 +10,7 @@ import logging
 
 import feedparser
 
+from . import coherence
 from .base_scraper import BaseScraper, Article, USER_AGENT
 
 
@@ -99,8 +100,11 @@ class RSSscraper(BaseScraper):
                     if soup:
                         selectors = self.source_config.get("selectors", {})
                         content = self.extract_text(soup, selectors.get("content", "article, div.content"))
-                        if content:
+                        if content and not (coherence.is_mismatch(title, content)
+                                            and not coherence.is_mismatch(title, description)):
                             full_content = content
+                        elif content:
+                            self.logger.warning(f"Conținutul paginii nu e despre titlu, păstrez rezumatul RSS: {article_url}")
             except Exception as e:
                 self.logger.debug(f"Failed to fetch full article from {article_url}: {str(e)}")
                 # Fall back to description from RSS

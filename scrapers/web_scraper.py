@@ -5,13 +5,48 @@ Scrapes article listings from homepages and category pages, then follows individ
 
 import re
 from typing import List, Dict, Any, Optional
-from datetime import datetime
+from datetime import datetime, timedelta
 from urllib.parse import urljoin
 
 RO_MONTHS = {m: i for i, m in enumerate(["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie",
                                          "august", "septembrie", "octombrie", "noiembrie", "decembrie"], 1)}
 
 from .base_scraper import BaseScraper, Article
+
+_REL_UNITS = {"minut": "minutes", "or": "hours", "zi": "days", "săptămân": "weeks", "saptaman": "weeks"}
+
+
+def parse_ro_date(text: str, now: Optional[datetime] = None) -> Optional[datetime]:
+    """Data dintr-un text: ISO, 26.11.2026, 17/11/2026, „3 noiembrie 2026”, „Acum 1 zi, 8 ore”."""
+    if not text:
+        return None
+    t = text.strip()
+    m = re.match(r"(\d{4})-(\d{2})-(\d{2})(?:[T ](\d{2}):(\d{2})(?::(\d{2}))?)?", t)
+    if m:
+        y, mo, d = int(m.group(1)), int(m.group(2)), int(m.group(3))
+        hh, mm, ss = (int(m.group(i) or 0) for i in (4, 5, 6))
+        return datetime(y, mo, d, hh, mm, ss)
+    m = re.search(r"\b(\d{1,2})[./](\d{1,2})[./](\d{4})\b", t)
+    if m:
+        try:
+            return datetime(int(m.group(3)), int(m.group(2)), int(m.group(1)))
+        except ValueError:
+            return None
+    low = t.lower()
+    m = re.search(r"(\d{1,2})\s+([a-zăâîșțş]+)\s+(\d{4})", low)
+    if m and m.group(2).replace("ş", "ș") in RO_MONTHS:
+        return datetime(int(m.group(3)), RO_MONTHS[m.group(2).replace("ş", "ș")], int(m.group(1)))
+    if low.startswith("acum"):
+        now = now or datetime.now()
+        delta = timedelta()
+        for n, unit in re.findall(r"(\d+)\s*([a-zăâîșț]+)", low):
+            for prefix, name in _REL_UNITS.items():
+                if unit.startswith(prefix):
+                    delta += timedelta(**{name: int(n)})
+                    break
+        if delta:
+            return now - delta
+    return None
 
 
 class WebScraper(BaseScraper):
@@ -26,6 +61,10 @@ class WebScraper(BaseScraper):
         self.pagination_pattern = source_config.get("pagination", "")
         self.max_articles = source_config.get("max_articles_per_source", 50)
         self.max_pages = source_config.get("max_pages", 3)
+        # Fără o dată sigură, o pagină veche ar apărea ca știre nouă (Article pune „acum” implicit).
+        self.require_date = source_config.get("require_date", True)
+        self.listing_item = (source_config.get("selectors") or {}).get("listing_item")
+        self._listing_dates = {}
 
     def scrape(self) -> List[Article]:
         """
@@ -109,6 +148,15 @@ class WebScraper(BaseScraper):
                         and absolute_url not in article_urls):
                     article_urls.append(absolute_url)
 
+            # Data din listă (unele site-uri o arată doar acolo, nu și pe pagina articolului)
+            if self.listing_item:
+                for item in soup.select(self.listing_item):
+                    date = parse_ro_date(item.get_text(" ", strip=True))
+                    if not date:
+                        continue
+                    for link in item.select("a[href]"):
+                        self._listing_dates.setdefault(urljoin(self.base_url, link["href"]), date)
+
             self.logger.debug(
                 f"Extracted {len(article_urls)} article links from {page_url}"
             )
@@ -136,13 +184,13 @@ class WebScraper(BaseScraper):
 
             article = self.parse_article(html_content, article_url)
             if article:
-                # Try to parse the date if not set
-                if not article.date or article.date.year == datetime.now().year:
-                    soup = self.parse_html(html_content)
-                    if soup:
-                        date = self._extract_date(soup)
-                        if date:
-                            article.date = date
+                soup = self.parse_html(html_content)
+                date = (self._extract_date(soup) if soup else None) or self._listing_dates.get(article_url)
+                if date:
+                    article.date = date
+                elif self.require_date:
+                    self.logger.warning(f"Fără dată sigură, sărit: {article_url}")
+                    return None
 
                 self.logger.debug(f"Parsed article: {article.title[:50]}")
                 return article
@@ -169,32 +217,18 @@ class WebScraper(BaseScraper):
             date_selector = selectors.get("date", "span.post-date, time, span.date")
 
             date_text = self.extract_text(soup, date_selector)
-            if not date_text:
-                return None
+            date = parse_ro_date(date_text) if date_text else None
+            if date:
+                return date
 
-            # Try to parse common date formats
-            date_formats = [
-                "%d.%m.%Y",  # 01.01.2024
-                "%d.%m.%Y %H:%M",  # 01.01.2024 12:30
-                "%Y-%m-%d",  # 2024-01-01
-                "%Y-%m-%d %H:%M:%S",  # 2024-01-01 12:30:45
-                "%d %B %Y",  # 01 January 2024
-                "%d %b %Y",  # 01 Jan 2024
-            ]
-
-            for date_format in date_formats:
-                try:
-                    return datetime.strptime(date_text.strip(), date_format)
-                except ValueError:
-                    continue
-
-            # Data în mijlocul unui text („Data publicării: 02.11.2026”, „3 noiembrie 2026”)
-            m = re.search(r"(\d{1,2})\.(\d{1,2})\.(\d{4})", date_text)
-            if m:
-                return datetime(int(m.group(3)), int(m.group(2)), int(m.group(1)))
-            m = re.search(r"(\d{1,2})\s+([a-zăâîșț]+)\s+(\d{4})", date_text.lower())
-            if m and m.group(2) in RO_MONTHS:
-                return datetime(int(m.group(3)), RO_MONTHS[m.group(2)], int(m.group(1)))
+            # Metadate standard (WordPress, Open Graph, <time datetime>)
+            for sel, attr in (("meta[property='article:published_time']", "content"),
+                              ("time[datetime]", "datetime")):
+                el = soup.select_one(sel)
+                if el and el.get(attr):
+                    date = parse_ro_date(el.get(attr))
+                    if date:
+                        return date
 
             self.logger.debug(f"Could not parse date: {date_text}")
             return None

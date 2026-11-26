@@ -92,42 +92,40 @@ sources:
   # Pentru site-uri fără RSS funcțional
   # =============================================
 
+  # Actualizat 2026-11-26: homepage-ul nu mai are titluri în h2.entry-title (0 linkuri); are flux RSS.
   - id: newsbv
     name: "News BV"
     url: "https://newsbv.ro"
-    type: "scrape"
+    type: "rss"
+    rss_url: "https://newsbv.ro/feed/"
     category: "local"
     enabled: true
     selectors:
-      title: "h1.entry-title, h1.post-title, h1.title, h1"
-      content: "div.entry-content, div.post-content, div.article-content, article .content"
-      date: "time, span.entry-date, span.post-date, span.date, .published"
-      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
-      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
-    homepage: "https://newsbv.ro"
-    pagination: "/page/{page}/"
-    max_pages: 3
-    max_articles_per_source: 30
-    description: "News BV - Portal de știri Brașov (scraping)"
+      title: "h1.story-title, h1"
+      content: "div.entry-content"
+      date: "time"
+      image: "meta[property='og:image']"
+    description: "News BV - Portal de știri Brașov"
     retry_attempts: 3
     timeout: 15
-
+  # Actualizat 2026-11-26: site propriu (fără RSS); articolele sunt la /stire/<titlu>-a<id>,
+  # data în „Publicat la <span>26 noiembrie 2026</span>”.
   - id: bzb
     name: "Bună Ziua Brașov"
     url: "https://bzb.ro"
     type: "scrape"
     category: "local"
     enabled: true
+    article_url_pattern: "/stire/[^/]+-a\\d+$"
     selectors:
-      title: "h1.entry-title, h1.post-title, h1.title, h1"
-      content: "div.entry-content, div.post-content, div.article-content, article .content"
-      date: "time, span.entry-date, span.post-date, span.date, .published"
-      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
-      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
+      article_links: "a[href*='stire/']"
+      title: "h1.heading, h1"
+      content: "div.txt_articol"
+      date: "p.a_date span"
+      image: "meta[property='og:image']"
     homepage: "https://bzb.ro"
-    pagination: "/page/{page}/"
-    max_pages: 3
-    max_articles_per_source: 30
+    max_pages: 1
+    max_articles_per_source: 20
     description: "Bună Ziua Brașov - Noutăți zilei (scraping)"
     retry_attempts: 3
     timeout: 15
@@ -153,6 +151,7 @@ sources:
     retry_attempts: 3
     timeout: 15
 
+  # Actualizat 2026-11-26: fără RSS; titlurile din listă sunt a.link-titlu, data pe articol e relativă („Acum 1 zi, 8 ore”).
   - id: covasnamedia
     name: "Covasna Media"
     url: "https://covasnamedia.ro"
@@ -160,15 +159,14 @@ sources:
     category: "local"
     enabled: true
     selectors:
-      title: "h1.entry-title, h1.post-title, h1.title, h1"
-      content: "div.entry-content, div.post-content, div.article-content, article .content"
-      date: "time, span.entry-date, span.post-date, span.date, .published"
-      image: "img.wp-post-image, img.featured-image, .post-thumbnail img, article img:first-of-type"
-      article_link: "h2.entry-title a, h2.post-title a, h3.entry-title a, .post-title a, article h2 a, .entry-title a"
+      article_links: "a.link-titlu"
+      title: "div.detaliu-articol h1"
+      content: "div.detaliu-articol > div > p"
+      date: "span.data-articol"
+      image: "meta[property='og:image']"
     homepage: "https://covasnamedia.ro"
-    pagination: "/page/{page}/"
-    max_pages: 3
-    max_articles_per_source: 30
+    max_pages: 1
+    max_articles_per_source: 20
     description: "Covasna Media - Portal de știri (scraping)"
     retry_attempts: 3
     timeout: 15
@@ -194,17 +192,23 @@ sources:
     retry_attempts: 3
     timeout: 15
 
+  # Actualizat 2026-11-26: url era chiar pagina de listă, iar linkurile (/ro/<titlu>.html) nu începeau cu ea, deci 0 articole.
   - id: cjcv
     name: "Consiliul Județean Covasna"
-    url: "https://www.cjcv.ro/ro/stiri.html"
+    url: "https://www.cjcv.ro"
+    homepage: "https://www.cjcv.ro/ro/stiri.html"
     type: "scrape"
     category: "local"
     enabled: true
+    max_pages: 1
+    max_articles_per_source: 15
+    article_url_pattern: "/ro/[^/]+\\.html$"
     selectors:
-      article_links: "a[href*='stiri'], .news-item a, .article-link"
-      title: "h1, .page-title, .article-title"
-      content: ".article-content, .page-content, .content-area"
-      date: ".date, time, .article-date"
+      article_links: "h2.pb-title a"
+      title: "div.contentleft h1, h1"
+      content: "div.contentleft div.row > div.col-xs-12 p"
+      date: "meta[property='article:published_time']"
+      image: "meta[property='og:image']"
     description: "Consiliul Județean Covasna - Știri și anunțuri"
     retry_attempts: 3
     timeout: 15
@@ -236,78 +240,91 @@ sources:
     retry_attempts: 3
     timeout: 15
 
+  # Actualizat 2026-11-26: WordPress cu flux RSS; articolele sunt la /<titlu>/, nu sub /category/anunturi/ (de aceea 0).
   - id: primaria_sacele
     name: "Primăria Săcele"
-    url: "https://www.municipiulsacele.ro/category/anunturi/"
-    type: "scrape"
+    url: "https://www.municipiulsacele.ro"
+    type: "rss"
+    rss_url: "https://www.municipiulsacele.ro/feed/"
     category: "local"
     enabled: true
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
+      title: "h1, .entry-title"
+      content: "section.post_content"
+      date: ".date"
+      image: "meta[property='og:image']"
     description: "Primăria Săcele - Anunțuri și informații publice"
     retry_attempts: 3
     timeout: 15
-
+  # Dezactivat 2026-11-26: homepage-ul dădea 109 pagini statice de meniu (nu știri). Anunțurile reale
+  # (/index.php/primaria/anunturi, ~2 pe lună) au doar titlul și un PDF, fără text: ar ieși articole goale.
+  # De reactivat cu extragere din PDF (ca sources/brasovcity.py).
   - id: primaria_fagaras
     name: "Primăria Făgăraș"
-    url: "https://www.primaria-fagaras.ro/"
+    url: "https://www.primaria-fagaras.ro"
+    homepage: "https://www.primaria-fagaras.ro/index.php/primaria/anunturi"
     type: "scrape"
     category: "local"
-    enabled: true
+    enabled: false
+    article_url_pattern: "/comunicat/\\d+$"
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
+      article_links: "div.stire a[href*='/comunicat/']"
+      title: "section.content-section h1, section.content-section h2"
+      content: "section.content-section"
+      date: "section.content-section [class*=data]"
     description: "Primăria Făgăraș - Noutăți și comunicate"
     retry_attempts: 3
     timeout: 15
-
+  # Actualizat 2026-11-26: fără RSS. Pagina articolului nu are dată: o luăm din listă („17/11/2026 Titlu”).
   - id: primaria_rasnov
     name: "Primăria Râșnov"
-    url: "https://www.primariarasnov.ro/stiri"
+    url: "https://www.primariarasnov.ro"
+    homepage: "https://www.primariarasnov.ro/stiri"
     type: "scrape"
     category: "local"
     enabled: true
+    max_pages: 1
+    max_articles_per_source: 15
+    article_url_pattern: "/stiri/[^/]+$"
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
+      article_links: "div.posts-image-wrapper a[href*='/stiri/']"
+      listing_item: "div.posts-image-wrapper div.col-12"
+      title: "div.page-header-title h1, h1"
+      content: "div.page-content-wrapper div.col-md-12"
+      date: "span.post-date"
+      image: "meta[property='og:image']"
     description: "Primăria Râșnov - Anunțuri și informații"
     retry_attempts: 3
     timeout: 15
-
+  # Actualizat 2026-11-26: WordPress cu flux RSS pe categoria Știri; selectorii vechi nu găseau nimic.
   - id: primaria_zarnesti
     name: "Primăria Zărnești"
-    url: "https://www.primaria-zarnesti.ro/categorie/stiri/"
-    type: "scrape"
+    url: "https://www.primaria-zarnesti.ro"
+    type: "rss"
+    rss_url: "https://www.primaria-zarnesti.ro/categorie/stiri/feed/"
     category: "local"
     enabled: true
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
+      title: "div.content-box-page-title, h1"
+      content: "div.content-box-page"
+      image: "meta[property='og:image']"
     description: "Primăria Zărnești - Știri și comunicate"
     retry_attempts: 3
     timeout: 15
-
+  # Actualizat 2026-11-26: WordPress/Elementor cu flux RSS (mai ales HCL-uri, cu textul integral în pagină).
   - id: primaria_predeal
     name: "Primăria Predeal"
-    url: "https://www.primaria-predeal.ro/anunturi-publice/"
-    type: "scrape"
+    url: "https://www.primaria-predeal.ro"
+    type: "rss"
+    rss_url: "https://www.primaria-predeal.ro/feed/"
     category: "local"
     enabled: true
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
-    description: "Primăria Predeal - Anunțuri publice"
+      title: "h1.page-title, h1"
+      content: "div.elementor-widget-text-editor div.elementor-widget-container"
+      date: "time"
+      image: "meta[property='og:image']"
+    description: "Primăria Predeal - Anunțuri și hotărâri ale Consiliului Local"
     retry_attempts: 3
     timeout: 15
 
@@ -315,27 +332,34 @@ sources:
   # INSTITUTIONAL SOURCES - Primării Covasna
   # =============================================
 
+  # Actualizat 2026-11-26: site propriu fără RSS; știrile sunt la /stiri/<titlu>, data în span.news-date.
   - id: primaria_sgheorghe
     name: "Primăria Sfântu Gheorghe"
-    url: "https://www.sfantugheorgheinfo.ro/stiri"
+    url: "https://www.sfantugheorgheinfo.ro"
+    homepage: "https://www.sfantugheorgheinfo.ro/stiri"
     type: "scrape"
     category: "local"
     enabled: true
+    max_pages: 1
+    max_articles_per_source: 15
+    article_url_pattern: "/stiri/[^/?#]+$"
     selectors:
-      article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
-      title: "h1, .entry-title, .page-title, .post-title"
-      content: ".entry-content, .page-content, article .content, .post-content, .article-body"
-      date: ".entry-date, .post-date, time, .date"
+      article_links: "div.news-title a, div.news-image a"
+      title: "h1.title, h1"
+      content: "div.page-content"
+      date: "span.news-date"
+      image: "meta[property='og:image']"
     description: "Primăria Sfântu Gheorghe - Știri și anunțuri"
     retry_attempts: 3
     timeout: 15
-
+  # Dezactivat 2026-11-26: TYPO3; anunțurile sunt doar linkuri spre PDF-uri pe o singură pagină, fără pagini de articol.
+  # De reactivat cu extragere din PDF.
   - id: primaria_covasna
     name: "Primăria Covasna"
     url: "https://www.primariacovasna.ro/informatii-publice/anunturi/"
     type: "scrape"
     category: "local"
-    enabled: true
+    enabled: false
     selectors:
       article_links: ".entry-title a, article a, .post-title a, h2 a, h3 a"
       title: "h1, .entry-title, .page-title, .post-title"
@@ -433,6 +457,8 @@ sources:
     retry_attempts: 2
     timeout: 15
 
+  # Corectat 2026-11-26: „div.article-content” e clasa cardurilor de articole recomandate (inclusiv widgetul
+  # Digi Sport), nu a textului; ~27% din articole primeau corpul altei știri. Textul e în div.entry.data-app-meta-article.
   - id: digi24
     name: "Digi24"
     url: "https://www.digi24.ro"
@@ -442,13 +468,12 @@ sources:
     enabled: true
     selectors:
       title: "h1.title, h1.article-title, h1"
-      content: "div.article-content, div.article-body"
+      content: "div.entry.data-app-meta-article"
       date: "span.publish-date, time"
       image: "img.featured-image, img.article-image"
     description: "Digi24 - Știri naționale"
     retry_attempts: 2
     timeout: 15
-
   - id: stiripesurse
     name: "Știri Pe Surse"
     url: "https://www.stiripesurse.ro"

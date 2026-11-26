@@ -19,6 +19,8 @@ from bs4 import BeautifulSoup
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
+from . import coherence
+
 # CLAUDE.md: scraperele se prezintă cu un User-Agent identificabil și respectă robots.txt.
 USER_AGENT = "KronPapirBot/1.0 (+https://kronpapir.ro/surse)"
 MIN_DELAY = 2.0  # maximum o cerere la 2 secunde
@@ -325,7 +327,9 @@ class BaseScraper(ABC):
 
         selectors = self.source_config.get("selectors", {})
 
-        title = self.extract_text(soup, selectors.get("title", "h1, h2"))
+        # Titlul e un singur element: primul găsit (pe unele site-uri mai multe h1 = secțiuni din sidebar)
+        title_el = soup.select_one(selectors.get("title", "h1, h2"))
+        title = title_el.get_text(" ", strip=True) if title_el else ""
         content = self.extract_text(soup, selectors.get("content", "article, div.content"))
         image_url = self.extract_attribute(soup, selectors.get("image", "img"), "src")
         image_url = image_url[0] if image_url else None
@@ -464,6 +468,7 @@ class BaseScraper(ABC):
         articles_fetched = 0
         articles_saved = 0
         duplicates = 0
+        mismatched = 0
         errors = 0
 
         try:
@@ -473,6 +478,13 @@ class BaseScraper(ABC):
                 if self.is_duplicate(article):
                     duplicates += 1
                     self.logger.debug(f"Duplicate found: {article.title[:50]}")
+                    continue
+
+                # Corp care nu e despre titlu (selector prins pe un bloc de articole recomandate):
+                # nu îl salvăm și nu îl marcăm procesat, ca să fie reluat după ce reparăm selectorul.
+                if coherence.is_mismatch(article.title, article.content):
+                    mismatched += 1
+                    self.logger.warning(f"Titlul nu se regăsește în text, sărit: {article.url}")
                     continue
 
                 if self.save_article(article):
@@ -496,6 +508,7 @@ class BaseScraper(ABC):
             "articles_fetched": articles_fetched,
             "articles_saved": articles_saved,
             "duplicates": duplicates,
+            "mismatched": mismatched,
             "errors": errors,
             "elapsed_time": elapsed_time,
             "timestamp": datetime.now().isoformat(),
@@ -503,7 +516,7 @@ class BaseScraper(ABC):
 
         self.logger.info(
             f"Scraping complete. Fetched: {articles_fetched}, "
-            f"Saved: {articles_saved}, Duplicates: {duplicates}, "
+            f"Saved: {articles_saved}, Duplicates: {duplicates}, Mismatched: {mismatched}, "
             f"Errors: {errors}, Time: {elapsed_time:.2f}s"
         )
 
