@@ -1242,6 +1242,10 @@ def admin_articles():
     if filter_type:
         if filter_type == 'editorial':
             all_articles = [a for a in all_articles if a.get('is_editorial') or a.get('category') == 'editorial']
+        elif filter_type == 'editorial_neverificat':
+            # Editorialele vechi fără verificare: au noindex până le marchează George ca verificate
+            all_articles = [a for a in all_articles
+                            if pres.source_type(a) == 'editorial' and not pres.is_reviewed(a)]
         else:
             all_articles = [a for a in all_articles if a.get('type', 'local') == filter_type and not a.get('is_editorial')]
     if filter_source:

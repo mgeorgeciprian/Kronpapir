@@ -64,13 +64,15 @@ def source_type(article: dict) -> str:
 
 
 def should_noindex(article: dict) -> bool:
-    """Rescrierile integrale ale articolelor altor publicații nu se indexează.
+    """Ce nu trimitem spre indexare până nu îl verifică George:
 
-    Excepție: articolele pe care George le-a verificat și aprobat explicit.
+    - rescrierile integrale ale articolelor altor publicații;
+    - editorialele vechi, publicate automat înainte de regula „editorial = aprobat de George”.
+    Editorialele noi trec prin ciorne și primesc reviewed_by/at la publicare, deci se indexează.
     """
     if not noindex_rewrites_enabled():
         return False
-    return source_type(article) == "rescriere_veche" and not is_reviewed(article)
+    return source_type(article) in ("rescriere_veche", "editorial") and not is_reviewed(article)
 
 
 def byline(article: dict) -> dict:

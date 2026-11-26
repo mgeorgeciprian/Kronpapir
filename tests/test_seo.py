@@ -19,7 +19,8 @@ class SeoTests(unittest.TestCase):
 
     def test_sitemap_is_index_of_sections(self):
         self.write(art('c1', slug='concert', category='cultura'))
-        self.write(art('e1', slug='editorial-1', category='editorial', is_editorial=True))
+        self.write(art('e1', slug='editorial-1', category='editorial', is_editorial=True,
+                       reviewed_by='George', reviewed_at='2026-11-26T12:00:00'))
         self.write(art('r1', slug='rar', category='turism'))
         r = self.client.get('/sitemap.xml')
         self.assertEqual(r.status_code, 200)
@@ -44,6 +45,23 @@ class SeoTests(unittest.TestCase):
             self.assertEqual(r.status_code, 200, path)
             self.assertIn('xml', r.mimetype)
         self.assertEqual(self.client.get('/sitemap-stiri-inexistent.xml').status_code, 404)
+
+    def test_unreviewed_editorial_is_noindex_and_listed_for_review(self):
+        self.write(art('e2', slug='editorial-vechi', category='editorial', is_editorial=True))
+        self.write(art('e3', slug='editorial-verificat', category='editorial', is_editorial=True,
+                       reviewed_by='George', reviewed_at='2026-11-26T12:00:00'))
+        html = self.client.get('/stiri/editorial-vechi').get_data(as_text=True)
+        self.assertEqual(self.client.get('/stiri/editorial-vechi').status_code, 200)  # rămâne pe site
+        self.assertIn('content="noindex, follow"', html)
+        sitemaps = fnd.all_sitemaps(self.client)
+        self.assertNotIn('/stiri/editorial-vechi', sitemaps)
+        self.assertIn('/stiri/editorial-verificat', sitemaps)
+
+        with self.client.session_transaction() as sess:
+            sess['admin_logged_in'] = True
+        page = self.client.get('/admin/articole?type=editorial_neverificat').get_data(as_text=True)
+        self.assertIn('Titlu e2', page)
+        self.assertNotIn('Titlu e3', page)
 
     def test_pages_sitemap_lists_policy_page(self):
         xml = self.client.get('/sitemap-pagini.xml').get_data(as_text=True)

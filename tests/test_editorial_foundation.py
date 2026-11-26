@@ -59,8 +59,11 @@ class PresentationTests(unittest.TestCase):
         self.assertTrue(pres.should_noindex(legacy))
         reviewed = dict(legacy, reviewed_by='George', reviewed_at='2026-11-26T12:00:00')
         self.assertFalse(pres.should_noindex(reviewed))
+        # editorial vechi, publicat automat: noindex până îl verifică George
         editorial = art('e', is_editorial=True, url='https://kronpapir.ro/stiri/editorial-x')
-        self.assertFalse(pres.should_noindex(editorial))
+        self.assertTrue(pres.should_noindex(editorial))
+        self.assertFalse(pres.should_noindex(dict(editorial, reviewed_by='George',
+                                                  reviewed_at='2026-11-26T12:00:00')))
         data = art('d', source_type='date_oficiale', url='https://www.brasovcity.ro/x')
         self.assertFalse(pres.should_noindex(data))
 
