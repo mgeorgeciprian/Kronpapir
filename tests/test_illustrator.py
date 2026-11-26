@@ -14,6 +14,7 @@ from unittest import mock
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
+from ai import costs  # noqa: E402
 from ai import illustrator as ill  # noqa: E402
 from editorial import presentation as pres  # noqa: E402
 from editorial import store as editorial_store  # noqa: E402
@@ -72,8 +73,8 @@ class RunTest(unittest.TestCase):
         self.patches = [
             mock.patch.object(editorial_store, "PROCESSED_DIR", self.processed),
             mock.patch.object(ill, "OUT_DIR", root / "ilustratii"),
-            mock.patch.object(ill, "COSTS_DIR", root / "costs"),
-            mock.patch.object(ill, "AGENTS_CONFIG", cfg),
+            mock.patch.object(costs, "COSTS_DIR", root / "costs"),
+            mock.patch.object(costs, "AGENTS_CONFIG", cfg),
         ]
         for p in self.patches:
             p.start()
@@ -137,8 +138,8 @@ class RunTest(unittest.TestCase):
         self.add("a-13")
         self.add("a-14")
         # 1000 in + 5000 out pe Sonnet = 0,052 USD; plafon 1 USD -> blocăm din start după prag
-        (ill.COSTS_DIR).mkdir()
-        (ill.COSTS_DIR / "ilustrator-2026-11.json").write_text('{"usd": 1.0, "calls": 20}')
+        (costs.COSTS_DIR).mkdir()
+        (costs.COSTS_DIR / "ilustrator-2026-11.json").write_text('{"usd": 1.0, "calls": 20}')
         with self.assertRaises(ill.BudgetExceeded):
             ill.run(client=self.client, now=NOW)
         self.create.assert_not_called()
@@ -146,7 +147,7 @@ class RunTest(unittest.TestCase):
     def test_cost_is_recorded(self):
         self.add("a-15")
         ill.run(client=self.client, now=NOW)
-        ledger = json.loads((ill.COSTS_DIR / "ilustrator-2026-11.json").read_text())
+        ledger = json.loads((costs.COSTS_DIR / "ilustrator-2026-11.json").read_text())
         self.assertAlmostEqual(ledger["usd"], 0.052)
         self.assertEqual(ledger["calls"], 1)
 

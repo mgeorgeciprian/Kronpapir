@@ -135,6 +135,9 @@
       {% if article.source_url or article.url %}
       <a href="{{ article.source_url or article.url }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">Vezi sursa originală →</a>
       {% endif %}
+      {% if article.also_reported_by %}
+      <br>Au relatat și: {% for o in article.also_reported_by %}<a href="{{ o.url }}" target="_blank" rel="noopener noreferrer" style="color: var(--primary);">{{ o.source or 'altă publicație' }}</a>{% if not loop.last %}, {% endif %}{% endfor %}.
+      {% endif %}
       {% endif %}
     </div>
 

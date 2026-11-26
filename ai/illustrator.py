@@ -23,8 +23,7 @@ import xml.etree.ElementTree as ET
 from datetime import datetime
 from pathlib import Path
 
-import yaml
-
+from ai import costs
 from editorial import presentation as pres
 from editorial import stock_photos
 from editorial import store as editorial_store
@@ -33,16 +32,12 @@ log = logging.getLogger("ai.illustrator")
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 AGENT_FILE = BASE_DIR / ".claude" / "agents" / "ilustrator.md"
-AGENTS_CONFIG = BASE_DIR / "config" / "agents.yaml"
 OUT_DIR = BASE_DIR / "static" / "ilustratii"
-COSTS_DIR = BASE_DIR / "data" / "costs"
 PUBLIC_PREFIX = "/static/ilustratii/"
 CREDIT = "Ilustrație generată de AI"
 AGENT = "ilustrator"
 
 DEFAULT_MODEL = "claude-sonnet-5-5"
-# USD per milion de tokeni (input, output). Necunoscut -> prețul Opus, ca să nu subestimăm.
-PRICES = {"claude-sonnet-5-5": (2.0, 10.0), "claude-opus-5-5": (4.0, 20.0), "claude-haiku-5-5": (0.10, 0.50)}
 MAX_SVG_BYTES = 120_000
 TEXT_CHARS = 1500
 
@@ -66,8 +61,7 @@ RESPONSE_SCHEMA = {
 }
 
 
-class BudgetExceeded(RuntimeError):
-    pass
+BudgetExceeded = costs.BudgetExceeded
 
 
 # ---------- configurare ----------
@@ -81,56 +75,18 @@ def load_prompt(path=AGENT_FILE):
 
 
 def load_settings(path=None):
-    try:
-        cfg = yaml.safe_load(Path(path or AGENTS_CONFIG).read_text(encoding="utf-8")) or {}
-    except FileNotFoundError:
-        cfg = {}
-    agent = (cfg.get("agents") or {}).get(AGENT) or {}
-    return {
-        "model": os.environ.get("KRONPAPIR_MODEL_ILUSTRATOR") or agent.get("model") or DEFAULT_MODEL,
-        "budget": float(agent.get("monthly_budget_usd") or 0),
-        "alert": float(cfg.get("alert_threshold") or 0.8),
-        "use_source_photo": bool(agent.get("use_source_photo", True)),
-        "effort": agent.get("effort") or "high",
-    }
-
-
-# ---------- costuri ----------
-
-def _ledger_path(now):
-    return COSTS_DIR / f"{AGENT}-{now:%Y-%m}.json"
-
-
-def spent_this_month(now):
-    try:
-        return float(json.loads(_ledger_path(now).read_text(encoding="utf-8")).get("usd", 0))
-    except (FileNotFoundError, ValueError):
-        return 0.0
-
-
-def record_cost(now, model, usage):
-    pin, pout = PRICES.get(model, PRICES["claude-opus-5-5"])
-    usd = (getattr(usage, "input_tokens", 0) * pin + getattr(usage, "output_tokens", 0) * pout) / 1e6
-    path = _ledger_path(now)
-    try:
-        ledger = json.loads(path.read_text(encoding="utf-8"))
-    except (FileNotFoundError, ValueError):
-        ledger = {"usd": 0.0, "calls": 0}
-    ledger["usd"] = round(ledger["usd"] + usd, 6)
-    ledger["calls"] += 1
-    editorial_store._write_json_atomic(path, ledger)
-    return usd, ledger["usd"]
+    cfg = costs.settings(AGENT, DEFAULT_MODEL, path)
+    cfg["use_source_photo"] = bool(cfg.get("use_source_photo", True))
+    cfg["effort"] = cfg.get("effort") or "high"
+    return cfg
 
 
 def check_budget(settings, now):
-    budget = settings["budget"]
-    if budget <= 0:
-        raise BudgetExceeded("Ilustratorul nu are plafon în config/agents.yaml; nu rulez.")
-    spent = spent_this_month(now)
-    if spent >= budget:
-        raise BudgetExceeded(f"Plafonul lunar al ilustratorului e atins: {spent:.2f} din {budget:.2f} USD.")
-    if spent >= budget * settings["alert"]:
-        log.warning("ALERTĂ pentru George: ilustratorul a consumat %.2f din %.2f USD luna aceasta.", spent, budget)
+    costs.check(settings, now)
+
+
+def record_cost(now, model, usage):
+    return costs.record(AGENT, model, usage, now)
 
 
 # ---------- SVG ----------

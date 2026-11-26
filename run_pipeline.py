@@ -139,114 +139,69 @@ def run_scraping(sources_filter="all"):
         return {"status": "error", "error": str(e)}
 
 
-def normalize_title(title):
-    """Normalize title for comparison."""
-    title = title.lower().strip()
-    title = re.sub(r'[^\w\s]', '', title)  # remove punctuation
-    return set(title.split())
-
-
-def jaccard_similarity(set1, set2):
-    """Calculate Jaccard similarity between two sets."""
-    if not set1 or not set2:
-        return 0.0
-    intersection = set1 & set2
-    union = set1 | set2
-    return len(intersection) / len(union)
-
-
-def deduplicate_articles(processed_dir):
-    """Remove duplicate articles based on title similarity and content overlap.
-
-    Compares article titles using Jaccard similarity on word sets.
-    If two articles have >60% word overlap in titles, they're considered duplicates.
-    Keeps the one with longer content, deletes the other.
-    """
-    logger.info("🔍 Comenzând deduplicare semantică de articole...")
-
-    articles = {}
-    duplicates_found = 0
-    duplicates_removed = 0
-
-    # Load all articles from processed directory
-    for f in processed_dir.glob("*.json"):
+def load_dedup_index():
+    """Articolele publicate în ultimele zile, pentru verificarea de duplicate (editorial/dedup.py)."""
+    from editorial import dedup
+    published = []
+    for f in PROCESSED_DIR.glob("*.json"):
         try:
             with open(f, 'r', encoding='utf-8') as fh:
-                article = json.load(fh)
-                articles[f] = article
-        except Exception as e:
-            logger.warning(f"⚠️ Eroare la citirea {f.name}: {e}")
+                art = json.load(fh)
+            if isinstance(art, dict) and art.get('title'):
+                published.append(art)
+        except Exception:
             continue
+    return dedup.Index(dedup.recent(published))
 
-    logger.info(f"   Total articole pentru comparare: {len(articles)}")
 
-    # Compare all pairs of articles
-    processed_pairs = set()
-    files_to_delete = []
+def make_dedup_judge():
+    """Redactorul-șef (Claude) pentru perechile la limită; None fără cheie API sau peste plafon."""
+    if not os.environ.get("ANTHROPIC_API_KEY"):
+        return None
+    try:
+        from ai.dedup_judge import make_judge
+        return make_judge()
+    except Exception as e:
+        logger.warning(f"⚠️ Verificarea AI a duplicatelor nu e disponibilă: {e}")
+        return None
 
-    for file1, art1 in articles.items():
-        title1 = art1.get('title', '')
-        content1 = art1.get('content', '')
 
-        if not title1:
-            continue
-
-        title_set1 = normalize_title(title1)
-
-        for file2, art2 in articles.items():
-            if file1 == file2:
-                continue
-
-            # Avoid comparing same pair twice
-            pair = tuple(sorted([str(file1), str(file2)]))
-            if pair in processed_pairs:
-                continue
-
-            title2 = art2.get('title', '')
-            content2 = art2.get('content', '')
-
-            if not title2:
-                continue
-
-            title_set2 = normalize_title(title2)
-
-            # Check title similarity
-            similarity = jaccard_similarity(title_set1, title_set2)
-
-            if similarity > 0.6:  # >60% word overlap = duplicate
-                duplicates_found += 1
-
-                # Also check content similarity (first 100 chars)
-                content_match = (content1[:100].lower() == content2[:100].lower())
-
-                logger.debug(f"   Posibil duplicat găsit:")
-                logger.debug(f"     - Titlu 1: {title1[:70]}")
-                logger.debug(f"     - Titlu 2: {title2[:70]}")
-                logger.debug(f"     - Asemănare: {similarity:.1%}")
-                logger.debug(f"     - Conținut asemanator: {content_match}")
-
-                # Keep the one with longer content
-                if len(content1) >= len(content2):
-                    files_to_delete.append(file2)
-                    logger.info(f"   Ștergere: {art2.get('title', '')[:60]}")
-                    duplicates_removed += 1
-                else:
-                    files_to_delete.append(file1)
-                    logger.info(f"   Ștergere: {art1.get('title', '')[:60]}")
-                    duplicates_removed += 1
-
-            processed_pairs.add(pair)
-
-    # Delete duplicate files
-    for file_path in files_to_delete:
+def is_duplicate(art, index, judge):
+    """True dacă știrea e deja publicată (din altă sursă). Adaugă sursa nouă la articolul existent."""
+    from editorial import dedup
+    from editorial import store as editorial_store
+    verdict, existing, score, reason = dedup.check(art, index, judge)
+    if verdict != "duplicat":
+        if score >= dedup.MAYBE:
+            logger.info(f"   ↔️ Asemănare {score:.2f}, dar știre nouă ({reason}): {art.get('title', '')[:60]}")
+        return False
+    logger.info(f"   🔁 Duplicat ({score:.2f}, {reason}): {art.get('title', '')[:60]} "
+                f"[{art.get('source', '?')}] = {existing.get('title', '')[:60]} [{existing.get('source', '?')}]")
+    path = PROCESSED_DIR / f"{existing.get('id')}.json"
+    if existing.get('id') and path.exists():
         try:
-            file_path.unlink()
-            logger.debug(f"   Fișier șters: {file_path.name}")
+            with open(path, 'r', encoding='utf-8') as fh:
+                fresh = json.load(fh)
+            if dedup.merge_source(fresh, art):
+                editorial_store._write_json_atomic(path, fresh)
+                existing['also_reported_by'] = fresh['also_reported_by']
         except Exception as e:
-            logger.warning(f"   Eroare la ștergerea {file_path.name}: {e}")
+            logger.warning(f"   ⚠️ Nu am putut adăuga sursa la articolul existent: {e}")
+    return True
 
-    logger.info(f"✅ Deduplicare finalizată: {duplicates_found} posibili duplicați, {duplicates_removed} șterse")
-    return {"duplicates_found": duplicates_found, "duplicates_removed": duplicates_removed}
+
+def distinct_stories(articles, limit):
+    """Primele `limit` știri distincte (pentru editoriale): fără aceeași știre de la două surse."""
+    from editorial import dedup
+    index, picked = dedup.Index(), []
+    for art in articles:
+        if len(picked) >= limit:
+            break
+        verdict, _, _, _ = dedup.check(art, index)
+        if verdict == "nou":
+            picked.append(art)
+            index.add(art)
+    return picked
 
 
 def run_ai_processing():
@@ -344,13 +299,25 @@ def run_ai_processing():
             logger.info(f"   Clasificare: {len(local_articles)} locale, {len(national_articles)} naționale, {len(intl_articles)} internaționale")
 
             # === 1. RESCRIE ARTICOLE LOCALE INDIVIDUAL (max 5) ===
-            logger.info(f"📝 Rescriu {min(len(local_articles), max_local)} articole locale...")
-            for idx, art in enumerate(local_articles[:max_local], 1):
+            # Înainte de rescriere: aceeași știre de la altă sursă nu se publică a doua oară.
+            dedup_index = load_dedup_index()
+            dedup_judge = make_dedup_judge()
+            duplicates = 0
+            local_done = 0
+            logger.info(f"📝 Rescriu până la {max_local} articole locale noi (din {len(local_articles)} candidate)...")
+            for art in local_articles:
+                if local_done >= max_local:
+                    break
                 title = art.get('title', 'Fără titlu')
-                logger.info(f"   Local {idx}/{min(len(local_articles), max_local)}: {title[:60]}...")
+                if is_duplicate(art, dedup_index, dedup_judge):
+                    duplicates += 1
+                    continue
+                local_done += 1
+                logger.info(f"   Local {local_done}/{max_local}: {title[:60]}...")
 
                 rewritten = rewriter.rewrite_article(art)
                 if rewritten:
+                    dedup_index.add(rewritten)
                     dest = PROCESSED_DIR / f"{rewritten['id']}.json"
                     with open(dest, 'w', encoding='utf-8') as fh:
                         json.dump(rewritten, fh, ensure_ascii=False, indent=2)
@@ -359,6 +326,12 @@ def run_ai_processing():
                     processed_urls.add(rewritten.get('url', ''))
                 else:
                     logger.warning(f"   ⚠️ Nu s-a putut rescrie: {title[:50]}")
+
+            logger.info(f"   Duplicate evitate: {duplicates}")
+
+            # Editorialele adună mai multe știri: fără aceeași știre de la două surse
+            national_articles = distinct_stories(national_articles, max_national_editorial)
+            intl_articles = distinct_stories(intl_articles, max_intl_editorial)
 
             # === 2. EDITORIAL NAȚIONAL (compilare din max 5 știri) ===
             if national_articles:
@@ -388,7 +361,7 @@ def run_ai_processing():
                 else:
                     logger.warning("   ⚠️ Nu s-a putut scrie editorialul internațional")
 
-            logger.info(f"✅ Procesare AI finalizată. Total procesat: {processed_count} (locale: {min(len(local_articles), max_local)}, editoriale: {processed_count - min(len(local_articles), max_local)})")
+            logger.info(f"✅ Procesare AI finalizată. Total procesat: {processed_count} (locale: {local_done}, duplicate evitate: {duplicates})")
 
             # Notifică motoarele de căutare
             if processed_slugs:
@@ -411,6 +384,7 @@ def run_ai_processing():
     copied = 0
     import uuid
 
+    dedup_index = load_dedup_index()
     # Caută recursiv în subdirectoare (doar ultimele 48h)
     fallback_cutoff = time.time() - 48 * 3600
     for f in ARTICLES_DIR.glob("**/*.json"):
@@ -430,6 +404,8 @@ def run_ai_processing():
                 art_id = art.get('id') or art.get('url_hash') or str(uuid.uuid4())
                 dest = PROCESSED_DIR / f"{art_id}.json"
                 if dest.exists():
+                    continue
+                if is_duplicate(art, dedup_index, None):  # fără AI: doar duplicatele sigure
                     continue
 
                 # Formatează articolul pentru web
@@ -470,17 +446,14 @@ def run_ai_processing():
                 }
                 with open(dest, 'w', encoding='utf-8') as fh:
                     json.dump(processed_art, fh, ensure_ascii=False, indent=2)
+                dedup_index.add(processed_art)
                 copied += 1
 
         except Exception as e:
             logger.error(f"Eroare la copierea {f.name}: {e}")
 
     logger.info(f"📋 Copiate {copied} articole noi în processed.")
-
-    # Run deduplication before returning
-    dedup_results = deduplicate_articles(PROCESSED_DIR)
-
-    return {"status": "fallback", "copied": copied, "deduplication": dedup_results}
+    return {"status": "fallback", "copied": copied}
 
 
 def run_ai_processing_balanced():
@@ -554,10 +527,15 @@ def run_ai_processing_balanced():
             )
 
             balanced_slugs = []
+            dedup_index = load_dedup_index()
+            dedup_judge = make_dedup_judge()
             for art in to_process:
                 try:
+                    if is_duplicate(art, dedup_index, dedup_judge):
+                        continue
                     result = rewriter.rewrite_article(art)
                     if result:
+                        dedup_index.add(result)
                         dest = PROCESSED_DIR / f"{result['id']}.json"
                         with open(dest, 'w', encoding='utf-8') as fh:
                             json.dump(result, fh, ensure_ascii=False, indent=2)

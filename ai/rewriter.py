@@ -397,6 +397,7 @@ Returnează DOAR un obiect JSON valid (fără markdown, fără ```):
                 'category': rewritten['category'].lower(),
                 'type': rewritten['type'].lower(),
                 'source': raw_article.get('source', 'Necunoscut'),
+                'source_title': raw_article.get('title', ''),
                 'url': raw_article.get('url', ''),
                 'image': raw_article.get('image_url') or raw_article.get('image', ''),
                 'date': raw_article.get('date') or raw_article.get('published') or datetime.now().isoformat(),
