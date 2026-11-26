@@ -57,11 +57,12 @@ def fix_sedilla(article):
     return changed
 
 
-def deterministic(source_text, article, now=None):
+def deterministic(source_text, article, now=None, official=False):
     """{'erori': [...], 'avertismente': [...]} pentru o rescriere, față de textul sursă."""
     now = now or datetime.now()
     src = plain(source_text)
-    src_numbers = numbers(src)
+    # documentele oficiale scriu uneori „9, 16 mp” sau „1. 204”: lipim zecimalele/miile despărțite de spațiu
+    src_numbers = numbers(re.sub(r"(\d)([.,])\s+(\d)", r"\1\2\3", src)) | numbers(src)
     body = " ".join(plain(article.get(k) or "") for k in ("title", "content", "excerpt"))
     erori, avert = [], []
 
@@ -78,9 +79,16 @@ def deterministic(source_text, article, now=None):
         ctx = body[max(0, m.start() - 50): m.end() + 50]
         erori.append({"tip": "numar_inexistent", "valoare": raw, "context": ctx})
 
+    src_digits = re.sub(r"\D", "", src)
     for rx, tip in ((_EMAIL, "email"), (_PHONE, "telefon")):
         for m in rx.finditer(body):
-            erori.append({"tip": f"date_personale_{tip}", "valoare": m.group(0)})
+            value = m.group(0)
+            # sursă oficială: contactele instituției din document (unde se depun propunerile) sunt permise
+            in_source = (value.lower() in src.lower()) if tip == "email" else (re.sub(r"\D", "", value)[-9:] in src_digits)
+            if official and in_source:
+                avert.append({"tip": f"contact_institutional_{tip}", "valoare": value})
+            else:
+                erori.append({"tip": f"date_personale_{tip}", "valoare": value})
 
     if article.get("format") == "rezumat":
         words = len(plain(article.get("content") or "").split())

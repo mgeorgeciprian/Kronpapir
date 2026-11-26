@@ -8,6 +8,7 @@
 #   04:30 - Audit SEO (duminica)
 #   05:00 - PageSpeed Insights (duminica, seo/pagespeed.py)
 #   05:40, 13:40 - Locuri de muncă AJOFM Brașov (sources/ajofm.py)
+#   05:50, 13:50 - Proiecte HCL, licitații și achiziții de pe brasovcity.ro (sources/brasovcity.py)
 #   06:30 pe 1 ale lunii - Raport lunar AJOFM, ca ciornă (reports/ajofm_report.py)
 #   06:45, 14:45 - Ilustrator: o schiță în creion pentru cel mai nou articol fără imagine (ai/illustrator.py)
 
@@ -36,7 +37,7 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Elimină cron-urile vechi KronPapir
-crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "reports.ajofm_report" -e "ai.illustrator" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
+crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "sources.brasovcity" -e "reports.ajofm_report" -e "ai.illustrator" -e "seo.pagespeed" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
 
 # Adaugă cron jobs
 (crontab -l 2>/dev/null; cat <<CRONEOF
@@ -44,6 +45,9 @@ crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "reports.ajofm_report" -e
 # === KronPapir.ro - Pipeline Automat ===
 # 05:40 si 13:40 - Locuri de munca AJOFM Brasov (max 10 min; retry intern, o cerere la 2 s)
 40 5,13 * * * cd $APP_DIR && ${ENV_LOAD}timeout 600 $VENV_PYTHON -m sources.ajofm >> $LOG_DIR/cron_jobs_ajofm.log 2>&1
+
+# 05:50, 13:50 - Documente oficiale Primăria Brașov (HCL în dezbatere, decizii HCL, licitații, achiziții)
+50 5,13 * * * cd $APP_DIR && ${ENV_LOAD}timeout 600 $VENV_PYTHON -m sources.brasovcity >> $LOG_DIR/cron_brasovcity.log 2>&1
 
 # Pe 1 ale lunii 06:30 - Raport lunar AJOFM (ciornă pentru George; fără LLM)
 30 6 1 * * cd $APP_DIR && ${ENV_LOAD}timeout 300 $VENV_PYTHON -m reports.ajofm_report >> $LOG_DIR/cron_ajofm_report.log 2>&1

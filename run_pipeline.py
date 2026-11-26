@@ -143,7 +143,14 @@ MAX_STORY_AGE_HOURS = 72
 
 
 def is_stale(art, now=None):
-    """Știre mai veche de 3 zile după data ei (nu după data fișierului): nu o mai publicăm ca nouă."""
+    """Știre mai veche de 3 zile după data ei (nu după data fișierului): nu o mai publicăm ca nouă.
+
+    Excepție: documentele cu termen (licitații, consultări publice) rămân actuale până la termen.
+    """
+    now = now or datetime.now()
+    until = str(art.get('relevant_until') or '')[:10]
+    if until:
+        return until < now.date().isoformat()
     raw = str(art.get('date') or art.get('published') or '')[:19]
     try:
         published = datetime.fromisoformat(raw)
@@ -262,7 +269,7 @@ def rewrite_and_route(raw, rewriter, checker):
     source_text = raw.get('content') or raw.get('text') or raw.get('original_text') or ''
     for attempt in (1, 2):
         fc.fix_sedilla(rewritten)
-        det = fc.deterministic(source_text, rewritten)
+        det = fc.deterministic(source_text, rewritten, official=raw['source_kind'] == 'oficial')
         llm = checker.check(raw, rewritten) if (checker and not det["erori"]) else None
         decision, reason = fc.decide(rewritten, det, llm)
         if decision == "rejected" and attempt == 1:

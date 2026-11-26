@@ -8,11 +8,13 @@ import logging
 import time
 import urllib.error
 import urllib.request
+import urllib.robotparser
 from pathlib import Path
+from urllib.parse import urlparse
 
 log = logging.getLogger(__name__)
 
-USER_AGENT = "KronPapirBot/1.0 (+https://kronpapir.ro/despre)"
+USER_AGENT = "KronPapirBot/1.0 (+https://kronpapir.ro/surse)"
 MIN_INTERVAL = 2.0
 
 
@@ -33,6 +35,61 @@ class PoliteClient:
         self._clock = clock
         self._last = None
         self.requests_made = 0
+        self._robots = {}
+
+    def allowed(self, url):
+        """robots.txt pentru KronPapirBot; lipsă sau eroare = permis."""
+        parts = urlparse(url)
+        host = f"{parts.scheme}://{parts.netloc}"
+        if host not in self._robots:
+            parser = urllib.robotparser.RobotFileParser()
+            lines = []
+            try:
+                self._wait_turn()
+                req = urllib.request.Request(f"{host}/robots.txt", headers={"User-Agent": USER_AGENT})
+                status, raw = self._send(req)
+                text = raw.decode("utf-8", "replace")
+                if status == 200 and "<html" not in text[:500].lower():
+                    lines = text.splitlines()
+            except (urllib.error.URLError, OSError, ValueError):
+                pass
+            parser.parse(lines)
+            self._robots[host] = parser
+        return self._robots[host].can_fetch(USER_AGENT, url)
+
+    def request_bytes(self, url, accept="*/*", max_bytes=5_000_000, accept_status=(200,)):
+        """GET simplu (pagini HTML, PDF-uri), cu robots.txt, pauză, retry și limită de mărime."""
+        if not self.allowed(url):
+            raise FetchError(f"robots.txt nu permite {url}")
+        headers = {"User-Agent": USER_AGENT, "Accept": accept}
+        last_err = None
+        for attempt in range(1, self.retries + 1):
+            self._wait_turn()
+            req = urllib.request.Request(url, headers=headers)
+            try:
+                self.requests_made += 1
+                status, raw = self._send(req)
+                if status not in accept_status:
+                    raise FetchError(f"HTTP {status} pentru {url}")
+                if len(raw) > max_bytes:
+                    raise FetchError(f"Fișier prea mare ({len(raw)} octeți): {url}")
+                return raw
+            except urllib.error.HTTPError as e:
+                if e.code in accept_status:  # unele site-uri oficiale dau 404 cu conținut
+                    raw = e.read()
+                    if raw:
+                        return raw[:max_bytes]
+                last_err = e
+                if 400 <= e.code < 500 and e.code != 429:
+                    break
+            except (urllib.error.URLError, TimeoutError, FetchError, OSError) as e:
+                last_err = e
+                if isinstance(e, FetchError) and "prea mare" in str(e):
+                    break
+            log.warning("Încercarea %d/%d a eșuat pentru %s: %s", attempt, self.retries, url, last_err)
+            if attempt < self.retries:
+                self._sleep(self.backoff * attempt)
+        raise FetchError(f"{url}: {last_err}")
 
     def _wait_turn(self):
         if self._last is not None:
