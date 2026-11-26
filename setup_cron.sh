@@ -6,6 +6,7 @@
 #   22:00 - Editoriale zilnice (3 editoriale: național, internațional, tematic)
 #   03:30 - Arhivare articole brute (zilnic)
 #   04:30 - Audit SEO (duminica)
+#   05:40, 13:40 - Locuri de muncă AJOFM Brașov (sources/ajofm.py)
 
 set -e
 
@@ -32,12 +33,15 @@ if [ -f "$ENV_FILE" ]; then
 fi
 
 # Elimină cron-urile vechi KronPapir
-crontab -l 2>/dev/null | grep -v -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
+crontab -l 2>/dev/null | grep -v -e "sources.ajofm" -e "run_pipeline.py" -e "archive_articles.py" -e "seo_audit.py" -e "KronPapir.ro - " | crontab -
 
 # Adaugă cron jobs
 (crontab -l 2>/dev/null; cat <<CRONEOF
 
 # === KronPapir.ro - Pipeline Automat ===
+# 05:40 si 13:40 - Locuri de munca AJOFM Brasov (max 10 min; retry intern, o cerere la 2 s)
+40 5,13 * * * cd $APP_DIR && ${ENV_LOAD}timeout 600 $VENV_PYTHON -m sources.ajofm >> $LOG_DIR/cron_jobs_ajofm.log 2>&1
+
 # Dimineata 06:00 - Scrape + 5 articole locale
 0 6 * * * cd $APP_DIR && ${ENV_LOAD}$VENV_PYTHON $PIPELINE full >> $LOG_DIR/cron_morning.log 2>&1
 
@@ -58,6 +62,7 @@ CRONEOF
 echo "✅ Cron jobs configurate cu succes!"
 echo ""
 echo "Program zilnic KronPapir.ro:"
+echo "  05:40, 13:40 - Locuri de muncă AJOFM Brașov"
 echo "  06:00 - Scrape + 5 articole locale rescrise AI"
 echo "  14:00 - Scrape + 5 articole locale rescrise AI"
 echo "  22:00 - 3 editoriale: national + international + tematic"
