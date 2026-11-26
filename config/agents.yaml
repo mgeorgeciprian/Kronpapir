@@ -1,0 +1,35 @@
+# Modele și plafoane de cost pentru agenții redacției KronPapir.
+# Prompturile sunt în .claude/agents/<nume>.md; aici sunt doar setările de rulare din cron.
+# Plafoanele sunt în USD pe lună. La 80% se trimite alertă lui George; la 100% agentul se oprește.
+# ID-urile de model se pot suprascrie din .env (de ex. KRONPAPIR_MODEL_JURNALIST).
+
+alert_threshold: 0.8
+
+agents:
+  redactor-sef:
+    model: claude-opus-5-5
+    monthly_budget_usd: 15
+  jurnalist:
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 25
+  editor-fact-check:
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 10
+  editorial:            # editorialele, mereu draft pentru George
+    model: claude-opus-5-5
+    monthly_budget_usd: 20
+  scraper-date-locale:  # doar extracție din documente neuniforme
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 5
+  seo-specialist:
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 5
+  marketing-distributie:
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 5
+  analytics-monetizare:
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 3
+  ux-ui-auditor:
+    model: claude-sonnet-5-5
+    monthly_budget_usd: 3
