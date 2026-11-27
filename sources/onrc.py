@@ -185,14 +185,30 @@ def parse_county_sheet(rows, stat):
     return period_end, counties, national
 
 
-def fetch_stat(client, stat):
+def list_files(html, stat):
+    """Toate fișierele lunare ale indicatorului de pe pagină: [(an, lună, cale)], cronologic."""
+    want = STAT_FILES[stat]
+    found = {}
+    for path, year, month, name in _LINK.findall(html):
+        month = month.lower()
+        if month in MONTHS and ascii_fold(name).startswith(want):
+            found.setdefault((int(year), MONTHS.index(month) + 1), path)
+    return [(y, m, p) for (y, m), p in sorted(found.items())]
+
+
+def stat_page(stat):
     page_id = STATS[stat][0]
-    page = PAGE if page_id is None else f"{PAGE}?id={page_id}"
-    html = client.request_bytes(page, accept="text/html").decode("utf-8", "replace")
-    latest = find_latest_file(html, stat)
-    if not latest:
-        raise FetchError(f"Nu găsesc fișierul pentru {stat} pe {page}")
-    year, month, path = latest
+    return PAGE if page_id is None else f"{PAGE}?id={page_id}"
+
+
+def fetch_stat(client, stat, file=None):
+    page = stat_page(stat)
+    if file is None:
+        html = client.request_bytes(page, accept="text/html").decode("utf-8", "replace")
+        file = find_latest_file(html, stat)
+        if not file:
+            raise FetchError(f"Nu găsesc fișierul pentru {stat} pe {page}")
+    year, month, path = file
     url = SITE + quote(path)
     raw = client.request_bytes(url, accept="*/*", max_bytes=3_000_000)
     sheets = read_sheets(raw)
@@ -214,6 +230,53 @@ def _write(path, data):
 
 def out_dir(data_dir=None):
     return Path(data_dir or BASE_DIR / "data") / "business" / "onrc"
+
+
+HISTORY_VALUE = {"activi": "total"}  # profesioniștii activi sunt un stoc la o dată, nu un flux lunar
+
+
+def history_point(stat, payload):
+    """Valoarea lunii pentru fiecare județ și pentru țară, din fișierul unui indicator."""
+    key = HISTORY_VALUE.get(stat, "month")
+    counties = {name: e.get(key) for name, e in payload["counties"].items() if e.get(key) is not None}
+    return {"period_end": payload["period_end"], "source_url": payload["source_url"],
+            "national": payload["national"].get(key), "counties": counties}
+
+
+def update_history(folder, stats):
+    """data/business/onrc/history.json: {indicator: {"AAAA-LL": punct}}. Nu șterge lunile vechi."""
+    path = Path(folder) / "history.json"
+    try:
+        hist = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        hist = {}
+    for stat, payload in stats.items():
+        point = history_point(stat, payload)
+        if point["counties"]:
+            hist.setdefault(stat, {})[payload["period_end"][:7]] = point
+    _write(path, hist)
+    return hist
+
+
+def backfill(start, data_dir=None, client=None):
+    """O singură dată: citește fișierele lunare de la `start` (AAAA-LL) încoace, pentru istoricul din grafice."""
+    data_root = Path(data_dir or BASE_DIR / "data")
+    client = client or PoliteClient(cache_dir=data_root / "cache" / "http", cache_ttl=30 * 24 * 3600)
+    y0, m0 = (int(x) for x in start.split("-"))
+    done = errors = 0
+    for stat in STATS:
+        html = client.request_bytes(stat_page(stat), accept="text/html").decode("utf-8", "replace")
+        for file in list_files(html, stat):
+            if file[:2] < (y0, m0):
+                continue
+            try:
+                update_history(out_dir(data_root), {stat: fetch_stat(client, stat, file)})
+                done += 1
+            except (FetchError, ValueError, KeyError) as e:
+                log.warning("ONRC %s %d-%02d: %s", stat, file[0], file[1], e)
+                errors += 1
+    log.info("ONRC istoric: %d fișiere, %d erori, %d cereri", done, errors, client.requests_made)
+    return done
 
 
 def run(data_dir=None, client=None, dry_run=False, now=None):
@@ -241,6 +304,7 @@ def run(data_dir=None, client=None, dry_run=False, now=None):
     folder = out_dir(data_root)
     _write(folder / f"{period_end[:7]}.json", payload)
     _write(folder / "latest.json", payload)
+    update_history(folder, stats)
     log.info("ONRC: %d indicatori, perioada până la %s, %d erori, %d cereri",
              len(stats), period_end, len(errors), client.requests_made)
     return payload
@@ -250,8 +314,11 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description="Statistici ONRC pe județe")
     parser.add_argument("--dry-run", action="store_true")
     parser.add_argument("--data-dir", default=None)
+    parser.add_argument("--backfill", metavar="AAAA-LL", help="citește o dată lunile de la AAAA-LL încoace (istoric)")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
+    if args.backfill:
+        return 0 if backfill(args.backfill, data_dir=args.data_dir) else 1
     try:
         run(data_dir=args.data_dir, dry_run=args.dry_run)
     except FetchError as e:

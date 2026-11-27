@@ -130,6 +130,13 @@
 </head>
 <body>
   <!-- Info Bar (curs valutar + vreme rapidă) -->
+  <style>
+    /* Valorile vin prin JS: le rezervăm lățimea, ca bara să nu se lățească și să împingă pagina (CLS). */
+    #info-bar strong { display: inline-block; text-align: left; font-variant-numeric: tabular-nums; }
+    #eur-rate, #usd-rate, #gbp-rate { min-width: 6ch; }
+    #info-temp { min-width: 4.5ch; } #info-aqi { min-width: 2.5ch; }
+    #info-date { display: inline-block; min-width: 27ch; }
+  </style>
   <div id="info-bar" style="background-color: #1a1a2e; color: #ccc; font-size: 0.78rem; padding: 4px 0; border-bottom: 1px solid #333;">
     <div class="container" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 4px;">
       <div style="display: flex; gap: 12px; align-items: center;">
@@ -353,7 +360,7 @@
          data-ad-slot="XXXXXXXXXX"></ins>
     <script>(adsbygoogle = window.adsbygoogle || []).push({});</script>
   </div>
-  {% elif random_articles and random_articles|length > 0 %}
+  {% elif random_articles and random_articles|length > 0 and not hide_ticker %}
   <!-- Articole Recomandate (înlocuiește ad-ul până la aprobarea AdSense) -->
   <div class="container" style="margin-top: var(--space-md); margin-bottom: var(--space-md);">
     <div style="display: flex; gap: var(--space-md); overflow-x: auto; padding: var(--space-sm) 0;">

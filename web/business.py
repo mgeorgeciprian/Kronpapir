@@ -12,6 +12,9 @@ from pathlib import Path
 
 from flask import Blueprint, current_app, render_template, request
 
+from web import business_reports as rep
+from web import charts
+
 from editorial.presentation import SITE_URL
 
 HUB_PATH = "/afaceri-brasov"
@@ -312,8 +315,9 @@ def dataset_jsonld(payload):
         "creator": {"@type": "Organization", "name": "Oficiul Național al Registrului Comerțului",
                     "url": "https://www.onrc.ro"},
         "publisher": {"@type": "NewsMediaOrganization", "name": "KronPapir", "url": SITE_URL},
-        "license": "https://www.onrc.ro/index.php/ro/statistici",
         "dateModified": payload.get("fetched_at"),
+        "variableMeasured": [label for _, label, _ in FLOWS] + ["Profesioniști activi"],
+        "measurementTechnique": "Statistici lunare publicate de ONRC; variațiile sunt calculate de KronPapir.",
     }
 
 
@@ -338,16 +342,18 @@ def hub():
     news = [a for a in articles if _is_business(a) and not _is_public_doc(a)][:8]
     reports = [a for a in articles if str(a.get("id", "")).startswith(("onrc-raport-", "ajofm-raport-"))][:6]
     jobs_count = positions = 0
+    active_jobs, jobs_updated = [], None
     try:
         from web import jobs as jobs_web
         active_jobs = jobs_web.active_jobs()
+        jobs_updated = max((str(j.get("last_seen") or "")[:10] for j in active_jobs), default=None)
         jobs_count, positions = len(active_jobs), sum(j.get("positions") or 0 for j in active_jobs)
     except Exception:  # pagina merge și fără joburi
         pass
     ctx = {"payload": payload, "docs": docs, "news": news, "reports": reports,
            "jobs_count": jobs_count, "positions": positions, "hub_path": HUB_PATH,
            "categories": current_app.config.get("KP_CATEGORIES", {}),
-           "fmt_int": fmt_int, "fmt_pct": fmt_pct}
+           "fmt_int": fmt_int, "fmt_pct": fmt_pct, "hide_ticker": True}
     jsonld = [breadcrumbs()]
     if payload:
         ytd, month = period_label(payload["period_end"])
@@ -358,11 +364,62 @@ def hub():
                    year=int(payload["period_end"][:4]))
         jsonld.append(dataset_jsonld(payload))
     ctx["jsonld"] = jsonld
-    lic = licitatii_groups(load_licitatii())
+    lic_store = load_licitatii()
+    lic = with_places(licitatii_groups(lic_store), load_map()["uat"])
     ctx["lic"] = {k: v[:6] for k, v in lic.items()}
     ctx["lic_counts"] = {k: len(v) for k, v in lic.items()}
     ctx["lic_path"] = LICITATII_PATH
+    ctx["lic_report"] = rep.licitatii_report(lic)
+    ctx["plural"] = rep.plural
+    ctx["de"] = rep.de
+    ctx.update(build_reports(payload, active_jobs if jobs_count else [], ctx))
+    updated = [d for d in ((payload or {}).get("fetched_at", "")[:10], (lic_store.get("updated") or "")[:10], jobs_updated) if d]
+    ctx["updated"] = max(updated) if updated else None
     return render_template("business_hub.html", **ctx)
+
+
+def build_reports(payload, jobs, ctx):
+    """Graficele și cifrele-cheie ale hub-ului. Un grafic fără date suficiente nu apare deloc."""
+    out = {"chart_reg": None, "chart_rad": None, "chart_vs": None, "chart_rank": None,
+           "headline": None, "rank1000": None, "jobs_rep": None, "chart_jobs": {}}
+    if payload:
+        period = payload["period_end"][:7]
+        hist = rep.load_history(data_dir())
+        for key, stat, word in (("chart_reg", "inmatriculari", "înmatriculări"), ("chart_rad", "radieri", "radieri")):
+            pts = rep.series(hist, stat)
+            if len(pts) >= rep.MIN_SERIES and pts[-1][0] == period:
+                best = max(pts, key=lambda p: p[1])
+                desc = (f"{word.capitalize()} lunare în județul Brașov, {charts.month_label(pts[0][0])} – "
+                        f"{charts.month_label(pts[-1][0])}. Ultima lună: {fmt_int(pts[-1][1])}; "
+                        f"cea mai mare valoare: {fmt_int(best[1])} în {charts.month_label(best[0])}.")
+                out[key] = {"svg": charts.monthly_bars(pts, f"{word.capitalize()} pe lună, județul Brașov", desc),
+                            "points": pts, "desc": desc, "months": len(pts)}
+        rows = ctx.get("rows") or []
+        out["headline"] = rep.headline(rows)
+        vs = [(r["short"] if r.get("short") else r["label"], r.get("change"), r.get("national_change")) for r in rows]
+        if vs:
+            out["chart_vs"] = charts.diverging(
+                vs, f"Variația față de {ctx['year'] - 1}: Brașov și România",
+                "; ".join(f"{l}: Brașov {fmt_pct(a)}, România {fmt_pct(b)}" for l, a, b in vs))
+        r1000 = rep.registrations_per_1000(payload)
+        if r1000["rows"]:
+            out["rank1000"] = r1000
+            items = [(f"{r['rank']}. {r['name']}", r["value"], r["name"] == COUNTY) for r in r1000["rows"]]
+            mine = r1000["mine"]
+            out["chart_rank"] = charts.hbars(
+                items, "Firme noi la 1.000 de firme active, pe județe",
+                (f"Brașovul e pe locul {mine['rank']} din {r1000['of']}, cu {str(mine['value']).replace('.', ',')} "
+                 f"înmatriculări la 1.000 de profesioniști activi." if mine else ""),
+                fmt=lambda v: f"{v:.1f}".replace(".", ","))
+    if jobs:
+        jr = rep.jobs_report(jobs)
+        out["jobs_rep"] = jr
+        for key, title in (("domains", "Posturi pe domenii"), ("places", "Posturi pe localități"),
+                           ("employers", "Angajatorii cu cele mai multe posturi")):
+            items = [(name if len(name) <= 26 else name[:25] + "…", n, False) for name, n in jr[key]]
+            out["chart_jobs"][key] = charts.hbars(
+                items, title + " (AJOFM Brașov)", "; ".join(f"{name}: {n}" for name, n in jr[key]), label_w=200)
+    return out
 
 
 @bp.route(LICITATII_PATH)
