@@ -15,34 +15,9 @@ NEWS_SITEMAP_URL = f"{SITE_URL}/news-sitemap.xml"
 INDEXNOW_KEY = "kronpapir2026seo"
 
 
-def ping_google_sitemap():
-    """Ping Google cu URL-ul sitemap-ului."""
-    try:
-        r = requests.get(
-            "https://www.google.com/ping",
-            params={"sitemap": SITEMAP_URL},
-            timeout=10,
-        )
-        logger.info(f"Google ping: {r.status_code}")
-        return r.status_code == 200
-    except Exception as e:
-        logger.warning(f"Google ping eșuat: {e}")
-        return False
-
-
-def ping_bing_sitemap():
-    """Ping Bing cu URL-ul sitemap-ului."""
-    try:
-        r = requests.get(
-            "https://www.bing.com/ping",
-            params={"sitemap": SITEMAP_URL},
-            timeout=10,
-        )
-        logger.info(f"Bing ping: {r.status_code}")
-        return r.status_code == 200
-    except Exception as e:
-        logger.warning(f"Bing ping eșuat: {e}")
-        return False
+# Google (2023) și Bing (2022) au închis endpoint-urile /ping pentru sitemap
+# (răspund 404/410). Google citește sitemap-ul din Search Console și robots.txt;
+# Bing și Yandex primesc URL-urile noi prin IndexNow.
 
 
 def submit_indexnow(urls):
@@ -71,9 +46,6 @@ def submit_indexnow(urls):
 def notify_search_engines(new_urls=None):
     """Notifică toate motoarele de căutare. Apelat după publicarea de articole."""
     logger.info(f"🔔 Notific motoarele de căutare ({len(new_urls or [])} URL-uri noi)...")
-
-    ping_google_sitemap()
-    ping_bing_sitemap()
 
     if new_urls:
         submit_indexnow(new_urls)
