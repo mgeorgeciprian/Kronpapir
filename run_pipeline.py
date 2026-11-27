@@ -477,7 +477,13 @@ def run_ai_processing():
 
             logger.info(f"   Duplicate evitate: {duplicates}; decizii fact-check: {decisions}")
 
-            # Editorialele adună mai multe știri: fără aceeași știre de la două surse
+            # Editorialele adună mai multe știri: fără aceeași știre de la două surse.
+            # Întâi păstrăm doar știrile cu text complet: altfel cele mai recente (des
+            # doar titlu + o frază, ex. Mediafax, Știri pe Surse) ocupă toate locurile
+            # și editorialul nu se mai scrie deloc.
+            from ai.rewriter import editorial_text, EDITORIAL_MIN_CHARS
+            national_articles = [a for a in national_articles if len(editorial_text(a)) >= EDITORIAL_MIN_CHARS]
+            intl_articles = [a for a in intl_articles if len(editorial_text(a)) >= EDITORIAL_MIN_CHARS]
             national_articles = distinct_stories(national_articles, max_national_editorial)
             intl_articles = distinct_stories(intl_articles, max_intl_editorial)
 
