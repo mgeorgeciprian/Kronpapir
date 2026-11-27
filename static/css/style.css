@@ -750,7 +750,8 @@ nav.main-nav {
 .category-tag.cultura    { background-color: #6b3aa0; }
 .category-tag.sport      { background-color: #1d5fb5; }
 .category-tag.sanatate   { background-color: #a4242b; }
-.category-tag.social     { background-color: #c97a18; }
+.category-tag.social     { background-color: #9a5b0e; } /* 5.4:1 cu alb (WCAG AA) */
+@media (prefers-color-scheme: dark) { .category-tag { background-color: #3f7a55; } }
 .category-tag.mediu      { background-color: #3a6b2a; }
 
 /* ===================================
