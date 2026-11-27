@@ -134,3 +134,48 @@ def diverging(items, title, desc, series=("Brașov", "România"), width=640, lab
             out.append(f'<text class="val" x="{tx:.1f}" y="{yy + 10}" text-anchor="{anchor}">{txt}</text>')
     out.append("</svg>")
     return Markup("".join(out))
+
+
+def sparkline(points, title, width=120, height=32):
+    """Mini-grafic de tendință pentru un card: linie + punctul ultimei luni. points: [(„AAAA-LL”, valoare)]."""
+    pts = [(m, v) for m, v in points if v is not None]
+    if len(pts) < 3:
+        return Markup("")
+    vals = [v for _, v in pts]
+    lo, hi = min(vals), max(vals)
+    span = (hi - lo) or 1
+    pad = 3
+    xy = [(pad + i * (width - 2 * pad) / (len(pts) - 1), pad + (height - 2 * pad) * (1 - (v - lo) / span))
+          for i, (_, v) in enumerate(pts)]
+    path = "M" + "L".join(f"{x:.1f},{y:.1f}" for x, y in xy)
+    lx, ly = xy[-1]
+    desc = f"De la {_num(vals[0])} în {month_label(pts[0][0])} la {_num(vals[-1])} în {month_label(pts[-1][0])}"
+    return Markup(f'<svg class="kp-spark" viewBox="0 0 {width} {height}" width="{width}" height="{height}" role="img" '
+                  f'aria-label="{escape(title)}: {escape(desc)}"><title>{escape(title)}: {escape(desc)}</title>'
+                  f'<path d="{path}"/><circle cx="{lx:.1f}" cy="{ly:.1f}" r="2.6"/></svg>')
+
+
+def paired_hbars(items, title, desc, series=("2026", "2025"), width=640, label_w=170, row=40):
+    """Bare orizontale pereche (anul curent vs anul trecut). items: [(etichetă, curent, anterior)]."""
+    items = [it for it in items if it[1] is not None or it[2] is not None]
+    if not items:
+        return Markup("")
+    height = row * len(items) + 24
+    vmax = max([v for _, a, b in items for v in (a, b) if v is not None] + [1])
+    plot_w = width - label_w - 70
+    out = [f'<svg class="kp-chart" viewBox="0 0 {width} {height}" role="img" aria-label="{escape(title)}">',
+           f"<title>{escape(title)}</title><desc>{escape(desc)}</desc>",
+           f'<rect class="bar now" x="{label_w}" y="4" width="10" height="10"/><text class="axis" x="{label_w + 14}" y="13">{escape(series[0])}</text>',
+           f'<rect class="bar alt" x="{label_w + 70}" y="4" width="10" height="10"/><text class="axis" x="{label_w + 84}" y="13">{escape(series[1])}</text>']
+    for i, (label, a, b) in enumerate(items):
+        y = 22 + i * row
+        out.append(f'<text class="lab" x="{label_w - 8}" y="{y + row / 2 + 2:.1f}" text-anchor="end">{escape(label)}</text>')
+        for j, (v, cls) in enumerate(((a, "bar now"), (b, "bar alt"))):
+            if v is None:
+                continue
+            w = max(2.0, plot_w * v / vmax)
+            yy = y + 4 + j * 16
+            out.append(f'<rect class="{cls}" x="{label_w}" y="{yy}" width="{w:.1f}" height="13" rx="2"/>')
+            out.append(f'<text class="val" x="{label_w + w + 6:.1f}" y="{yy + 10}">{_num(v)}</text>')
+    out.append("</svg>")
+    return Markup("".join(out))

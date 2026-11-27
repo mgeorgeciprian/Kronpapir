@@ -61,6 +61,27 @@
   .biz-jobs a.btn { margin-left: auto; padding: 9px 14px; border-radius: var(--radius); background: var(--primary); color: #fff; font-weight: 600; text-decoration: none; }
   .biz-more { display: inline-block; margin-top: var(--space-sm, 10px); padding: 9px 14px; border-radius: var(--radius); background: var(--primary); color: #fff !important; font-weight: 600; text-decoration: none; }
   .biz-wrap { display: block; }
+  .flat { color: #8a5a00; }
+  .biz-spark { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+  .kp-spark path { fill: none; stroke: var(--primary); stroke-width: 1.6; }
+  .kp-spark circle { fill: var(--primary); }
+  .biz-health { margin: 0 0 var(--space-md); }
+  .biz-health-title { font-size: 1.05rem; margin: 0 0 8px; }
+  .biz-health-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 10px; }
+  .biz-hcard { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: var(--radius-lg); border: 1px solid var(--border); border-left-width: 5px; background: var(--surface); min-height: 112px; }
+  .biz-hcard .label { font-size: .85rem; color: var(--text-secondary); }
+  .biz-hcard .value { font-size: 1.6rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .biz-state { font-size: .8rem; font-weight: 700; text-transform: uppercase; letter-spacing: .03em; }
+  .st-rau { border-left-color: #c62828; } .st-rau .biz-state { color: #c62828; }
+  .st-atentie { border-left-color: #8a5a00; } .st-atentie .biz-state { color: #8a5a00; }
+  .st-stabil { border-left-color: var(--text-secondary); } .st-stabil .biz-state { color: var(--text-secondary); }
+  .st-bine { border-left-color: #1a7f37; } .st-bine .biz-state { color: #1a7f37; }
+  .biz-filter { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 0 0 var(--space-md); padding: 10px 12px; background: color-mix(in srgb, var(--primary) 7%, transparent); border-radius: var(--radius-lg); }
+  .biz-filter label { font-weight: 600; font-size: .95rem; }
+  .biz-filter select { flex: 1; min-width: 200px; min-height: 40px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
+  .biz-filter button { min-height: 40px; padding: 6px 14px; border: 0; border-radius: 6px; background: var(--primary); color: #fff; font: inherit; cursor: pointer; }
+  .kp-chip { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 4px; vertical-align: 1px; }
+  .t-achizitie { background: #e7f1fb; color: #1d4f8a; } .t-teren { background: #f9eeda; color: #7a4b00; } .t-anaf { background: #efedff; color: #4a3d9a; }
   .biz-h3s { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 20px; margin: 8px 0; }
   .biz-h3s h3 { font-size: 1rem; margin: 8px 0 2px; }
   .biz-h3s p { margin: 0; font-size: .9rem; color: var(--text-secondary); }
@@ -109,7 +130,8 @@
 
 {% macro delta(p, bad=False) -%}
 {%- if p is none -%}<span class="delta">–</span>
-{%- else -%}<span class="delta {{ 'bad' if bad }} {{ 'up' if p > 0 else 'down' if p < 0 }}">{{ fmt_pct(p) }}</span>{%- endif -%}
+{%- elif p|abs < 3 -%}<span class="delta flat">{{ '▲' if p > 0 else '▼' if p < 0 else '' }} {{ fmt_pct(p) }}</span>
+{%- else -%}<span class="delta {{ 'bad' if bad }} {{ 'up' if p > 0 else 'down' }}">{{ '▲' if p > 0 else '▼' }} {{ fmt_pct(p) }}</span>{%- endif -%}
 {%- endmacro %}
 
 {% block content %}
@@ -124,11 +146,39 @@
 
       <div class="biz-kpis">
         {% for r in (rows or []) if r.key in ('inmatriculari', 'insolvente') %}
-        <a class="biz-kpi" href="#firme"><span class="label">{{ r.label }}, {{ ytd_label }}</span><span class="value">{{ fmt_int(r.ytd) }}</span>{{ delta(r.change, bad=(r.key != 'inmatriculari')) }} <span class="biz-note">față de {{ year - 1 }}</span></a>
+        <a class="biz-kpi" href="#firme"><span class="label">{{ r.label }}, {{ ytd_label }}</span><span class="value">{{ fmt_int(r.ytd) }}</span>{{ delta(r.change, bad=(r.key != 'inmatriculari')) }} <span class="biz-note">față de {{ year - 1 }}</span>{% if sparks.get(r.key) %}<span class="biz-spark">{{ sparks[r.key] }}<span class="biz-note">pe lună</span></span>{% endif %}</a>
         {% endfor %}
         <a class="biz-kpi" href="#joburi"><span class="label">Locuri de muncă AJOFM</span><span class="value">{{ fmt_int(positions) }}</span><span class="biz-note">posturi în {{ plural(jobs_count, 'ofertă', 'oferte') }}</span></a>
         <a class="biz-kpi" href="{{ lic_path }}"><span class="label">Licitații și achiziții în județ</span><span class="value">{{ fmt_int(lic_report.total) }}</span><span class="biz-note">anunțuri ale primăriilor și bunuri ANAF →</span></a>
       </div>
+
+      {% if health %}
+      <section class="biz-health" aria-labelledby="sanatate">
+        <h2 id="sanatate" class="biz-health-title">Sănătatea afacerilor în județ, {{ ytd_label }}</h2>
+        <div class="biz-health-grid">
+        {% for h in health %}
+          <div class="biz-hcard st-{{ h.state }}">
+            <span class="label">{{ h.label }}</span>
+            <span class="value">{{ ('%.1f' % h.value)|replace('.', ',') }}</span>
+            <span class="biz-note">{% if h.prev is not none %}{{ year - 1 }}: {{ ('%.1f' % h.prev)|replace('.', ',') }} ({{ '▲' if h.change > 0 else '▼' }} {{ fmt_pct(h.change) }}){% endif %}{% if h.national is not none %} · România: {{ ('%.1f' % h.national)|replace('.', ',') }}{% endif %}</span>
+            <span class="biz-state">{{ {'rau': 'Semnal de alarmă', 'atentie': 'De urmărit', 'stabil': 'Stabil', 'bine': 'În îmbunătățire'}[h.state] }}</span>
+          </div>
+        {% endfor %}
+        </div>
+        <details class="biz-details"><summary>Cum calculăm</summary>
+          <p class="biz-note">Împărțim cifrele ONRC de la începutul anului: {% for h in health %}{{ h.formula }}{{ '; ' if not loop.last else '.' }}{% endfor %} Radierile nu le adunăm cu dizolvările, pentru că multe firme dizolvate sunt radiate apoi. „Semnal de alarmă” înseamnă că județul e peste media națională sau a crescut cu peste 20% față de anul trecut; „Stabil”, o variație sub 3%. Nu e un scor inventat: oricine poate reface calculul din <a href="{{ hub_path }}/date-onrc-brasov.csv">datele ONRC</a>.</p>
+        </details>
+      </section>
+      {% endif %}
+
+      <form class="biz-filter" method="get" action="{{ lic_path }}">
+        <label for="biz-loc">Ce se întâmplă în localitatea ta</label>
+        <select id="biz-loc" name="localitate" onchange="if(this.value)this.form.submit()">
+          <option value="">Alege localitatea…</option>
+          {% for u in localitati %}{% set n = lic_counts_by_loc.get(u.slug, 0) %}<option value="{{ u.slug }}">{{ u.title }}{% if n %} ({{ n }} {{ 'anunț' if n == 1 else 'anunțuri' }}){% endif %}</option>{% endfor %}
+        </select>
+        <button type="submit">Vezi anunțurile</button>
+      </form>
 
       <nav class="biz-quick" aria-label="Pe această pagină">
         <a href="#firme">Firme</a><a href="#evolutie">Evoluție lunară</a><a href="#judete">Județe</a><a href="#joburi">Joburi</a><a href="#anunturi-primarii">Licitații</a>{% if reports %}<a href="#rapoarte">Rapoarte</a>{% endif %}{% if news %}<a href="#stiri">Știri</a>{% endif %}
@@ -161,6 +211,10 @@
           <p>{{ fmt_int(r.ytd) }} în {{ ytd_label }}, {{ fmt_pct(r.change) }} față de aceeași perioadă din {{ year - 1 }} ({{ fmt_int(r.ytd_prev) }}){% if r.national_change is not none %}; la nivel național {{ fmt_pct(r.national_change) }}{% endif %}. Doar în {{ month_label }}: {{ fmt_int(r.month) }}.</p>
         {% endfor %}
         </div>
+        {% if chart_forms %}
+        <h3>SRL sau PFA: ce fel de firme se deschid</h3>
+        <figure class="biz-fig">{{ chart_forms }}<figcaption class="biz-note">Firme noi pe forme de organizare, {{ ytd_label }} față de aceeași perioadă din {{ year - 1 }}. Sursa: ONRC.</figcaption></figure>
+        {% endif %}
         <p class="biz-note">Datele lunare pentru Brașov și România: <a href="{{ hub_path }}/date-onrc-brasov.csv">descarcă CSV</a> (sursa: fișierele ONRC).</p>
         <p class="biz-note">{% if reg_rank[0] %}Brașovul e pe locul {{ reg_rank[0] }} din {{ reg_rank[1] }} de județe la înmatriculări (fără București){% if act_rank[0] %} și pe locul {{ act_rank[0] }} la numărul de profesioniști activi{% endif %}. {% endif %}
         {% if forms %}Pe forme de organizare:{% for f in forms %} {{ fmt_int(f.ytd) }} {{ f.label }} ({{ fmt_pct(f.change) }}){{ ',' if not loop.last else '.' }}{% endfor %}{% endif %}
@@ -237,8 +291,8 @@
         {% endif %}
         {% if lic.achizitii or lic.terenuri %}
         <ul class="biz-list">
-          {% for i in lic.achizitii[:4] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta">{{ i.place }} · cerere de ofertă / licitație</span></li>{% endfor %}
-          {% for i in lic.terenuri[:2] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta">{{ i.place }} · teren</span></li>{% endfor %}
+          {% for i in lic.achizitii[:4] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta"><span class="kp-chip t-achizitie">Achiziție</span> {{ i.place }}{% if i.when %} · {{ i.when[8:10] }}.{{ i.when[5:7] }}{% endif %}</span></li>{% endfor %}
+          {% for i in lic.terenuri[:2] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta"><span class="kp-chip t-teren">Teren</span> {{ i.place }}{% if i.when %} · {{ i.when[8:10] }}.{{ i.when[5:7] }}{% endif %}</span></li>{% endfor %}
         </ul>
         {% endif %}
         <p class="biz-note">Acum: {{ plural(lic_counts.achizitii, 'cerere de ofertă sau licitație', 'cereri de ofertă și licitații') }} de la primării, {{ plural(lic_counts.terenuri, 'teren', 'terenuri') }} și {{ plural(lic_counts.anaf, 'bun ANAF', 'bunuri ANAF') }}{% if lic_report.anaf_types %} ({% for t, n in lic_report.anaf_types[:3] %}{{ t|lower }}: {{ n }}{{ ', ' if not loop.last }}{% endfor %}){% endif %}.</p>

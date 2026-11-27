@@ -128,3 +128,46 @@ def licitatii_report(groups, top=6):
     return {"places": [(names[s], n, s) for s, n in places.most_common(top)],
             "anaf_types": anaf_types.most_common(top),
             "total": sum(len(groups.get(k, [])) for k in ("achizitii", "terenuri", "anaf"))}
+
+
+def _ratio(a, b, per):
+    return round(a * per / b, 1) if a is not None and b else None
+
+
+def health_index(payload, county=COUNTY):
+    """Doi indicatori calculați la vedere din ONRC (ian.–luna curentă, față de anul trecut și de țară).
+
+    - insolvențe la 1.000 de înmatriculări;
+    - radieri la 100 de înmatriculări (fără dizolvări: multe firme dizolvate sunt radiate apoi, s-ar număra de două ori).
+    Starea: „rau” dacă județul e peste media națională sau a crescut cu peste 20% față de anul trecut;
+    „stabil” dacă variația e sub ±3%; altfel „bine” (scade) sau „atentie” (crește puțin).
+    """
+    stats = payload.get("stats") or {}
+
+    def get(stat, who):
+        s = stats.get(stat) or {}
+        return (s.get("counties") or {}).get(county) if who == "county" else s.get("national")
+
+    out = []
+    for key, stat, per, label, unit in (("insolvente", "insolvente", 1000, "Insolvențe la 1.000 de firme noi", "la 1.000"),
+                                         ("radieri", "radieri", 100, "Radieri la 100 de firme noi", "la 100")):
+        c, r = get(stat, "county") or {}, get("inmatriculari", "county") or {}
+        n, rn = get(stat, "nat") or {}, get("inmatriculari", "nat") or {}
+        cur = _ratio(c.get("ytd"), r.get("ytd"), per)
+        prev = _ratio(c.get("ytd_prev"), r.get("ytd_prev"), per)
+        nat = _ratio(n.get("ytd"), rn.get("ytd"), per)
+        if cur is None:
+            continue
+        change = round((cur - prev) * 100 / prev, 1) if prev else None
+        if (nat is not None and cur > nat) or (change is not None and change > 20):
+            state = "rau"
+        elif change is not None and abs(change) < 3:
+            state = "stabil"
+        elif change is not None and change < 0:
+            state = "bine"
+        else:
+            state = "atentie"
+        out.append({"key": key, "label": label, "unit": unit, "value": cur, "prev": prev, "national": nat,
+                    "change": change, "state": state,
+                    "formula": f"{c.get('ytd')} {'insolvențe' if stat == 'insolvente' else 'radieri'} / {r.get('ytd')} înmatriculări × {per}"})
+    return out

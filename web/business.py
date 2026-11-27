@@ -376,6 +376,8 @@ def hub():
     ctx["lic_counts"] = {k: len(v) for k, v in lic.items()}
     ctx["lic_path"] = LICITATII_PATH
     ctx["lic_report"] = rep.licitatii_report(lic)
+    ctx["localitati"] = sorted(load_map()["uat"], key=lambda u: u["slug"])
+    ctx["lic_counts_by_loc"] = licitatii_counts(lic)
     ctx["plural"] = rep.plural
     ctx["de"] = rep.de
     ctx.update(build_reports(payload, active_jobs if jobs_count else [], ctx))
@@ -386,7 +388,8 @@ def hub():
 
 def build_reports(payload, jobs, ctx):
     """Graficele și cifrele-cheie ale hub-ului. Un grafic fără date suficiente nu apare deloc."""
-    out = {"chart_reg": None, "chart_rad": None, "chart_vs": None, "chart_rank": None,
+    out = {"chart_reg": None, "chart_rad": None, "chart_vs": None, "chart_rank": None, "health": [], "sparks": {},
+           "chart_forms": None,
            "headline": None, "rank1000": None, "jobs_rep": None, "chart_jobs": {}}
     if payload:
         period = payload["period_end"][:7]
@@ -402,6 +405,19 @@ def build_reports(payload, jobs, ctx):
                             "points": pts, "desc": desc, "months": len(pts)}
         rows = ctx.get("rows") or []
         out["headline"] = rep.headline(rows)
+        out["health"] = rep.health_index(payload)
+        out["sparks"] = {stat: charts.sparkline(rep.series(hist, stat), f"{word.capitalize()} pe lună")
+                         for stat, word in (("inmatriculari", "înmatriculări"), ("radieri", "radieri"),
+                                            ("dizolvari", "dizolvări"), ("suspendari", "suspendări"))
+                         if (rep.series(hist, stat) or [("", 0)])[-1][0] == period}
+        frm = ctx.get("forms") or []
+        if frm:
+            yr = ctx["year"]
+            out["chart_forms"] = charts.paired_hbars(
+                [(f["label"][:1].upper() + f["label"][1:], f["ytd"], f["ytd_prev"]) for f in frm],
+                f"Firme noi pe forme de organizare: {ctx['ytd_label']} față de {yr - 1}",
+                "; ".join(f"{f['label']}: {fmt_int(f['ytd'])} față de {fmt_int(f['ytd_prev'])} ({fmt_pct(f['change'])})" for f in frm),
+                series=(str(yr), str(yr - 1)))
         vs = [(r["short"] if r.get("short") else r["label"], r.get("change"), r.get("national_change")) for r in rows]
         if vs:
             out["chart_vs"] = charts.diverging(

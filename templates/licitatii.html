@@ -7,6 +7,8 @@
 {% block json_ld %}{% for item in jsonld %}<script type="application/ld+json">{{ item|tojson }}</script>{% endfor %}{% endblock %}
 {% block extra_css %}
 <style>
+  .kp-chip { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 6px; vertical-align: 2px; }
+  .t-achizitie { background: #e7f1fb; color: #1d4f8a; } .t-teren { background: #f9eeda; color: #7a4b00; } .t-anaf { background: #efedff; color: #4a3d9a; }
   .lic-intro { color: var(--text-secondary); max-width: 66ch; margin-bottom: var(--space-md); }
   .lic-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: var(--space-lg, 24px); align-items: start; }
   .lic-map { position: sticky; top: 16px; order: 2; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
@@ -55,7 +57,7 @@
 {% endblock %}
 {% macro row(i, show_place=True) -%}
 {% set parts = [] %}{% if show_place and i.place %}{% set _ = parts.append(i.place) %}{% endif %}{% if i.when %}{% set _ = parts.append(i.when[8:10] ~ '.' ~ i.when[5:7] ~ '.' ~ i.when[:4] ~ (' (data la care l-am găsit)' if i.date_guessed else '')) %}{% endif %}{% if i.procedure and i.source == 'anaf' %}{% set _ = parts.append(i.procedure) %}{% endif %}{% if i.subcategory or i.category %}{% set _ = parts.append(i.subcategory or i.category) %}{% endif %}
-<li data-loc="{{ i.loc or '' }}"{% if selected and i.loc != selected %} hidden{% endif %}>{% if i.is_new %}<span class="lic-new">NOU</span>{% endif %}<a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
+<li data-loc="{{ i.loc or '' }}"{% if selected and i.loc != selected %} hidden{% endif %}>{% if i.is_new %}<span class="lic-new">NOU</span>{% endif %}{% set k = 'anaf' if i.source == 'anaf' else ('teren' if i.topic == 'terenuri' else 'achizitie') %}<span class="kp-chip t-{{ k }}">{{ {'anaf': 'ANAF', 'teren': 'Teren', 'achizitie': 'Achiziție'}[k] }}</span><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
 <span class="lic-meta">{{ parts|join(' · ') }}</span></li>
 {%- endmacro %}
 {% macro section_list(items, base, all_suffix='', show_place=True) -%}

@@ -94,3 +94,22 @@ def test_onrc_history_accumulates_months(tmp_path):
     assert h["radieri"]["2026-10"]["counties"]["Brașov"] == 117 and h["activi"]["2026-09"]["counties"]["Brașov"] == 50
     html = '<a href="/statistici/2025/martie/Radieri.xlsx">x</a><a href="/statistici/2026/ianuarie/Radieri.xls">y</a>'
     assert [f[:2] for f in onrc.list_files(html, "radieri")] == [(2025, 3), (2026, 1)]
+
+
+def test_health_index_states_and_formula():
+    stats = {"inmatriculari": {"counties": {"Brașov": {"ytd": 3481, "ytd_prev": 4362}}, "national": {"ytd": 107620, "ytd_prev": 126757}},
+             "insolvente": {"counties": {"Brașov": {"ytd": 169, "ytd_prev": 123}}, "national": {"ytd": 6008, "ytd_prev": 5318}},
+             "radieri": {"counties": {"Brașov": {"ytd": 2056, "ytd_prev": 2166}}, "national": {"ytd": 64655, "ytd_prev": 68486}}}
+    h = {x["key"]: x for x in rep.health_index({"stats": stats})}
+    assert (h["insolvente"]["value"], h["insolvente"]["prev"], h["insolvente"]["national"]) == (48.5, 28.2, 55.8)
+    assert h["insolvente"]["state"] == "rau"  # +72% față de anul trecut
+    assert h["radieri"]["value"] == 59.1 and h["radieri"]["state"] == "atentie"
+    assert h["insolvente"]["formula"] == "169 insolvențe / 3481 înmatriculări × 1000"
+
+
+def test_sparkline_and_paired_bars():
+    sp = str(charts.sparkline([("2026-08", 259), ("2026-09", 211), ("2026-10", 198)], "Înmatriculări"))
+    assert 'class="kp-spark"' in sp and "De la 259 în aug 26 la 198 în oct 26" in sp
+    assert str(charts.sparkline([("2026-10", 1)], "x")) == ""
+    pb = str(charts.paired_hbars([("SRL-uri", 1725, 2784)], "t", "d", series=("2026", "2025")))
+    assert ">1.725<" in pb and ">2.784<" in pb
