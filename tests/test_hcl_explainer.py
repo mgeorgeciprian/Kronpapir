@@ -73,7 +73,8 @@ def test_pick_documents_skips_plans_and_announcements():
 def test_candidates_open_first_and_year_filter():
     store = {"items": {"hcl-a": dict(ITEM, status="Aprobat prin HCL", published="2026-09-01"),
                        "hcl-b": dict(ITEM, published="2026-10-30"),
-                       "hcl-c": dict(ITEM, status="Aprobat prin HCL", published="2024-01-01")}}
+                       "hcl-c": dict(ITEM, status="Aprobat prin HCL", published="2024-01-01"),
+                       "hcl-d": dict(ITEM, published="2024-01-08")}}  # „în dezbatere” rămas din 2024 pe site
     assert [c["id"] for c in hx.candidates(store, {}, year=2026)] == ["hcl-b", "hcl-a"]
     assert [c["id"] for c in hx.candidates(store, {"hcl-b": {}}, year=2026)] == ["hcl-a"]
 

@@ -242,7 +242,7 @@ def candidates(store, done, year=None, only=None, redo_drafts=False):
     items = [it for it in items if it["id"] not in done
              or (redo_drafts and done[it["id"]].get("status") == "draft" and not done[it["id"]].get("reviewed_at"))]
     if year:
-        items = [it for it in items if (it.get("published") or "")[:4] >= str(year) or "dezbatere" in it["status"].lower()]
+        items = [it for it in items if (it.get("published") or "")[:4] >= str(year)]
     items.sort(key=lambda it: ("dezbatere" not in it["status"].lower(), -int((it.get("published") or "0000-00-00").replace("-", ""))))
     return items
 
@@ -288,7 +288,7 @@ def run(limit=3, year=None, only=None, data_dir=None, client=None, explainer=Non
 def main(argv=None):
     parser = argparse.ArgumentParser(description="Explicații pe înțeles pentru proiectele HCL Brașov")
     parser.add_argument("--limit", type=int, default=3)
-    parser.add_argument("--year", type=int, default=None, help="doar proiectele publicate din acest an (plus cele în dezbatere)")
+    parser.add_argument("--year", type=int, default=None, help="doar proiectele publicate din acest an încolo")
     parser.add_argument("--id", default=None)
     parser.add_argument("--data-dir", default=None)
     parser.add_argument("--dry-run", action="store_true")
