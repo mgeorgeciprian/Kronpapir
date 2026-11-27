@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+
+{% block title %}Explicații HCL - KronPapir Admin{% endblock %}
+{% block robots %}<meta name="robots" content="noindex, nofollow">{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <div class="admin-title-bar">
+    <h1>Explicații HCL</h1>
+  </div>
+  <div class="admin-nav">
+    <a href="{{ url_for('admin_dashboard') }}" class="admin-nav-link">Dashboard</a>
+    <a href="{{ url_for('admin_drafts') }}" class="admin-nav-link">Ciorne</a>
+    <a href="{{ url_for('admin_hcl_explanations') }}" class="admin-nav-link active">Explicații HCL</a>
+    <a href="{{ url_for('admin_articles') }}" class="admin-nav-link">Toate Articolele</a>
+  </div>
+</div>
+
+<div class="articles-admin-container">
+  <p>Explicațiile cu scor de fact-check sub 8 sau cu erori rămân ciorne. Le publici de aici; cele publicate le poți ascunde oricând. Pagina publică: <a href="/afaceri-brasov/primaria-brasov#hotarari">/afaceri-brasov/primaria-brasov</a>.</p>
+  {% for r in rows %}{% set e = r.explicatie %}
+  <div style="border:1px solid var(--border);border-left:5px solid {{ '#b45309' if r.status == 'draft' else '#2d5a3d' if r.status == 'published' else '#888' }};border-radius:8px;padding:12px 16px;margin:12px 0;background:var(--surface)">
+    <p style="margin:0;font-size:.8rem;text-transform:uppercase;font-weight:700">{{ {'draft': 'Ciornă', 'published': 'Publicată', 'hidden': 'Ascunsă'}.get(r.status, r.status) }} · scor {{ r.factcheck.scor or '–' }}{% if r.reviewed_at %} · verificată de {{ r.reviewed_by }}{% endif %}</p>
+    <p style="margin:4px 0;font-size:.85rem"><a href="{{ r.url }}" target="_blank" rel="noopener">{{ r._title[:160] }}</a></p>
+    <h3 style="margin:6px 0">{{ e.titlu_simplu }}</h3>
+    <p>{{ e.pe_scurt }}</p>
+    <details><summary>Tot textul</summary>
+      <ul>{% for x in e.ce_se_schimba + e.pe_cine_afecteaza %}<li>{{ x }}</li>{% endfor %}</ul>
+      <ul>{% for c in e.cifre_cheie %}<li><b>{{ c.cifra }}</b>: {{ c.ce_inseamna }}</li>{% endfor %}</ul>
+      <p><b>Ce poți face:</b> {{ e.ce_poti_face }}</p>
+      <p><b>Ce nu reiese:</b> {{ e.ce_nu_stim }}</p>
+      <p style="font-size:.85rem">Documente citite: {{ r.documents|join(', ') }}</p>
+    </details>
+    {% if r.factcheck.erori or r.factcheck.erori_editor %}
+    <p style="color:#b42318;font-size:.9rem"><b>Probleme găsite:</b>
+      {% for x in r.factcheck.erori %}{{ x.tip }} „{{ x.valoare }}”; {% endfor %}
+      {% for x in r.factcheck.erori_editor %}„{{ x.valoare }}”: {{ x.motiv }}; {% endfor %}</p>
+    {% endif %}
+    <div style="display:flex;gap:8px">
+      {% if r.status != 'published' %}<form method="post" action="{{ url_for('admin_hcl_explanation_action', doc_id=r.id, action='publica') }}"><button type="submit" class="btn-primary">Publică (cu verificare umană)</button></form>{% endif %}
+      {% if r.status != 'hidden' %}<form method="post" action="{{ url_for('admin_hcl_explanation_action', doc_id=r.id, action='ascunde') }}"><button type="submit">Ascunde</button></form>{% endif %}
+    </div>
+  </div>
+  {% else %}
+  <p>Nicio explicație încă. Rulează <code>python -m ai.hcl_explainer --year 2026</code>.</p>
+  {% endfor %}
+</div>
+{% endblock %}

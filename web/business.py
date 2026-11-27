@@ -329,7 +329,47 @@ def clean_doc_title(title):
     return t[:1].upper() + t[1:]
 
 
-def primaria_groups(store, today=None):
+_PUBLIC_FILE = re.compile(r"anun|proiect|phcl|referat|raport de specialitate|anex|regulament|caiet|ghid", re.I)
+
+
+def public_files(files):
+    """Doar documentele de procedură (anunț, proiect, referat, raport, anexe), nu și planurile PUZ,
+    ale căror nume de fișier pot conține numele unei persoane fizice. Restul: pe brasovcity.ro."""
+    from sources.brasovcity import redact_private
+    out = []
+    for f in files or []:
+        if _PUBLIC_FILE.search(f.get("name") or "") and not re.search(r"plan|reglement|memoriu", f["name"], re.I):
+            out.append(dict(f, name=redact_private(f["name"])))
+    return out
+
+
+def explanations_dir():
+    return Path(current_app.config.get("BRASOVCITY_STORE") or BRASOVCITY_STORE).parent / "explicatii"
+
+
+_exp_cache = {"key": None, "data": {}}
+
+
+def load_explanations(folder=None):
+    """Explicațiile HCL (ai/hcl_explainer.py), după id. Cache invalidat când se schimbă folderul."""
+    folder = Path(folder or explanations_dir())
+    if not folder.exists():
+        return {}
+    files = sorted(folder.glob("*.json"))
+    key = (str(folder), tuple((f.name, f.stat().st_mtime_ns) for f in files))
+    with _lock:
+        if _exp_cache["key"] != key:
+            data = {}
+            for f in files:
+                try:
+                    data[f.stem] = json.loads(f.read_text(encoding="utf-8"))
+                except ValueError:
+                    continue
+            _exp_cache.update(key=key, data=data)
+        return _exp_cache["data"]
+
+
+def primaria_groups(store, today=None, explanations=None):
     """Documentele Primăriei Brașov pe grupe, pentru pagina dedicată și pentru hub.
 
     - hcl_open: proiecte în dezbatere publică, cu termen de propuneri neexpirat;
@@ -340,8 +380,13 @@ def primaria_groups(store, today=None):
     today = (today or date.today()).isoformat()
     since = (date.fromisoformat(today) - timedelta(days=WAITING_DAYS)).isoformat()
     out = {k: [] for k in ("hcl_open", "hcl_waiting", "hcl_decided", "lic_open", "lic_past")}
-    for it in (store.get("items") or {}).values():
-        d = dict(it, title=clean_doc_title(it.get("title")))
+    explanations = explanations or {}
+    for doc_id, it in (store.get("items") or {}).items():
+        d = dict(it, id=doc_id, title=clean_doc_title(it.get("title")), files=public_files(it.get("files")))
+        d["n_files"] = it.get("n_files") or len(it.get("files") or [])
+        exp = explanations.get(doc_id)
+        if exp and exp.get("status") == "published":
+            d["exp"] = exp
         dl, pub, status = d.get("deadline"), d.get("published") or "", (d.get("status") or "").lower()
         if dl and dl >= today:
             d["days_left"] = (date.fromisoformat(dl) - date.fromisoformat(today)).days
@@ -363,6 +408,20 @@ def primaria_groups(store, today=None):
         out[k].sort(key=lambda d: (d.get("status_since") or "", d.get("published") or ""), reverse=True)
     out["lic_past"].sort(key=lambda d: d.get("deadline") or d.get("published") or "", reverse=True)
     return out
+
+
+def primaria_sidebar(limit=3):
+    """Caseta de pe prima pagină: proiectele cu termen deschis, apoi ultimele explicate. Fără date: None."""
+    try:
+        g = primaria_groups(load_brasovcity(), explanations=load_explanations())
+    except Exception:
+        return None
+    items = g["hcl_open"] + g["lic_open"]
+    explained = [d for d in g["hcl_waiting"] + g["hcl_decided"] if d.get("exp")]
+    items = (items + explained)[:limit]
+    if not items:
+        return None
+    return {"docs": items, "path": PRIMARIA_PATH, "n_open": len(g["hcl_open"]), "n_lic": len(g["lic_open"])}
 
 
 def breadcrumbs():
@@ -412,7 +471,7 @@ def hub():
     articles = [a for a in articles if not a.get("duplicate_of") and not a.get("is_editorial")]
     news = [a for a in articles if _is_business(a) and not _is_public_doc(a)][:8]
     reports = [a for a in articles if str(a.get("id", "")).startswith(("onrc-raport-", "ajofm-raport-"))][:6]
-    ctx = {"payload": payload, "pb": primaria_groups(load_brasovcity()), "primaria_path": PRIMARIA_PATH, "news": news, "reports": reports,
+    ctx = {"payload": payload, "pb": primaria_groups(load_brasovcity(), explanations=load_explanations()), "primaria_path": PRIMARIA_PATH, "news": news, "reports": reports,
            "hub_path": HUB_PATH,
            "categories": current_app.config.get("KP_CATEGORIES", {}),
            "fmt_int": fmt_int, "fmt_pct": fmt_pct, "hide_ticker": True}
@@ -558,7 +617,7 @@ def _licitatii_page(selected):
 @bp.route(PRIMARIA_PATH)
 def primaria():
     store = load_brasovcity()
-    g = primaria_groups(store)
+    g = primaria_groups(store, explanations=load_explanations())
     url = SITE_URL + PRIMARIA_PATH
     crumbs = breadcrumbs()
     crumbs["itemListElement"].append({"@type": "ListItem", "position": 3, "name": "Primăria Brașov", "item": url})

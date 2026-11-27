@@ -49,6 +49,21 @@
   .pb-list a { color: inherit; font-weight: 500; text-decoration: none; }
   .pb-list a:hover { color: var(--primary); text-decoration: underline; }
   .pb-list .pb-meta { margin-top: 3px; }
+  .pb-exp { margin: 10px 0 4px; padding: 12px 14px; border-radius: 10px; background: color-mix(in srgb, var(--primary) 7%, var(--surface)); border: 1px solid color-mix(in srgb, var(--primary) 22%, transparent); }
+  .pb-exp-kicker { margin: 0; font-size: .72rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--primary); }
+  .pb-exp-title { margin: 2px 0 4px; font-weight: 700; font-size: 1.05rem; line-height: 1.35; }
+  .pb-exp-lead { margin: 0 0 6px; font-size: .95rem; }
+  .pb-exp details summary { cursor: pointer; color: var(--primary); font-weight: 600; font-size: .9rem; min-height: 36px; display: flex; align-items: center; }
+  .pb-exp h4 { margin: 10px 0 4px; font-size: .9rem; font-family: var(--font-sans); }
+  .pb-exp ul { margin: 0 0 4px 18px; padding: 0; font-size: .92rem; }
+  .pb-exp li, .pb-list .pb-exp li { margin: 2px 0; padding: 0; border: 0; }
+  .pb-exp p { font-size: .92rem; }
+  .pb-nums { display: grid; grid-template-columns: max-content 1fr; gap: 4px 12px; margin: 0; font-size: .92rem; }
+  .pb-nums dt { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--primary); }
+  .pb-nums dd { margin: 0; }
+  .pb-exp-label { margin: 8px 0 0; font-size: .78rem !important; color: var(--text-secondary); }
+  .pb-exp-label a { color: var(--primary); text-decoration: underline; }
+  .pb-list .pb-exp { margin-top: 8px; }
   .pb-year { margin: 6px 0; }
   .pb-year > summary { cursor: pointer; font-weight: 700; min-height: 40px; display: flex; align-items: center; color: var(--primary); }
   .pb-empty { padding: 12px 16px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); font-size: .92rem; }
@@ -68,7 +83,24 @@
 {%- endmacro %}
 {% macro dmy(d) %}{{ d[8:10] }}.{{ d[5:7] }}.{{ d[:4] }}{% endmacro %}
 {% macro files(d, n=4) -%}
-{% if d.files %}<ul class="pb-files">{% for f in d.files[:n] %}<li><a href="{{ f.url }}" rel="noopener nofollow" target="_blank"><span class="pb-pdf">PDF</span> {{ f.name[:60] }}</a></li>{% endfor %}{% if d.n_files > n %}<li><a href="{{ d.url }}" rel="noopener nofollow" target="_blank">+ încă {{ d.n_files - n }} pe brasovcity.ro</a></li>{% endif %}</ul>{% endif %}
+{% set shown = d.files[:n] %}{% if shown or d.n_files %}<ul class="pb-files">{% for f in shown %}<li><a href="{{ f.url }}" rel="noopener nofollow" target="_blank"><span class="pb-pdf">PDF</span> {{ f.name[:60] }}</a></li>{% endfor %}{% if d.n_files > shown|length %}<li><a href="{{ d.url }}" rel="noopener nofollow" target="_blank">{{ 'Documentele' if not shown else '+ încă ' ~ (d.n_files - shown|length) }} pe brasovcity.ro</a></li>{% endif %}</ul>{% endif %}
+{%- endmacro %}
+{% macro explain(d, open=False) -%}
+{% if d.exp %}{% set e = d.exp.explicatie %}
+<div class="pb-exp">
+  <p class="pb-exp-kicker">Pe înțelesul tuturor</p>
+  <p class="pb-exp-title">{{ e.titlu_simplu }}</p>
+  <p class="pb-exp-lead">{{ e.pe_scurt }}</p>
+  <details{% if open %} open{% endif %}><summary>Ce se schimbă, pe cine afectează, ce poți face</summary>
+    {% if e.ce_se_schimba %}<h4>Ce se schimbă</h4><ul>{% for x in e.ce_se_schimba %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% if e.pe_cine_afecteaza %}<h4>Pe cine afectează</h4><ul>{% for x in e.pe_cine_afecteaza %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+    {% if e.cifre_cheie %}<h4>Cifrele din documente</h4><dl class="pb-nums">{% for c in e.cifre_cheie %}<dt>{{ c.cifra }}</dt><dd>{{ c.ce_inseamna }}</dd>{% endfor %}</dl>{% endif %}
+    {% if e.ce_poti_face %}<h4>Ce poți face</h4><p>{{ e.ce_poti_face }}</p>{% endif %}
+    {% if e.ce_nu_stim %}<h4>Ce nu reiese din documente</h4><p>{{ e.ce_nu_stim }}</p>{% endif %}
+  </details>
+  <p class="pb-exp-label">{% if d.exp.reviewed_at %}Explicație generată automat din documentele oficiale, cu verificare umană.{% else %}{{ d.exp.label }}{% endif %} Textul care contează juridic e cel din <a href="{{ d.url }}" rel="noopener" target="_blank">documentele Primăriei</a>.</p>
+</div>
+{% endif %}
 {%- endmacro %}
 
 {% block content %}
@@ -96,9 +128,10 @@
         {% if g.hcl_open %}
         <div class="pb-cards">
           {% for d in g.hcl_open %}
-          <article class="pb-card{{ ' urgent' if d.days_left is defined and d.days_left <= 5 }}">
+          <article class="pb-card{{ ' urgent' if d.days_left is defined and d.days_left <= 5 }}" id="{{ d.id }}">
             <h3><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a></h3>
             <div class="pb-meta"><span class="pb-badge b-days">{% if d.days_left == 0 %}ultima zi pentru propuneri{% elif d.days_left == 1 %}mai e o zi pentru propuneri{% else %}mai sunt {{ d.days_left }} zile pentru propuneri{% endif %}</span><span>termen {{ dmy(d.deadline) }}</span>{% if d.published %}<span>publicat {{ dmy(d.published) }}</span>{% endif %}</div>
+            {{ explain(d, open=True) }}
             {% if d.notes %}<details class="pb-notes"><summary>Cum trimiți o propunere</summary><p>{{ d.notes }}</p></details>{% endif %}
             {{ files(d) }}
           </article>
@@ -110,7 +143,7 @@
         {% if g.hcl_waiting %}
         <h3 style="font-size:1.05rem;margin:18px 0 6px">Termenul de propuneri a trecut, urmează votul</h3>
         <ul class="pb-list">
-          {% for d in g.hcl_waiting %}<li><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><div class="pb-meta">{{ status_badge(d.status) }}{% if d.deadline %}<span>propuneri până la {{ dmy(d.deadline) }}</span>{% endif %}{% if d.published %}<span>publicat {{ dmy(d.published) }}</span>{% endif %}</div></li>{% endfor %}
+          {% for d in g.hcl_waiting %}<li id="{{ d.id }}"><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><div class="pb-meta">{{ status_badge(d.status) }}{% if d.deadline %}<span>propuneri până la {{ dmy(d.deadline) }}</span>{% endif %}{% if d.published %}<span>publicat {{ dmy(d.published) }}</span>{% endif %}</div>{{ explain(d) }}</li>{% endfor %}
         </ul>
         {% endif %}
       </div>
@@ -142,11 +175,11 @@
 
       <div class="pb-section" id="hotarari">
         <h2>Hotărârile Consiliului Local Brașov</h2>
-        <p class="lead">Proiectele care au trecut prin consultare și au primit o decizie: aprobate prin HCL, respinse sau retrase de pe ordinea de zi. Data este cea a publicării proiectului; pagina Primăriei nu arată data ședinței.</p>
+        <p class="lead">Proiectele care au trecut prin consultare și au primit o decizie: aprobate prin HCL, respinse sau retrase de pe ordinea de zi. La cele marcate „Pe înțelesul tuturor” găsești ce înseamnă hotărârea, scris din documentele oficiale. Data este cea a publicării proiectului; pagina Primăriei nu arată data ședinței.</p>
         {% for y, docs in by_year %}
         <details class="pb-year"{% if loop.first %} open{% endif %}><summary>{{ y }} ({{ docs|length }})</summary>
           <ul class="pb-list">
-            {% for d in docs %}<li><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><div class="pb-meta">{{ status_badge(d.status) }}{% if d.published %}<span>proiect publicat {{ dmy(d.published) }}</span>{% endif %}{% if d.status_since %}<span>decizie constatată de noi pe {{ dmy(d.status_since) }}</span>{% endif %}</div></li>{% endfor %}
+            {% for d in docs %}<li id="{{ d.id }}"><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><div class="pb-meta">{{ status_badge(d.status) }}{% if d.published %}<span>proiect publicat {{ dmy(d.published) }}</span>{% endif %}{% if d.status_since %}<span>decizie constatată de noi pe {{ dmy(d.status_since) }}</span>{% endif %}</div>{{ explain(d) }}</li>{% endfor %}
           </ul>
         </details>
         {% else %}

@@ -611,6 +611,7 @@ def index():
         national=national_articles,
         editorials=editorial_articles,
         most_read=most_read,
+        primaria=business_web.primaria_sidebar(),
         categories=CATEGORIES,
         adsense_enabled=ADSENSE_ENABLED,
         adsense_client_id=ADSENSE_CLIENT_ID
@@ -2322,6 +2323,36 @@ def admin_draft_reject(article_id):
     except (FileNotFoundError, ValueError):
         abort(404)
     return redirect(url_for('admin_drafts'))
+
+
+@app.route('/admin/explicatii-hcl')
+@admin_required
+def admin_hcl_explanations():
+    """Explicațiile HCL: ciornele (scor sub 8 sau erori) se publică sau se ascund de aici."""
+    exps = business_web.load_explanations()
+    store = business_web.load_brasovcity().get('items') or {}
+    rows = sorted(exps.values(), key=lambda e: ({'draft': 0, 'published': 1}.get(e.get('status'), 2), e.get('created_at') or ''))
+    for r in rows:
+        r['_title'] = business_web.clean_doc_title((store.get(r['id']) or {}).get('title') or r['id'])
+    return render_template('admin_hcl.html', rows=rows, categories=CATEGORIES)
+
+
+@app.route('/admin/explicatii-hcl/<doc_id>/<action>', methods=['POST'])
+@admin_required
+def admin_hcl_explanation_action(doc_id, action):
+    if not _same_origin_post() or action not in ('publica', 'ascunde') or not re.fullmatch(r'hcl-[\w-]+', doc_id):
+        abort(403)
+    path = business_web.explanations_dir() / f'{doc_id}.json'
+    try:
+        rec = json.loads(path.read_text(encoding='utf-8'))
+    except (FileNotFoundError, ValueError):
+        abort(404)
+    if action == 'publica':
+        rec.update(status='published', reviewed_by=_reviewer_name(), reviewed_at=datetime.now().isoformat(timespec='seconds'))
+    else:
+        rec['status'] = 'hidden'
+    editorial_store._write_json_atomic(path, rec)
+    return redirect(url_for('admin_hcl_explanations'))
 
 
 @app.route('/admin/articol/verifica/<article_id>', methods=['POST'])

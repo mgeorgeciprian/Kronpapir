@@ -651,6 +651,10 @@ nav.main-nav {
   }
 }
 
+.pb-side { border-top: 4px solid #2d5a3d; }
+.pb-side-sub { font-size: .85rem; color: var(--text-secondary); margin: -6px 0 8px; }
+.pb-side-more { display: inline-block; margin-top: 6px; font-weight: 600; color: var(--primary); text-decoration: underline; text-underline-offset: 2px; }
+
 .sidebar-title {
   font-family: var(--font-serif);
   font-size: 1.25rem;

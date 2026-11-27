@@ -54,7 +54,7 @@ class FactChecker:
             self.client = Anthropic()
         return self.client
 
-    def check(self, source_article, rewritten):
+    def check(self, source_article, rewritten, source_chars=SOURCE_CHARS):
         now = datetime.now()
         try:
             costs.check(self.cfg, now)
@@ -62,7 +62,7 @@ class FactChecker:
             log.warning("%s Rescrierile merg ca ciorne.", e)
             return None
         source = plain(source_article.get("content") or source_article.get("text")
-                       or source_article.get("original_text") or "")[:SOURCE_CHARS]
+                       or source_article.get("original_text") or "")[:source_chars]
         user = (f"TEXTUL SURSĂ ({source_article.get('source') or '?'}, {source_article.get('url') or ''}):\n"
                 f"Titlu: {source_article.get('title') or ''}\n{source}\n\n"
                 f"RESCRIEREA KRONPAPIR:\nTitlu: {rewritten.get('title') or ''}\n"

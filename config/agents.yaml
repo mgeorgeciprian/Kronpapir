@@ -38,3 +38,7 @@ agents:
     effort: high
     monthly_budget_usd: 15
     use_source_photo: true   # poza sursei doar ca referință de subiect; false = doar din text
+  explicator-hcl:       # explicațiile HCL de pe /afaceri-brasov/primaria-brasov, doar din PDF-urile oficiale
+    model: claude-sonnet-5-5
+    effort: high
+    monthly_budget_usd: 5
