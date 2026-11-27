@@ -41,6 +41,15 @@ class DeterministicTest(unittest.TestCase):
         det = fc.deterministic(SOURCE, rw("Un ocol adaugă 60-80 de kilometri."), NOW)
         self.assertEqual({e["valoare"] for e in det["erori"]}, {"60", "80"})
 
+    def test_number_glued_to_word_in_source_passes(self):
+        src = "termenul de plată a chiriei pentru locurile de parcare este15 decembrie 2026."
+        det = fc.deterministic(src, rw("Chiria se plătește până la 15 decembrie.", title="Chiria parcărilor"), NOW)
+        self.assertEqual(det["erori"], [])
+
+    def test_long_numbers_written_differently_in_source_pass(self):
+        det = fc.deterministic("Informații la 0268-405000.", rw("Informații: 0268 405 000.", title="Informații"), NOW)
+        self.assertFalse([e for e in det["erori"] if e["tip"] == "numar_inexistent"])
+
     def test_small_numbers_and_112_only_warn(self):
         det = fc.deterministic(SOURCE, rw("Durează 3 zile. Sunați la 112."), NOW)
         self.assertEqual(det["erori"], [])
@@ -249,3 +258,17 @@ class OfficialRouteTest(RouteTest):
         from editorial import presentation as pres
         self.assertFalse(pres.should_noindex(art))
         self.assertIn("date oficiale", pres.byline(art)["text"])
+
+
+class FairOrderTest(unittest.TestCase):
+    def test_docs_first_then_round_robin_newest_first(self):
+        import run_pipeline
+        arts = ([{"source": "Digi24", "date": f"2026-11-27T1{i}:00", "t": f"d{i}"} for i in range(4)]
+                + [{"source": "News BV", "date": "2026-11-27T09:00", "t": "n1"},
+                   {"source": "News BV", "date": "2026-11-26T09:00", "t": "n2"},
+                   {"source": "Primăria Brașov", "doc_type": "hcl", "date": "2026-11-20", "t": "hcl"},
+                   {"source": "Bună Ziua Brașov", "date": "", "t": "b1"}])
+        order = [a["t"] for a in run_pipeline.fair_order(arts)]
+        self.assertEqual(order[:4], ["hcl", "d3", "n1", "b1"])
+        self.assertEqual(order[4:6], ["d2", "n2"])
+        self.assertEqual(sorted(order), sorted(a["t"] for a in arts))

@@ -282,6 +282,29 @@ def source_kind(raw):
     return _SOURCE_KINDS.get(raw.get('source'), 'publicatie')
 
 
+def fair_order(articles):
+    """Documentele oficiale (doc_type) întâi, apoi câte o știre din fiecare sursă, pe rând.
+
+    În fiecare sursă, cele mai noi întâi (după data articolului). Sursele se iau în ordinea celei
+    mai noi știri a lor. Ordinea inițială (cea mai recentă descărcare) rămâne criteriu de departajare.
+    """
+    docs = [a for a in articles if a.get('doc_type')]
+    groups = {}
+    for a in articles:
+        if not a.get('doc_type'):
+            groups.setdefault(a.get('source') or '?', []).append(a)
+    date_of = lambda a: str(a.get('date') or a.get('published') or '')
+    for g in groups.values():
+        g.sort(key=date_of, reverse=True)  # sort stabil: la aceeași dată rămâne ordinea descărcării
+    queue = sorted(groups.values(), key=lambda g: date_of(g[0]), reverse=True)
+    out = list(docs)
+    while queue:
+        for g in queue:
+            out.append(g.pop(0))
+        queue = [g for g in queue if g]
+    return out
+
+
 def rewrite_and_route(raw, rewriter, checker):
     """Rescrie, verifică și decide: published (data/processed), draft sau rejected (data/drafts).
 
@@ -295,7 +318,8 @@ def rewrite_and_route(raw, rewriter, checker):
     rewritten = rewriter.rewrite_article(raw)
     if not rewritten:
         return None, "esuat"
-    source_text = raw.get('content') or raw.get('text') or raw.get('original_text') or ''
+    # titlul sursei face parte din sursă: des cifra-cheie („15 decembrie”) e doar acolo
+    source_text = (raw.get('title') or '') + '\n' + (raw.get('content') or raw.get('text') or raw.get('original_text') or '')
     for attempt in (1, 2):
         fc.fix_sedilla(rewritten)
         det = fc.deterministic(source_text, rewritten, official=raw['source_kind'] == 'oficial')
@@ -445,7 +469,9 @@ def run_ai_processing():
             logger.info(f"   Clasificare: {len(local_articles)} locale, {len(national_articles)} naționale, {len(intl_articles)} internaționale")
             # Documentele oficiale (proiecte HCL, licitații ale Primăriei) trec primele: altfel pierd
             # cele 5 locuri în fața știrilor din presă și ies din fereastra de 48h nescrise.
-            local_articles.sort(key=lambda a: 0 if a.get('doc_type') else 1)
+            # Apoi câte o știre din fiecare sursă, pe rând: altfel cele 5 locuri le iau mereu sursele
+            # descărcate ultimele, iar News BV, Bună Ziua Brașov sau primăriile mici nu ajung niciodată la rând.
+            local_articles = fair_order(local_articles)
 
             # === 1. RESCRIE ARTICOLE LOCALE INDIVIDUAL (max 5) ===
             # Înainte de rescriere: aceeași știre de la altă sursă nu se publică a doua oară.

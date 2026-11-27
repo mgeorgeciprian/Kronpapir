@@ -65,6 +65,8 @@ def deterministic(source_text, article, now=None, official=False):
     src_numbers = numbers(re.sub(r"(\d)([.,])\s+(\d)", r"\1\2\3", src)) | numbers(src)
     # în PDF-uri cifra e des lipită de unitate („501lei”, „400kV”): o despărțim doar în textul sursă
     src_numbers |= numbers(re.sub(r"(\d)([^\W\d_])", r"\1 \2", src))
+    # la fel, cuvântul lipit de cifră („este15 decembrie”, „platforma2026”)
+    src_numbers |= numbers(re.sub(r"([^\W\d_])(\d)", r"\1 \2", src))
     body = " ".join(plain(article.get(k) or "") for k in ("title", "content", "excerpt"))
     erori, avert = [], []
 
@@ -75,6 +77,8 @@ def deterministic(source_text, article, now=None, official=False):
         if forms & src_numbers or forms & allowed_years:
             continue
         digits = re.sub(r"\D", "", raw)
+        if len(digits) >= 9 and digits in re.sub(r"\D", "", src):  # telefon, CUI, IBAN scrise altfel în sursă
+            continue
         if len(digits) <= 1:  # „3 zile” vs „trei zile”: nu blocăm cifrele mici
             avert.append({"tip": "numar_mic_nesursat", "valoare": raw})
             continue
