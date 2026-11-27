@@ -2231,6 +2231,7 @@ def article_url_filter(article):
 # Prezentare: imagine sigură, titlu, semnătură, noindex, JSON-LD (editorial/presentation.py)
 app.add_template_filter(pres.safe_image, 'safe_image')
 app.add_template_filter(pres.display_image, 'display_image')
+app.add_template_filter(pres.placeholder_image, 'placeholder')
 app.add_template_filter(pres.ro_datetime, 'ro_datetime')
 app.add_template_global(pres.stock_photo, 'stock_photo')
 app.add_template_filter(pres.og_image, 'og_image')

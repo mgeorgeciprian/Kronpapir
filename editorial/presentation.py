@@ -158,6 +158,21 @@ def display_image(article: dict):
     return photo["url"] if photo else None
 
 
+PLACEHOLDERS = {"cultura", "default", "economie", "local", "mediu", "national",
+                "politica", "sanatate", "social", "sport"}
+PLACEHOLDER_ALIASES = {"culture": "cultura", "international": "national", "evenimente": "local",
+                       "accidente": "local", "editorial": "default", "tehnologie": "default"}
+
+
+def placeholder_image(article: dict, fallback: str = "default") -> str:
+    """Calea statică a imaginii de rezervă; o categorie fără desen primește default.svg (nu 404)."""
+    cat = str((article or {}).get("category") or fallback).strip().lower()
+    cat = PLACEHOLDER_ALIASES.get(cat, cat)
+    if cat not in PLACEHOLDERS:
+        cat = "default"
+    return f"images/placeholders/{cat}.svg"
+
+
 def og_image(article: dict) -> str:
     img = safe_image(article)
     if img and img.lower().endswith(".svg"):  # Facebook și X nu afișează SVG în previzualizări

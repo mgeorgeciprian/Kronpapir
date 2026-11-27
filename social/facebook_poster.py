@@ -115,7 +115,7 @@ class PostingHistory:
         before = len(self.data["posted"])
         self.data["posted"] = [
             entry for entry in self.data["posted"]
-            if datetime.fromisoformat(entry["posted_at"]) > cutoff
+            if _naive_local(datetime.fromisoformat(entry["posted_at"])) > cutoff
         ]
         removed = before - len(self.data["posted"])
         if removed:
@@ -124,6 +124,13 @@ class PostingHistory:
 
 
 # === Article Loading ===
+
+def _naive_local(dt):
+    """Datele cu fus orar devin ora locală fără fus, ca să se compare cu datetime.now()."""
+    if dt.tzinfo is not None:
+        return dt.astimezone().replace(tzinfo=None)
+    return dt
+
 
 def load_recent_articles(days=2):
     """Load processed articles from the last N days."""
@@ -147,7 +154,7 @@ def load_recent_articles(days=2):
             continue
 
         try:
-            article_date = datetime.fromisoformat(date_str)
+            article_date = _naive_local(datetime.fromisoformat(date_str))
         except ValueError:
             continue
 
