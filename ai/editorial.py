@@ -90,12 +90,22 @@ EDITORIAL_SCHEMA = {
 
 
 def _record_cost(agent, model, message):
-    """Trece costul apelului în registrul din data/costs/ (doar evidență; plafonul nu se aplică încă aici)."""
+    """Trece costul apelului în registrul din data/costs/ (evidența; plafonul se verifică în _budget_ok)."""
     try:
         from ai import costs
         costs.record(agent, model, message.usage, datetime.now())
     except Exception as e:  # evidența costurilor nu are voie să oprească rescrierea
         logger.warning(f"Costul apelului nu s-a putut înregistra: {e}")
+
+
+def _budget_ok(agent, model):
+    """Plafonul lunar din config/agents.yaml: la 80% alertă pentru George, la 100% nu mai apelăm API-ul."""
+    from ai import costs
+    try:
+        return costs.allowed(agent, model)
+    except Exception as e:  # o eroare a evidenței (fișier, config) nu oprește redacția; o vedem în log
+        logger.warning(f"Plafonul nu s-a putut verifica: {e}")
+        return True
 
 class EditorialAgent:
     """
@@ -137,6 +147,8 @@ class EditorialAgent:
             return None
 
         try:
+            if not _budget_ok("editorial", self.model):
+                return None
             for attempt in (1, 2):
                 self._rate_limit()
                 message = self.client.messages.create(

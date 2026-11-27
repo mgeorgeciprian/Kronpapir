@@ -1,6 +1,7 @@
 """Costurile agenților: modelul și plafonul din config/agents.yaml, consumul lunar în data/costs/.
 
-La 80% din plafon (alert_threshold) se scrie o ALERTĂ în log pentru George; la 100% agentul se oprește.
+La 80% din plafon (alert_threshold) George primește o ALERTĂ (în log și, dacă SMTP e configurat în .env,
+pe email la redactia@kronpapir.ro, o singură dată pe lună pentru fiecare prag); la 100% agentul se oprește.
 """
 import json
 import logging
@@ -96,16 +97,71 @@ def report(now, folder=None):
     return rows
 
 
-def check(cfg, now):
-    """Ridică BudgetExceeded dacă plafonul lipsește sau e atins; avertizează peste prag."""
+ALERT_TO = "redactia@kronpapir.ro"
+
+
+def _send_email(subject, body):
+    """Trimite alerta prin SMTP-ul din .env (același cont ca formularul de contact). False dacă nu e configurat."""
+    user, password = os.environ.get("SMTP_EMAIL"), os.environ.get("SMTP_PASSWORD")
+    if not (user and password):
+        return False
+    import smtplib
+    from email.mime.text import MIMEText
+    msg = MIMEText(body, "plain", "utf-8")
+    msg["Subject"], msg["From"], msg["To"] = subject, user, ALERT_TO
+    with smtplib.SMTP_SSL("smtp.gmail.com", 465, timeout=10) as server:
+        server.login(user, password)
+        server.send_message(msg)
+    return True
+
+
+def alert(agent, level, used, budget, now, send=None):
+    """Alerta pentru George la un prag ("80" sau "100"), o singură dată pe lună și prag.
+
+    Pragul trimis se notează în registrul lunii (alerts_sent), ca să nu vină câte un email la fiecare apel.
+    """
+    path = _ledger_path(agent, now)
+    try:
+        ledger = json.loads(path.read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        ledger = {"usd": 0.0, "calls": 0}
+    if level in ledger.get("alerts_sent", []):
+        return False
+    what = "s-a oprit (plafon atins)" if level == "100" else f"a trecut de {level}% din plafon"
+    text = (f"Agentul {agent} {what}: {used:.2f} din {budget:.2f} USD în {now:%m.%Y}.\n\n"
+            f"Plafonul se schimbă în config/agents.yaml (monthly_budget_usd). Consumul: python -m ai.costs")
+    log.warning("ALERTĂ pentru George: %s", text.splitlines()[0])
+    try:
+        (send or _send_email)(f"[KronPapir] Cost AI: {agent} {what}", text)
+    except Exception as e:  # alerta nu are voie să oprească jobul; rămâne în log
+        log.warning("Emailul de alertă nu s-a trimis: %s", e)
+    ledger["alerts_sent"] = ledger.get("alerts_sent", []) + [level]
+    editorial_store._write_json_atomic(path, ledger)
+    return True
+
+
+def check(cfg, now, send=None):
+    """Ridică BudgetExceeded dacă plafonul lipsește sau e atins; alertează peste prag."""
     agent, budget = cfg["agent"], cfg["budget"]
     if budget <= 0:
         raise BudgetExceeded(f"Agentul {agent} nu are plafon în config/agents.yaml; nu rulez.")
     used = spent(agent, now)
     if used >= budget:
+        alert(agent, "100", used, budget, now, send)
         raise BudgetExceeded(f"Plafonul lunar al agentului {agent} e atins: {used:.2f} din {budget:.2f} USD.")
     if used >= budget * cfg["alert"]:
-        log.warning("ALERTĂ pentru George: %s a consumat %.2f din %.2f USD luna aceasta.", agent, used, budget)
+        alert(agent, f"{cfg['alert'] * 100:.0f}", used, budget, now, send)
+
+
+def allowed(agent, default_model, now=None):
+    """True dacă agentul mai are buget luna asta; altfel scrie motivul în log și întoarce False."""
+    from datetime import datetime as _dt
+    try:
+        check(settings(agent, default_model), now or _dt.now())
+        return True
+    except BudgetExceeded as e:
+        log.error("%s Apelul nu se face.", e)
+        return False
 
 
 if __name__ == "__main__":  # python -m ai.costs : consumul lunii curente
