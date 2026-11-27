@@ -63,10 +63,13 @@ class FactChecker:
             return None
         source = plain(source_article.get("content") or source_article.get("text")
                        or source_article.get("original_text") or "")[:source_chars]
-        user = (f"TEXTUL SURSĂ ({source_article.get('source') or '?'}, {source_article.get('url') or ''}):\n"
-                f"Titlu: {source_article.get('title') or ''}\n{source}\n\n"
-                f"RESCRIEREA KRONPAPIR:\nTitlu: {rewritten.get('title') or ''}\n"
-                f"Rezumat: {plain(rewritten.get('excerpt') or '')}\n{plain(rewritten.get('content') or '')}")
+        src_block = (f"TEXTUL SURSĂ ({source_article.get('source') or '?'}, {source_article.get('url') or ''}):\n"
+                     f"Titlu: {source_article.get('title') or ''}\n{source}")
+        art_block = (f"RESCRIEREA KRONPAPIR:\nTitlu: {rewritten.get('title') or ''}\n"
+                     f"Rezumat: {plain(rewritten.get('excerpt') or '')}\n{plain(rewritten.get('content') or '')}")
+        # sursa în cache: după o rescriere, aceeași sursă se verifică din nou cu 5% din prețul de intrare
+        user = [{"type": "text", "text": src_block, "cache_control": {"type": "ephemeral"}},
+                {"type": "text", "text": art_block}]
         try:
             msg = self._client().beta.messages.create(
                 model=self.cfg["model"],

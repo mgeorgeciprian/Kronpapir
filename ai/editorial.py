@@ -88,6 +88,15 @@ EDITORIAL_SCHEMA = {
 }
 
 
+
+def _record_cost(agent, model, message):
+    """Trece costul apelului în registrul din data/costs/ (doar evidență; plafonul nu se aplică încă aici)."""
+    try:
+        from ai import costs
+        costs.record(agent, model, message.usage, datetime.now())
+    except Exception as e:  # evidența costurilor nu are voie să oprească rescrierea
+        logger.warning(f"Costul apelului nu s-a putut înregistra: {e}")
+
 class EditorialAgent:
     """
     Agent editorial dedicat care scrie editoriale zilnice.
@@ -136,6 +145,7 @@ class EditorialAgent:
                     output_config={"format": {"type": "json_schema", "schema": EDITORIAL_SCHEMA}},
                     messages=[{"role": "user", "content": prompt}]
                 )
+                _record_cost("editorial", self.model, message)
                 if message.stop_reason == "end_turn":
                     text = next((b.text for b in message.content if b.type == "text"), "")
                     try:

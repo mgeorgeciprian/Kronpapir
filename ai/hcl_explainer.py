@@ -160,17 +160,22 @@ class Explainer:
     def write(self, item, text, feedback=""):
         now = datetime.now()
         costs.check(self.cfg, now)
-        user = (f"PROIECT DE HOTĂRÂRE (Consiliul Local Brașov)\nTitlu oficial: {redact_private(item['title'])}\n"
+        docs = (f"PROIECT DE HOTĂRÂRE (Consiliul Local Brașov)\nTitlu oficial: {redact_private(item['title'])}\n"
                 f"Publicat: {item.get('published') or 'nespecificat'}\n"
                 f"Termen pentru propuneri: {item.get('deadline') or 'nespecificat'}\n\n"
                 f"DOCUMENTELE OFICIALE:\n{text}")
+        # documentele în blocul din cache: la a doua încercare (după fact-check) se citesc cu 5% din preț
+        content = [{"type": "text", "text": docs, "cache_control": {"type": "ephemeral"}}]
         if feedback:
-            user += f"\n\nCORECTURI CERUTE DE FACT-CHECK (refă explicația fără aceste greșeli): {feedback}"
+            content.append({"type": "text", "text": "CORECTURI CERUTE DE FACT-CHECK (refă explicația fără aceste "
+                                                    f"greșeli): {feedback}"})
+        else:
+            content.append({"type": "text", "text": "Scrie explicația."})
         msg = self._client().beta.messages.create(
             model=self.cfg["model"],
             max_tokens=16000,
             system=self.system,
-            messages=[{"role": "user", "content": user}],
+            messages=[{"role": "user", "content": content}],
             output_config={"effort": self.cfg.get("effort") or "high",
                            "format": {"type": "json_schema", "schema": SCHEMA}},
             betas=["server-side-fallback-2026-07-01"],
@@ -193,8 +198,9 @@ class Explainer:
         if len(text) < 500:
             log.warning("Prea puțin text în documentele %s; sar peste.", item["id"])
             return None
-        feedback, exp, det, llm = "", None, None, None
+        feedback, exp, det, llm, attempts = "", None, None, None, 0
         for _ in range(MAX_ATTEMPTS):
+            attempts += 1
             exp = self.write(item, text, feedback)
             art = as_article(exp, item)
             det = factcheck.deterministic(text, art, now, official=True)
@@ -215,7 +221,7 @@ class Explainer:
                           "erori_editor": (llm or {}).get("erori_blocante", []),
                           "subiect_sensibil": (llm or {}).get("subiect_sensibil"),
                           "motiv_sensibil": (llm or {}).get("motiv_sensibil"), "model": (llm or {}).get("model")},
-            "model": self.cfg["model"], "status_hcl": item.get("status"),
+            "model": self.cfg["model"], "status_hcl": item.get("status"), "attempts": attempts,
             "documents": [f["name"] for f in pick_documents(item.get("files") or [])],
             "created_at": now.isoformat(timespec="seconds"),
         }

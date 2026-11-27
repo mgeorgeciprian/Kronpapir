@@ -99,3 +99,26 @@ def test_page_shows_only_published_explanations(tmp_path):
         assert app.test_client().get("/admin/explicatii-hcl").status_code == 302  # doar cu login
     finally:
         app.config.pop("BRASOVCITY_STORE")
+
+
+def test_costs_ledger_counts_tokens_and_cache(monkeypatch, tmp_path):
+    from ai import costs
+    monkeypatch.setattr(costs, "COSTS_DIR", tmp_path)
+    u = SimpleNamespace(input_tokens=1000, output_tokens=500, cache_read_input_tokens=30000, cache_creation_input_tokens=0)
+    usd, total = costs.record("explicator-hcl", "claude-sonnet-5-5", u, NOW)
+    assert round(usd, 6) == round((1000 * 2 + 500 * 10 + 30000 * 2 * 0.05) / 1e6, 6)
+    w = SimpleNamespace(input_tokens=10, output_tokens=0, cache_read_input_tokens=0, cache_creation_input_tokens=30000)
+    costs.record("explicator-hcl", "claude-sonnet-5-5", w, NOW)
+    row = costs.report(NOW, tmp_path)[0]
+    assert row[0] == "explicator-hcl" and row[2] == 2 and row[3] == 1010 and row[4] == 500 and row[5] == 30000
+
+
+def test_documents_go_in_cached_block(monkeypatch, tmp_path):
+    ex = explainer([GOOD], 9, monkeypatch, tmp_path)
+    seen = {}
+    orig = ex.client.beta.messages.create
+    ex.client.beta.messages.create = lambda **kw: (seen.update(kw), orig(**kw))[1]
+    ex.write(ITEM, SOURCE, feedback="cifra 9 nu apare")
+    blocks = seen["messages"][0]["content"]
+    assert blocks[0]["cache_control"] == {"type": "ephemeral"} and SOURCE[:50] in blocks[0]["text"]
+    assert "cifra 9" in blocks[1]["text"] and "cache_control" not in blocks[1]

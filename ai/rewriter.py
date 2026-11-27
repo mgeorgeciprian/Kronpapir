@@ -51,6 +51,15 @@ def editorial_text(article):
     return _re.sub(r'\s+', ' ', _re.sub(r'<[^>]+>', ' ', raw)).strip()
 
 
+
+def _record_cost(agent, model, message):
+    """Trece costul apelului în registrul din data/costs/ (doar evidență; plafonul nu se aplică încă aici)."""
+    try:
+        from ai import costs
+        costs.record(agent, model, message.usage, datetime.now())
+    except Exception as e:  # evidența costurilor nu are voie să oprească rescrierea
+        logger.warning(f"Costul apelului nu s-a putut înregistra: {e}")
+
 class ArticleRewriter:
     """
     Rescrie articole folosind Claude AI cu stil de jurnalist local.
@@ -186,6 +195,7 @@ class ArticleRewriter:
                 output_config={"effort": "medium", "format": {"type": "json_schema", "schema": schema}},
                 messages=[{"role": "user", "content": prompt}],
             )
+            _record_cost("jurnalist", self.model, message)
             if message.stop_reason == "end_turn":
                 text = next((b.text for b in message.content if b.type == "text"), "")
                 result = self._parse_json_response(text)
