@@ -1,0 +1,378 @@
+# Site-urile primăriilor din județul Brașov și pagina de anunțuri de achiziții a fiecăreia.
+# Listă compilată din căutări web pe 07.11.2026 și verificată prin HTTP în aceeași zi; corectează URL-urile care nu mai merg.
+county: BRASOV
+sites:
+- name: PRIMARIA COMUNEI APATA
+  type: comuna
+  website: https://primaria-apata.ro
+  page: https://primaria-apata.ro/categories/6/view/anunturi
+  page_kind: anunturi
+  note: Are secțiune 'Achiziții publice' în meniu (URL neconfirmat); cererile de ofertă apar ca articole în categoria Anunțuri
+    (ex. /articles/cerere-oferta-...). Platformă tip 'articles/categories' (aceeași ca Ticușu).
+- name: PRIMARIA COMUNEI AUGUSTIN
+  type: comuna
+  website: https://www.primariaaugustin.ro
+  page: https://www.primariaaugustin.ro/anunturi
+  page_kind: anunturi
+  note: Nu s-a găsit pagină dedicată achizițiilor; anunțurile (inclusiv licitații pășuni) sunt în /anunturi.
+- name: PRIMARIA COMUNEI BECLEAN
+  type: comuna
+  website: https://comunabeclean.ro
+  page: https://comunabeclean.ro/category/achizitii-publice/
+  page_kind: achizitii
+  note: 'WordPress; anunțurile de participare sunt postate în categoria ''Achizitii Publice'' (URL de categorie dedus, neconfirmat).
+    Alternativă: /anunturi-licitatii-publice/.'
+- name: PRIMARIA COMUNEI BOD
+  type: comuna
+  website: https://www.primariabod.ro
+  page: https://www.primariabod.ro
+  page_kind: homepage
+  note: WordPress; anunțurile publicitare de achiziție directă apar ca postări datate (ex. /2026/06/03/anunt-publicitar-...),
+    fără categorie dedicată identificată.
+- name: PRIMARIA COMUNEI BRAN
+  type: comuna
+  website: https://primariabran.ro
+  page: https://primariabran.ro/achizitii-publice-2/
+  page_kind: achizitii
+  note: Documente în pachete wpdm (download manager).
+- name: PRIMARIA MUNICIPIULUI BRASOV
+  type: municipiu
+  website: https://www.brasovcity.ro
+  page: https://www.brasovcity.ro/primaria/achizitii/
+  page_kind: achizitii
+  note: 'Listă ''Achiziții - proceduri proprii'' (achiziții directe) cu termen; anunț individual la /primaria/anunt-achizitie-procedura-proprie/<id>.
+    Licitații vânzare/închiriere separat: /primaria/licitatii-publice-vanzare/1.'
+- name: PRIMARIA COMUNEI BUDILA
+  type: comuna
+  website: https://ro.budila.ro
+  page: https://ro.budila.ro/index.php/primarie/informatii-primarie
+  page_kind: anunturi
+  note: Joomla; are Compartiment Achiziții Publice și anunțuri de achiziție directă, dar URL-ul paginii de achiziții nu a
+    fost confirmat.
+- name: PRIMARIA COMUNEI BUNESTI
+  type: comuna
+  website: https://www.primariabunesti.ro
+  page: https://www.primariabunesti.ro/stiri/
+  page_kind: anunturi
+  note: 'Nu s-a găsit pagină dedicată achizițiilor. Atenție: primaria-bunesti.ro și comunabunesti.ro sunt alte comune (Vâlcea/Suceava).'
+- name: PRIMARIA COMUNEI CATA
+  type: comuna
+  website: https://comunacata.ro
+  page: https://comunacata.ro/informatii-de-interes-public/achizitii-publice
+  page_kind: achizitii
+  note: Platformă comună cu Drăguș și Racoș (structură /informatii-de-interes-public/achizitii-publice, /stiri). Are subpagină
+    'Cerere de ofertă'.
+- name: PRIMARIA COMUNEI CINCU
+  type: comuna
+  website: https://comunacincu.ro
+  page: https://comunacincu.ro
+  page_kind: homepage
+  note: WordPress simplu; PAAP și anunțuri în 'Informatii publice'; secțiunea Anunțuri de pe homepage are conținut placeholder.
+    Pagina de achiziții nu a răspuns (404/reset) la verificarea din 07.11.2026; se urmărește homepage-ul.
+- name: PRIMARIA MUNICIPIULUI CODLEA
+  type: municipiu
+  website: https://www.municipiulcodlea.ro
+  page: https://www.municipiulcodlea.ro
+  page_kind: homepage
+  note: 'Joomla; documentații de atribuire la .../achizitii-publice/documentatii-de-atribuire. Anunțuri publice generale:
+    /index.php/anunturi/anunturi-publice. Pagina de achiziții nu a răspuns (404/reset) la verificarea din 07.11.2026; se urmărește
+    homepage-ul.'
+- name: PRIMARIA COMUNEI COMANA
+  type: comuna
+  website: https://www.comuna-comana.ro
+  page: https://www.comuna-comana.ro
+  page_kind: homepage
+  note: WordPress; există categoria 'Anunțuri achiziție publică' (URL neconfirmat, probabil /category/anunturi-achizitie-publica/).
+    Anunțuri de participare (ex. catering Masa sănătoasă 2026) apar ca postări. Pagina de achiziții nu a răspuns (404/reset)
+    la verificarea din 07.11.2026; se urmărește homepage-ul.
+- name: PRIMARIA COMUNEI CRISTIAN
+  type: comuna
+  website: https://primariacristian.ro
+  page: https://primariacristian.ro/anunturi-categorie/achizitii/
+  page_kind: achizitii
+  note: Și pagină descriptivă /servicii-publice/achizitii-publice/; documente la /documente-categorie/achizitii-publice/.
+- name: PRIMARIA COMUNEI CRIZBAV
+  type: comuna
+  website: https://new.comunacrizbav.ro
+  page: https://new.comunacrizbav.ro/index.php/primaria-comunei-crizbav/informatii
+  page_kind: anunturi
+  note: Două site-uri (comunacrizbav.ro vechi, new.comunacrizbav.ro curent, Joomla). Meniul are 'Achizitii' dar URL-ul nu
+    a fost confirmat.
+- name: PRIMARIA COMUNEI DRAGUS
+  type: comuna
+  website: https://comunadragus.ro
+  page: https://comunadragus.ro/informatii-interes-public/achizitii-publice
+  page_kind: achizitii
+  note: 'Platformă comună cu Cața/Racoș; URL dedus din structura /informatii-interes-public/... (neconfirmat). Știri/anunțuri:
+    /stiri.'
+- name: PRIMARIA COMUNEI DUMBRAVITA
+  type: comuna
+  website: https://primariadumbravita.ro
+  page: https://primariadumbravita.ro/category/anunturi/
+  page_kind: anunturi
+  note: WordPress; meniul are 'Achizitii publice' (URL neconfirmat, probabil /achizitii-publice/). Nu confundați cu Dumbrăvița,
+    Timiș (primaria-dumbravita.ro).
+- name: PRIMARIA MUNICIPIULUI FAGARAS
+  type: municipiu
+  website: https://www.primaria-fagaras.ro
+  page: https://www.primaria-fagaras.ro/primaria/achizitii
+  page_kind: achizitii
+  note: Pagină cu anunțuri de participare, PAAP, strategii, centralizatoare >5000 EUR; multe PDF-uri.
+- name: PRIMARIA COMUNEI FELDIOARA
+  type: comuna
+  website: https://primaria-feldioara.ro
+  page: https://primaria-feldioara.ro
+  page_kind: homepage
+  note: WordPress; anunțurile de publicitate/achiziție directă sunt postări individuale (ex. /anunt-de-publicitate-...). Categoriile
+    sunt sub /articole/...; categoria de achiziții nu a fost identificată.
+- name: PRIMARIA COMUNEI FUNDATA
+  type: comuna
+  website: https://primariafundata.ro
+  page: https://primariafundata.ro/documente/achizitii-publice/
+  page_kind: achizitii
+  note: Conține în principal centralizatoare/extrase SEAP; anunțuri generale la /anunturi/.
+- name: PRIMARIA ORASULUI GHIMBAV
+  type: oras
+  website: https://primaria-ghimbav.ro
+  page: https://primaria-ghimbav.ro/achizitii-publice/
+  page_kind: achizitii
+  note: 'Anunțuri individuale la /achizitii/<slug>/; documente PDF în /storage/. Site vechi: site2023.primaria-ghimbav.ro.'
+- name: PRIMARIA COMUNEI HALCHIU
+  type: comuna
+  website: https://primariahalchiu.ro
+  page: https://primariahalchiu.ro/informatii-de-interes-public/achizitii-publice/
+  page_kind: achizitii
+  note: 'Platformă comună cu Homorod/Ungra/Holbav (structură /informatii-de-interes-public/...). Anunțuri generale: /anunturi-publice/.'
+- name: PRIMARIA COMUNEI HARMAN
+  type: comuna
+  website: https://primariaharman.ro
+  page: https://primariaharman.ro/category/achizitii-publice/
+  page_kind: achizitii
+  note: WordPress; anunțuri generale la /category/anunturi-publice/.
+- name: PRIMARIA COMUNEI HARSENI
+  type: comuna
+  website: https://www.primariaharseni.ro
+  page: https://www.primariaharseni.ro/anunturi.php
+  page_kind: anunturi
+  note: Site PHP vechi (2012); PAAP/strategii apar pe /contabilitate.php. Pagina de achiziții nu a fost confirmată.
+- name: PRIMARIA COMUNEI HOGHIZ
+  type: comuna
+  website: https://www.comunahoghiz.ro
+  page: https://www.comunahoghiz.ro/achizitii-publice/
+  page_kind: achizitii
+  note: 'Anunțuri generale: /category/anunturi/.'
+- name: PRIMARIA COMUNEI HOLBAV
+  type: comuna
+  website: https://primariaholbav.ro
+  page: https://primariaholbav.ro/anunturi/
+  page_kind: anunturi
+  note: Aceeași platformă ca Hălchiu/Homorod/Ungra; există categoria 'Anunțuri achiziție publică' (URL probabil /informatii-de-interes-public/anunturi/anunturi-achizitie-publica/,
+    neconfirmat).
+- name: PRIMARIA COMUNEI HOMOROD
+  type: comuna
+  website: https://homorod.ro
+  page: https://homorod.ro/informatii-de-interes-public/anunturi/anunturi-achizitie-publica/
+  page_kind: achizitii
+  note: Aceeași platformă ca Hălchiu/Ungra/Holbav.
+- name: PRIMARIA COMUNEI JIBERT
+  type: comuna
+  website: https://www.primariajibert.ro
+  page: https://primariajibert.ro/anunturi.php
+  page_kind: anunturi
+  note: Site PHP simplu; 'Achizitii Publice' apare în meniul Buletin informativ, URL neconfirmat.
+- name: PRIMARIA COMUNEI LISA
+  type: comuna
+  website: https://primaria-lisa.ro
+  page: https://primaria-lisa.ro/2026/04/06/anunturi-de-interes-public/
+  page_kind: anunturi
+  note: WordPress; meniul 'Achizitii Publice' există dar URL neconfirmat; conținut vechi (2021–2023).
+- name: PRIMARIA COMUNEI MAIERUS
+  type: comuna
+  website: https://comunamaierus.ro
+  page: https://comunamaierus.ro
+  page_kind: unknown
+  note: Domeniu indicat de directoare (ghidulprimariilor), dar nu a apărut în nicio căutare; posibil inactiv. Documente oficiale
+    și pe maierus.regista.ro. De verificat manual.
+- name: PRIMARIA COMUNEI MANDRA
+  type: comuna
+  website: https://www.comunamandra.ro
+  page: https://www.comunamandra.ro/achizitii-publice/
+  page_kind: achizitii
+  note: PAAP 2022–2026, centralizatoare, anunțuri achiziții directe; anunțuri de licitație ca postări separate.
+- name: PRIMARIA COMUNEI MOIECIU
+  type: comuna
+  website: https://primariamoieciu.ro
+  page: https://primariamoieciu.ro/categorii-documente/achzitii/
+  page_kind: achizitii
+  note: URL cu typo real 'achzitii'. Preponderent documente (PAAP, centralizatoare, contracte); anunțuri la /anunturi/.
+- name: PRIMARIA COMUNEI ORMENIS
+  type: comuna
+  website: https://primariaormenis.ro
+  page: https://www.primariaormenis.ro/index.php/stiri-si-evenimente
+  page_kind: anunturi
+  note: Joomla (aceeași platformă ca Augustin); fără pagină de achiziții identificată.
+- name: PRIMARIA COMUNEI PARAU
+  type: comuna
+  website: https://comuna-parau.ro
+  page: https://comuna-parau.ro/anunturi/
+  page_kind: anunturi
+  note: Arhivă la /arhiva-anunturi/; fără pagină dedicată achizițiilor.
+- name: PRIMARIA COMUNEI POIANA MARULUI
+  type: comuna
+  website: https://primariapoianamarului.ro
+  page: https://primariapoianamarului.ro/achizitii-publice/
+  page_kind: achizitii
+  note: Conținut vechi (PAAP 2015–2021); anunțuri de licitație ca PDF în /documente/urbanism/anunturi-<an>/.
+- name: PRIMARIA ORASULUI PREDEAL
+  type: oras
+  website: https://www.primaria-predeal.ro
+  page: https://www.primaria-predeal.ro
+  page_kind: homepage
+  note: WordPress; are Serviciul Achiziții și Investiții, dar nu s-a găsit pagină de anunțuri de achiziții. Pagina de achiziții
+    nu a răspuns (404/reset) la verificarea din 07.11.2026; se urmărește homepage-ul.
+- name: PRIMARIA COMUNEI PREJMER
+  type: comuna
+  website: https://primariaprejmer.ro
+  page: https://primariaprejmer.ro/arhiva-anunturi/
+  page_kind: anunturi
+  note: Anunțurile de achiziție directă și consultările de piață apar în arhiva de anunțuri; e-mail achizitii@primariaprejmer.ro.
+- name: PRIMARIA COMUNEI RACOS
+  type: comuna
+  website: https://comunaracos.ro
+  page: https://comunaracos.ro/informatii-interes-public/achizitii-publice
+  page_kind: achizitii
+  note: Platformă comună cu Cața/Drăguș; știri la /stiri.
+- name: PRIMARIA ORASULUI RASNOV
+  type: oras
+  website: https://www.primariarasnov.ro
+  page: https://www.primariarasnov.ro/primaria-rasnov/achizitii/licitatii-anunturi-de-transparenta
+  page_kind: achizitii
+  note: 'Anunțuri generale: https://primariarasnov.ro/interes-public/anunturi/.'
+- name: PRIMARIA COMUNEI RECEA
+  type: comuna
+  website: https://comunarecea.ro
+  page: https://comunarecea.ro/informatii-de-interes-public/achizitii-publice/
+  page_kind: achizitii
+  note: 'Anunțurile de participare (ex. catering) sunt postări pe homepage; anunțuri generale: /informatii-de-interes-public/anunturi-de-interes-public/.'
+- name: PRIMARIA ORASULUI RUPEA
+  type: oras
+  website: https://www.primariarupea.ro
+  page: https://www.primariarupea.ro/achizitii-publice/
+  page_kind: achizitii
+  note: Strategii/PAAP, caiete de sarcini, centralizatoare; licitații ca postări pe homepage.
+- name: PRIMARIA MUNICIPIULUI SACELE
+  type: municipiu
+  website: https://www.municipiulsacele.ro
+  page: https://www.municipiulsacele.ro/compartiment-licitatii-si-achizitii-publice/
+  page_kind: achizitii
+  note: Pagina compartimentului listează PAAP/SAAP și anunțurile cu documentații; PDF-uri în /documente/<an>/achizitii-publice/.
+- name: PRIMARIA COMUNEI SAMBATA DE SUS
+  type: comuna
+  website: https://primariasambatadesus.ro
+  page: https://primariasambatadesus.ro/informatii-de-interes-public/
+  page_kind: anunturi
+  note: Meniul listează 'Achiziții publice' sub Informații de interes public; URL-ul subpaginii nu a fost confirmat.
+- name: PRIMARIA COMUNEI SANPETRU
+  type: comuna
+  website: https://primaria-sanpetru.ro
+  page: https://primaria-sanpetru.ro/compartiment/achizitii_publice/
+  page_kind: achizitii
+  note: 'Subsecțiuni pe ani (Achiziții publice 2023/2024/2025). Site vechi: vechip.primaria-sanpetru.ro.'
+- name: PRIMARIA COMUNEI SERCAIA
+  type: comuna
+  website: https://www.primaria-sercaia.ro
+  page: https://www.primaria-sercaia.ro/administratie/compartimente/achizitii-publice
+  page_kind: achizitii
+  note: Anunțuri publicate 'în Achiziții publice' (ex. catering 08.09.2026); arhivă la /arhiva-publicari/.
+- name: PRIMARIA COMUNEI SINCA
+  type: comuna
+  website: https://comunasinca.ro
+  page: https://comunasinca.ro/informatii-de-interes-public/achizitii-publice/
+  page_kind: achizitii
+  note: 'Anunțuri generale: /anunturi-publice/. Domeniul vechi primariasinca.ro pare abandonat.'
+- name: PRIMARIA COMUNEI SINCA NOUA
+  type: comuna
+  website: https://comunasincanoua.ro
+  page: https://comunasincanoua.ro
+  page_kind: homepage
+  note: Homepage are secțiune 'Anunțuri'; nu s-a găsit pagină de achiziții. Directoarele vechi indică sincanoua.ro (probabil
+    inactiv).
+- name: PRIMARIA COMUNEI SOARS
+  type: comuna
+  website: https://www.primariasoars.ro
+  page: https://www.primariasoars.ro/informatii-de-interes-public/
+  page_kind: anunturi
+  note: Anunțurile de achiziție (ex. catering, raport procedură) sunt postări individuale tag-uite 'Achiziție'; pagina listează
+    secțiunea Achiziții publice.
+- name: PRIMARIA COMUNEI TARLUNGENI
+  type: comuna
+  website: https://comunatarlungeni.ro
+  page: https://comunatarlungeni.ro/category/anunturi/anunturi-despre-achizitii-publice/
+  page_kind: achizitii
+  note: WordPress; publică 'Informare achiziție' pentru achizițiile prin SEAP și anunțuri de intenție.
+  more_pages:
+  - https://comunatarlungeni.ro/category/anunturi/oferte-de-vanzare-teren-extravilan/
+- name: PRIMARIA COMUNEI TELIU
+  type: comuna
+  website: https://www.primariateliu.ro
+  page: https://www.primariateliu.ro/anunturi
+  page_kind: anunturi
+  note: 'Anunțurile de achiziție directă sunt în /anunturi; meniul are și ''Achizitii publice'' (URL neconfirmat). Site vechi:
+    primariateliubv.wordpress.com.'
+- name: PRIMARIA COMUNEI TICUSU
+  type: comuna
+  website: https://primaria-ticus.ro
+  page: https://primaria-ticus.ro
+  page_kind: homepage
+  note: Aceeași platformă ca Apața (articles/categories); secțiunea 'Achiziții publice' din meniu pare goală; anunțurile (ex.
+    catering) sunt pe homepage.
+- name: PRIMARIA COMUNEI UCEA
+  type: comuna
+  website: https://primariaucea.ro
+  page: https://primariaucea.ro/informare-cetateni/anunturi/achizitii-publice/
+  page_kind: achizitii
+  note: 'Anunțuri generale: /informare-cetateni/anunturi/.'
+- name: PRIMARIA COMUNEI UNGRA
+  type: comuna
+  website: https://primariaungra.ro
+  page: https://primariaungra.ro/informatii-de-interes-public/achizitii-publice/
+  page_kind: achizitii
+  note: 'Aceeași platformă ca Hălchiu/Homorod/Holbav. Al doilea site (comunaungra.ro) pare învechit. Anunțuri generale: /informatii-de-interes-public/anunturi/anunturi-interes-general/.'
+- name: PRIMARIA COMUNEI VAMA BUZAULUI
+  type: comuna
+  website: https://www.comunavamabuzaului.ro
+  page: https://comunavamabuzaului.ro/documente
+  page_kind: achizitii
+  note: 'Pagina ''Documente'' are categoria ''Achiziții publice'' (programe anuale, anunțuri, caiete de sarcini); PDF-uri
+    în /docs/. Anunțuri generale: /anunturi/.'
+- name: PRIMARIA ORASULUI VICTORIA
+  type: oras
+  website: https://primariavictoria.ro
+  page: https://primariavictoria.ro/informatii_publice/achizitii
+  page_kind: achizitii
+  note: 'Preponderent PAAP/anexe achiziții directe și centralizatoare; licitații separat: /informatii_publice/licitatii.'
+- name: PRIMARIA COMUNEI VISTEA
+  type: comuna
+  website: https://comunavistea.ro
+  page: https://comunavistea.ro/anunturi
+  page_kind: anunturi
+  note: Meniul listează 'Achiziții publice' sub Informații publice (URL neconfirmat, probabil /informatii-publice/achizitii-publice).
+- name: PRIMARIA COMUNEI VOILA
+  type: comuna
+  website: https://comunavoila.ro
+  page: https://comunavoila.ro/anunturi/
+  page_kind: anunturi
+  note: Anunțurile de participare și ofertele (wpfd_file) apar în Anunțuri; fără pagină dedicată achizițiilor identificată.
+- name: PRIMARIA COMUNEI VULCAN
+  type: comuna
+  website: https://primaria-vulcan.ro
+  page: https://primaria-vulcan.ro
+  page_kind: homepage
+  note: Site slab indexat; homepage are 'Anunțuri la zi'. Nu s-a găsit pagină de achiziții.
+- name: PRIMARIA ORASULUI ZARNESTI
+  type: oras
+  website: https://www.primaria-zarnesti.ro
+  page: https://www.primaria-zarnesti.ro/informatii-publice-si-anunturi/achizitii-publice/
+  page_kind: achizitii
+  note: 'Anunțuri de achiziție directă ca postări (/anunt-achizitie-directa-N/); licitații: /informatii-publice-si-anunturi/licitatii/.
+    Nu confundați cu primariazarnestibuzau.ro.'

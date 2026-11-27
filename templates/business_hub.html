@@ -152,6 +152,17 @@
         {% endif %}
       </div>
 
+      <div class="biz-section" id="anunturi-primarii">
+        <h2>Ce cumpără și ce vând primăriile din județ</h2>
+        {% if lic.achizitii or lic.terenuri or lic.anaf %}
+        <ul class="biz-list">
+          {% for i in lic.achizitii[:4] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta">{{ i.place }} · cerere de ofertă / licitație</span></li>{% endfor %}
+          {% for i in lic.terenuri[:2] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta">{{ i.place }} · teren</span></li>{% endfor %}
+        </ul>
+        {% endif %}
+        <p class="biz-note"><a href="{{ lic_path }}">Toate anunțurile</a>: {{ lic_counts.achizitii }} cereri de ofertă și licitații de la cele 58 de primării, {{ lic_counts.terenuri }} terenuri și {{ lic_counts.anaf }} bunuri ANAF din județ.</p>
+      </div>
+
       <div class="biz-section" id="joburi">
         <h2>Locuri de muncă</h2>
         <div class="biz-jobs">

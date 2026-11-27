@@ -4,8 +4,9 @@ Datele ONRC vin din data/business/onrc/latest.json, scris de `python -m sources.
 Toate cifrele sunt cele din fișierele ONRC; calculăm doar variații procentuale și clasamente.
 """
 import json
+import re
 import threading
-from datetime import date
+from datetime import date, timedelta
 from pathlib import Path
 
 from flask import Blueprint, current_app, render_template
@@ -16,6 +17,9 @@ HUB_PATH = "/afaceri-brasov"
 COUNTY = "Brașov"
 PEERS = ["Cluj", "Sibiu", "Timiș", "Prahova", "Mureș", "Covasna"]
 DEFAULT_DIR = Path(__file__).resolve().parent.parent / "data" / "business" / "onrc"
+LICITATII_STORE = Path(__file__).resolve().parent.parent / "data" / "business" / "licitatii" / "store.json"
+LICITATII_PATH = HUB_PATH + "/licitatii"
+SHOW_DAYS = 30
 MONTHS = ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august",
           "septembrie", "octombrie", "noiembrie", "decembrie"]
 FLOWS = [  # indicatorii de flux, în ordinea afișării
@@ -28,6 +32,7 @@ FLOWS = [  # indicatorii de flux, în ordinea afișării
 
 bp = Blueprint("business", __name__)
 _cache = {"key": None, "data": None}
+_lic_cache = {"key": None, "data": None}
 _lock = threading.Lock()
 
 
@@ -150,6 +155,89 @@ def load_latest(folder=None):
         return _cache["data"]
 
 
+def load_licitatii(path=None):
+    path = Path(path or current_app.config.get("LICITATII_STORE") or LICITATII_STORE)
+    try:
+        st = path.stat()
+    except FileNotFoundError:
+        return {"items": {}}
+    key = (str(path), st.st_mtime_ns, st.st_size)
+    with _lock:
+        if _lic_cache["key"] != key:
+            try:
+                _lic_cache.update(key=key, data=json.loads(path.read_text(encoding="utf-8")))
+            except ValueError:
+                _lic_cache.update(key=key, data={"items": {}})
+        return _lic_cache["data"]
+
+
+# Numele localităților cu diacritice (config/primarii_brasov.yaml le are fără).
+PLACE_NAMES = {
+    "Brasov": "Brașov", "Bunesti": "Bunești", "Cata": "Cața", "Dragus": "Drăguș", "Dumbravita": "Dumbrăvița",
+    "Fagaras": "Făgăraș", "Harman": "Hărman", "Harseni": "Hârseni", "Lisa": "Lisa", "Maierus": "Măieruș",
+    "Mandra": "Mândra", "Ormenis": "Ormeniș", "Parau": "Părău", "Poiana Marului": "Poiana Mărului",
+    "Racos": "Racoș", "Rasnov": "Râșnov", "Sacele": "Săcele", "Sambata De Sus": "Sâmbăta de Sus",
+    "Sanpetru": "Sânpetru", "Sercaia": "Șercaia", "Sinca": "Șinca", "Sinca Noua": "Șinca Nouă",
+    "Soars": "Șoarș", "Tarlungeni": "Tărlungeni", "Ticusu": "Ticușu", "Vama Buzaului": "Vama Buzăului",
+    "Vistea": "Viștea", "Zarnesti": "Zărnești",
+}
+
+
+def _place(authority):
+    """„PRIMARIA COMUNEI SERCAIA” -> „Șercaia”."""
+    name = re.sub(r"^(PRIMARIA|UAT)\s+((COMUNEI|ORASULUI|MUNICIPIULUI|COMUNA|ORAS|MUNICIPIUL)\s+)?", "",
+                  (authority or "").strip(), flags=re.I).title()
+    return PLACE_NAMES.get(name, name)
+
+
+# Textul linkului, nu titlul anunțului: nu spune cititorului ce se cumpără.
+GENERIC_TITLES = re.compile(r"^(deschide( de aici)?|aici|vezi|detalii|citeste( mai mult)?|click|descarca|"
+                            r"achizitii( directe| publice)?|anunt(uri)?|document)\W*$", re.I)
+TITLE_TAIL = re.compile(r"\s*[–-]\s*(vezi|detalii|citește mai mult|citeste mai mult)\s*$", re.I)
+
+
+def clean_title(title):
+    """Titlul de afișat sau None dacă e doar textul unui buton."""
+    t = TITLE_TAIL.sub("", (title or "").strip())
+    plain = t.translate(str.maketrans("ăâîșşțţĂÂÎȘŞȚŢ", "aaisstt" + "AAISSTT"))
+    if len(t) < 12 or GENERIC_TITLES.match(plain):
+        return None
+    return t
+
+
+def licitatii_groups(store, today=None, days=SHOW_DAYS):
+    """Anunțurile afișate, pe grupe: achiziții ale primăriilor, terenuri, bunuri ANAF.
+
+    Un anunț de pe site-ul unei primării apare doar dacă știm că e recent: are dată reală
+    în ultimele `days` zile sau a apărut pe site după prima noastră vizită (is_new).
+    Cele fără dată găsite la prima vizită pot fi din arhivă (ani vechi), deci nu le arătăm.
+    """
+    today = today or date.today()
+    cut = (today - timedelta(days=days)).isoformat()
+    groups = {"achizitii": [], "terenuri": [], "anaf": []}
+    seen = set()
+    for it in (store.get("items") or {}).values():
+        if not str(it.get("url", "")).startswith(("https://", "http://")):
+            continue
+        title = clean_title(it.get("title"))
+        if not title:
+            continue
+        when = it.get("published") or it.get("first_seen") or ""
+        if it.get("source") == "anaf":
+            groups["anaf"].append(dict(it, title=title, when=None))
+            continue
+        if it.get("date_guessed") and not it.get("is_new"):
+            continue
+        key = (it.get("authority"), title.lower())
+        if when[:10] >= cut and key not in seen:
+            seen.add(key)
+            groups["terenuri" if it.get("topic") == "terenuri" else "achizitii"].append(
+                dict(it, title=title, when=when, place=_place(it.get("authority"))))
+    for g in groups.values():
+        g.sort(key=lambda i: (i.get("when") or i.get("published") or ""), reverse=True)
+    return groups
+
+
 def breadcrumbs():
     return {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Acasă", "item": SITE_URL + "/"},
@@ -217,7 +305,23 @@ def hub():
                    year=int(payload["period_end"][:4]))
         jsonld.append(dataset_jsonld(payload))
     ctx["jsonld"] = jsonld
+    lic = licitatii_groups(load_licitatii())
+    ctx["lic"] = {k: v[:6] for k, v in lic.items()}
+    ctx["lic_counts"] = {k: len(v) for k, v in lic.items()}
+    ctx["lic_path"] = LICITATII_PATH
     return render_template("business_hub.html", **ctx)
+
+
+@bp.route(LICITATII_PATH)
+def licitatii():
+    store = load_licitatii()
+    groups = licitatii_groups(store)
+    crumbs = breadcrumbs()
+    crumbs["itemListElement"].append({"@type": "ListItem", "position": 3, "name": "Licitații și achiziții",
+                                      "item": SITE_URL + LICITATII_PATH})
+    return render_template("licitatii.html", groups=groups, updated=store.get("updated"),
+                           show_days=SHOW_DAYS, hub_path=HUB_PATH, lic_path=LICITATII_PATH, jsonld=[crumbs],
+                           categories=current_app.config.get("KP_CATEGORIES", {}))
 
 
 def sitemap_entry():
