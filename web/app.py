@@ -2174,6 +2174,18 @@ def admin_contributor_status(contributor_id):
     return jsonify({'success': True, 'message': f'Status schimbat la {new_status}'})
 
 
+_STYLE_CSS = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'static', 'css', 'style.css')
+
+
+@app.context_processor
+def inject_static_version():
+    """Cache-busting: style.css is cached 30 days by nginx, so the URL changes with the file."""
+    try:
+        return {'css_version': int(os.path.getmtime(_STYLE_CSS))}
+    except OSError:
+        return {'css_version': 0}
+
+
 @app.context_processor
 def inject_random_articles():
     """Inject random articles and AdSense config into all templates."""

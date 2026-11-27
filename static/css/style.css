@@ -965,6 +965,11 @@ footer {
   color: var(--surface);
 }
 
+.footer-section p,
+.footer-bottom p {
+  color: #b8c4bb; /* 7.9:1 pe --footer-bg (WCAG AA) */
+}
+
 .footer-bottom {
   text-align: center;
   padding-top: var(--space-lg);
@@ -1523,7 +1528,7 @@ footer {
 
 /* Heritage strip (Brașov · Kronstadt · Brassó · Corona) */
 .heritage-strip {
-  background: var(--primary);
+  background: #2d5a3d; /* fix, nu --primary: în dark mode textul ar avea contrast 2.7:1 */
   color: #fff;
   padding: 6px 0;
   font-size: 0.66rem;
@@ -1540,7 +1545,7 @@ footer {
   flex-wrap: wrap;
 }
 .heritage-strip .dot { opacity: 0.5; }
-.heritage-corona { color: var(--accent); }
+.heritage-corona { color: #e8cf7a; } /* 5.2:1 pe --primary (WCAG AA) */
 
 /* Logo bloc: stema + wordmark */
 .logo-block {
