@@ -1,9 +1,9 @@
 {% extends "base.html" %}
 {% set page_title = "Licitații, cereri de ofertă și terenuri în județul Brașov" %}
-{% block title %}{% if selected %}Licitații și achiziții în {{ selected_name }}{% else %}{{ page_title }}{% endif %} | KronPapir{% endblock %}
-{% block meta_description %}<meta name="description" content="Cererile de ofertă și licitațiile primăriilor din județul Brașov, terenurile scoase la vânzare și bunurile ANAF vândute în județ, adunate zilnic de pe site-urile oficiale, cu link la fiecare anunț. Alege localitatea pe hartă.">{% endblock %}
-{% block robots %}<meta name="robots" content="{% if selected %}noindex, follow{% else %}index, follow{% endif %}">{% endblock %}
-{% block canonical %}<link rel="canonical" href="https://kronpapir.ro{{ lic_path }}">{% endblock %}
+{% block title %}{% if selected %}Licitații și achiziții în {{ selected_name }}{% else %}Licitații primării Brașov: achiziții și terenuri{% endif %} | KronPapir{% endblock %}
+{% block meta_description %}{% if selected %}<meta name="description" content="{{ n_selected }} {{ 'anunț' if n_selected == 1 else 'anunțuri' }} acum în {{ selected_name }}: cereri de ofertă și licitații ale primăriei, terenuri de vânzare și bunuri ANAF, cu link la fiecare anunț oficial. Actualizat zilnic.">{% else %}<meta name="description" content="Cererile de ofertă și licitațiile celor 58 de primării din județul Brașov, terenurile scoase la vânzare și bunurile ANAF din județ, zilnic, cu link la anunțul oficial. Filtrezi pe hartă.">{% endif %}{% endblock %}
+{% block robots %}<meta name="robots" content="{% if indexable %}index, follow{% else %}noindex, follow{% endif %}">{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ page_url if indexable else 'https://kronpapir.ro' ~ lic_path }}">{% endblock %}
 {% block json_ld %}{% for item in jsonld %}<script type="application/ld+json">{{ item|tojson }}</script>{% endfor %}{% endblock %}
 {% block extra_css %}
 <style>
@@ -65,7 +65,7 @@
 {%- endmacro %}
 {% block content %}
 <div class="main-container" style="display:block"><section class="section">
-  <h1 class="section-title">Licitații și achiziții în județul Brașov</h1>
+  <h1 class="section-title" id="lic-h1" data-all="Licitații și achiziții în județul Brașov">Licitații și achiziții în {{ selected_name if selected else 'județul Brașov' }}</h1>
   <p class="lic-intro">Ce vor să cumpere primăriile din județ, ce terenuri vând și ce bunuri scoate ANAF la licitație. Le adunăm în fiecare dimineață de pe site-urile oficiale ale celor 58 de primării și din fluxurile publice ANAF. Fiecare rând trimite la anunțul original: acolo găsești termenele, documentele și condițiile.</p>
 
   <div class="lic-layout">
@@ -73,7 +73,7 @@
     <h2 id="lic-map-title">Alege localitatea</h2>
     <svg viewBox="0 0 {{ harta.width }} {{ harta.height }}" role="group" aria-label="Harta județului Brașov, pe localități">
       {% for u in harta.uat %}{% set n = counts.get(u.slug, 0) %}
-      <a href="{{ lic_path }}?localitate={{ u.slug }}" data-loc="{{ u.slug }}" data-name="{{ u.title }}" class="{% if n %}has{% endif %}{% if u.slug == selected %} on{% endif %}" aria-label="{{ u.title }}: {{ n }} anunțuri"{% if u.slug == selected %} aria-current="true"{% endif %}><title>{{ u.title }} · {{ n }} {{ 'anunț' if n == 1 else 'anunțuri' }}</title><path d="{{ u.d }}"/></a>
+      <a href="{{ lic_path }}/{{ u.slug }}" data-loc="{{ u.slug }}" data-name="{{ u.title }}" class="{% if n %}has{% endif %}{% if u.slug == selected %} on{% endif %}" aria-label="{{ u.title }}: {{ n }} anunțuri"{% if u.slug == selected %} aria-current="true"{% endif %}><title>{{ u.title }} · {{ n }} {{ 'anunț' if n == 1 else 'anunțuri' }}</title><path d="{{ u.d }}"/></a>
       {% endfor %}
       {% for u in harta.uat %}{% set n = counts.get(u.slug, 0) %}{% if n or u.slug in ('brasov', 'fagaras', 'sacele', 'codlea', 'rasnov', 'zarnesti', 'rupea', 'predeal', 'victoria', 'ghimbav') %}<text class="{{ 'cnt' if n else 'lbl' }}" x="{{ u.label[0] }}" y="{{ u.label[1] }}">{{ u.title }}{% if n %} ({{ n }}){% endif %}</text>{% endif %}{% endfor %}
     </svg>
@@ -143,7 +143,8 @@
     sel.value = loc;
     bar.hidden = !loc; barName.textContent = name;
     document.title = loc ? 'Licitații și achiziții în ' + name + ' | KronPapir' : allTitle;
-    var url = location.pathname + (loc ? '?localitate=' + encodeURIComponent(loc) : '');
+    var url = {{ lic_path|tojson }} + (loc ? '/' + encodeURIComponent(loc) : '');
+    var h1 = document.getElementById('lic-h1'); h1.textContent = loc ? 'Licitații și achiziții în ' + name : h1.dataset.all;
     if (push) history.pushState({ loc: loc }, '', url);
   }
   map.addEventListener('click', function (e) {
@@ -155,7 +156,8 @@
   sel.addEventListener('change', function () { apply(sel.value, true); });
   document.getElementById('lic-filter-reset').addEventListener('click', function (e) { e.preventDefault(); apply('', true); });
   window.addEventListener('popstate', function () {
-    apply(new URLSearchParams(location.search).get('localitate') || '', false);
+    var parts = location.pathname.split('/'); var last = parts[parts.length - 1];
+    apply(last === 'licitatii' ? '' : decodeURIComponent(last), false);
   });
 })();
 </script>

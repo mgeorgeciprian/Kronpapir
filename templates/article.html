@@ -158,6 +158,14 @@
       <button class="share-btn" title="Tipărește" onclick="window.print();">🖨️</button>
     </div>
 
+    {% set loc_link = locality_link(article) %}
+    {% if loc_link %}
+    <aside class="loc-link" style="margin: var(--space-md) 0; padding: 12px 14px; border-left: 3px solid var(--primary); background: var(--surface);">
+      <a href="{{ loc_link.url }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">Licitații și achiziții în {{ loc_link.name }} →</a>
+      <span style="display: block; font-size: .85rem; color: var(--text-secondary);">{{ loc_link.n }} anunțuri oficiale acum: cereri de ofertă, terenuri, bunuri ANAF</span>
+    </aside>
+    {% endif %}
+
     <!-- Related Articles -->
     {% if related %}
     <!-- Ad Slot Before Related Articles -->

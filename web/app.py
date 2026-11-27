@@ -2390,6 +2390,10 @@ def _sitemap_page_entries():
     paths += [f'/categorie/{c}' for c in CATEGORIES]
     entries = [{'loc': SITEMAP_BASE + p, 'lastmod': today} for p in paths]
     try:
+        entries += business_web.locality_sitemap_entries()
+    except Exception:
+        pass
+    try:
         for contributor in load_contributors():
             if contributor.get('status') == 'active' and contributor.get('article_count', 0) > 0:
                 entries.append({'loc': f"{SITEMAP_BASE}/colaborator/{contributor['id']}", 'lastmod': today})

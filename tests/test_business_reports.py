@@ -76,7 +76,8 @@ def test_hub_renders_reports(tmp_path):
         html = app.test_client().get("/afaceri-brasov").get_data(as_text=True)
         assert 'id="evolutie"' in html and "Înmatriculări pe lună" in html
         assert 'id="judete"' in html and "Firme noi la 1.000" in html
-        assert "<title>Afaceri în Brașov: firme, joburi și licitații | KronPapir</title>" in html
+        assert "<title>Afaceri în Brașov, oct. 2026: firme și licitații | KronPapir</title>" in html
+        assert '"distribution"' in html and "<h3>Insolvențe firme Brașov</h3>" in html
         assert '"variableMeasured"' in html and '"license"' not in html
         assert 'id="panel-rad"' not in html  # radieri fără istoric: graficul nu apare
     finally:

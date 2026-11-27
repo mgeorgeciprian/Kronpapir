@@ -125,10 +125,15 @@ def test_map_has_the_58_uat_and_filter_by_locality(tmp_path):
         c = app.test_client()
         html = c.get("/afaceri-brasov/licitatii").get_data(as_text=True)
         assert 'data-loc="sercaia"' in html and "Șercaia (1)" in html and "noindex" not in html
-        html = c.get("/afaceri-brasov/licitatii?localitate=sercaia").get_data(as_text=True)
+        r = c.get("/afaceri-brasov/licitatii?localitate=sercaia")
+        assert r.status_code == 301 and r.headers["Location"].endswith("/afaceri-brasov/licitatii/sercaia")
+        html = c.get("/afaceri-brasov/licitatii/sercaia").get_data(as_text=True)
         assert '<li data-loc="prejmer" hidden>' in html and '<li data-loc="sercaia">' in html
-        assert "Doar <span id=\"lic-filter-name\">Șercaia" in html and "noindex, follow" in html
-        assert "noindex" not in c.get("/afaceri-brasov/licitatii?localitate=nu-exista").get_data(as_text=True)
+        assert "Doar <span id=\"lic-filter-name\">Șercaia" in html
+        assert "noindex, follow" in html  # un singur anunț: prea puțin pentru Google
+        assert '<link rel="canonical" href="https://kronpapir.ro/afaceri-brasov/licitatii">' in html
+        assert "Licitații și achiziții în Șercaia | KronPapir" in html and '"DataFeed"' in html
+        assert c.get("/afaceri-brasov/licitatii/nu-exista").status_code == 404
     finally:
         app.config.pop("LICITATII_STORE")
 
@@ -139,3 +144,60 @@ def test_menu_category_titles_are_not_notices():
     assert clean_title("Anunțuri Vânzări Terenuri") is None
     assert clean_title("Ofertă de vânzare teren extravilan nr. 2679/2026")
     assert clean_title("Anunt licitatie str. Pietii, nr. 3, CF 109819")
+
+
+def test_locality_page_with_three_notices_is_indexed_and_in_sitemap(tmp_path):
+    from web.app import app
+    today = date.today().isoformat()
+    path = tmp_path / "store.json"
+    path.write_text(json.dumps({"updated": today + "T07:05:00", "items": {
+        k: {"url": f"https://x/{k}", "title": f"Cerere de ofertă numărul {k} lucrări", "authority": "PRIMARIA COMUNEI PREJMER",
+            "source": "sites", "published": today} for k in ("a", "b", "c")}}), encoding="utf-8")
+    app.config["LICITATII_STORE"] = str(path)
+    try:
+        c = app.test_client()
+        html = c.get("/afaceri-brasov/licitatii/prejmer").get_data(as_text=True)
+        assert '<meta name="robots" content="index, follow">' in html
+        assert '<link rel="canonical" href="https://kronpapir.ro/afaceri-brasov/licitatii/prejmer">' in html
+        assert "3 anunțuri acum în Prejmer" in html
+        from web import business
+        with app.app_context():
+            assert any(e["loc"].endswith("/licitatii/prejmer") for e in business.locality_sitemap_entries())
+        assert "/afaceri-brasov/licitatii/prejmer" in c.get("/sitemap-pagini.xml").get_data(as_text=True)
+    finally:
+        app.config.pop("LICITATII_STORE")
+
+
+def test_onrc_csv(tmp_path):
+    from web.app import app
+    (tmp_path / "history.json").write_text(json.dumps({"radieri": {
+        "2026-10": {"counties": {"Brașov": 117}, "national": 3474, "source_url": "https://www.onrc.ro/x.xlsx"}}}), encoding="utf-8")
+    app.config["ONRC_DIR"] = str(tmp_path)
+    try:
+        r = app.test_client().get("/afaceri-brasov/date-onrc-brasov.csv")
+        assert r.status_code == 200 and r.mimetype == "text/csv"
+        assert r.get_data(as_text=True).splitlines() == ["luna,indicator,brasov,romania,sursa",
+                                                         "2026-10,radieri,117,3474,https://www.onrc.ro/x.xlsx"]
+    finally:
+        app.config.pop("ONRC_DIR")
+
+
+def test_article_locality_link(tmp_path):
+    from web.app import app
+    from web import business
+    today = date.today().isoformat()
+    path = tmp_path / "store.json"
+    items = {f"{t}{k}": {"url": f"https://x/{t}{k}", "title": f"Cerere de ofertă numărul {k} lucrări", "authority": a,
+                         "source": "sites", "published": today}
+             for t, a in (("p", "PRIMARIA COMUNEI PREJMER"), ("b", "PRIMARIA MUNICIPIULUI BRASOV")) for k in range(3)}
+    path.write_text(json.dumps({"updated": today + "T07:06:00", "items": items}), encoding="utf-8")
+    app.config["LICITATII_STORE"] = str(path)
+    try:
+        with app.app_context():
+            link = business.locality_link({"category": "local", "title": "Drum nou la Prejmer", "content": "<p>Lucrări în Brașov și Prejmer</p>"})
+            assert link["url"] == "/afaceri-brasov/licitatii/prejmer" and link["n"] == 3
+            assert business.locality_link({"category": "local", "title": "Primăria Brașov anunță", "content": ""})["name"] == "Brașov"
+            assert business.locality_link({"category": "local", "title": "Ședință", "content": "în Brașov"}) is None
+            assert business.locality_link({"category": "sanatate", "title": "Prejmer", "content": ""}) is None
+    finally:
+        app.config.pop("LICITATII_STORE")

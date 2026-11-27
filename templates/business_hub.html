@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 
 {% set page_title = "Afaceri în Brașov: firme, joburi și licitații" %}
-{% block title %}{{ page_title }} | KronPapir{% endblock %}
+{% block title %}{% if title_period %}Afaceri în Brașov, {{ title_period }}: firme și licitații{% else %}{{ page_title }}{% endif %} | KronPapir{% endblock %}
 
 {% block meta_description %}
 {% if payload and rows %}
@@ -61,6 +61,9 @@
   .biz-jobs a.btn { margin-left: auto; padding: 9px 14px; border-radius: var(--radius); background: var(--primary); color: #fff; font-weight: 600; text-decoration: none; }
   .biz-more { display: inline-block; margin-top: var(--space-sm, 10px); padding: 9px 14px; border-radius: var(--radius); background: var(--primary); color: #fff !important; font-weight: 600; text-decoration: none; }
   .biz-wrap { display: block; }
+  .biz-h3s { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 4px 20px; margin: 8px 0; }
+  .biz-h3s h3 { font-size: 1rem; margin: 8px 0 2px; }
+  .biz-h3s p { margin: 0; font-size: .9rem; color: var(--text-secondary); }
   .biz-updated { font-size: .85rem; color: var(--text-secondary); margin: -4px 0 8px; }
   .biz-headline { font-size: 1.1rem; line-height: 1.45; margin: 0 0 var(--space-md); max-width: 70ch; }
   .biz-kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: var(--space-md); }
@@ -135,7 +138,7 @@
 
       {% if payload and rows %}
       <div class="biz-section" id="firme">
-        <h2>Firmele din județul Brașov, {{ ytd_label }}</h2>
+        <h2>Firme înființate și închise în Brașov, {{ ytd_label }} (statistici ONRC)</h2>
         {% if chart_vs %}
         <figure class="biz-fig">{{ chart_vs }}<figcaption class="biz-note">Variația față de aceeași perioadă din {{ year - 1 }}. La înmatriculări, ▲ e o veste bună; la radieri, dizolvări, suspendări și insolvențe, ▲ înseamnă mai multe firme cu probleme.</figcaption></figure>
         {% endif %}
@@ -152,6 +155,13 @@
           </table>
         </div>
         </details>
+        <div class="biz-h3s">
+        {% for r in rows %}
+          <h3>{{ {'inmatriculari': 'Firme noi în Brașov', 'radieri': 'Firme radiate în Brașov', 'dizolvari': 'Firme dizolvate în Brașov', 'suspendari': 'Activități suspendate în Brașov', 'insolvente': 'Insolvențe firme Brașov'}.get(r.key, r.label) }}</h3>
+          <p>{{ fmt_int(r.ytd) }} în {{ ytd_label }}, {{ fmt_pct(r.change) }} față de aceeași perioadă din {{ year - 1 }} ({{ fmt_int(r.ytd_prev) }}){% if r.national_change is not none %}; la nivel național {{ fmt_pct(r.national_change) }}{% endif %}. Doar în {{ month_label }}: {{ fmt_int(r.month) }}.</p>
+        {% endfor %}
+        </div>
+        <p class="biz-note">Datele lunare pentru Brașov și România: <a href="{{ hub_path }}/date-onrc-brasov.csv">descarcă CSV</a> (sursa: fișierele ONRC).</p>
         <p class="biz-note">{% if reg_rank[0] %}Brașovul e pe locul {{ reg_rank[0] }} din {{ reg_rank[1] }} de județe la înmatriculări (fără București){% if act_rank[0] %} și pe locul {{ act_rank[0] }} la numărul de profesioniști activi{% endif %}. {% endif %}
         {% if forms %}Pe forme de organizare:{% for f in forms %} {{ fmt_int(f.ytd) }} {{ f.label }} ({{ fmt_pct(f.change) }}){{ ',' if not loop.last else '.' }}{% endfor %}{% endif %}
         {% if active %}Dintre profesioniștii activi, {{ fmt_int(active.pj) }} sunt persoane juridice ({{ fmt_pct(active.pj_change) }}) și {{ fmt_int(active.pf) }} sunt PFA, II și IF ({{ fmt_pct(active.pf_change) }}).{% endif %}</p>
@@ -159,7 +169,7 @@
 
       {% if chart_reg or chart_rad %}
       <div class="biz-section" id="evolutie">
-        <h2>Lună de lună</h2>
+        <h2>Evoluția lunară: firme noi și radieri în județul Brașov</h2>
         <div class="biz-tabs" role="group" aria-label="Alege graficul">
           {% if chart_reg %}<input type="radio" name="ev" id="ev-reg" checked><label for="ev-reg">Firme noi</label>{% endif %}
           {% if chart_rad %}<input type="radio" name="ev" id="ev-rad"{% if not chart_reg %} checked{% endif %}><label for="ev-rad">Firme închise (radieri)</label>{% endif %}
@@ -175,7 +185,7 @@
 
       {% if chart_rank %}
       <div class="biz-section" id="judete">
-        <h2>Unde se deschid cele mai multe firme</h2>
+        <h2>Brașovul față de alte județe: firme noi la 1.000 de firme active</h2>
         <p class="biz-note">Înmatriculări de la începutul anului la 1.000 de profesioniști activi (firme, PFA, II, IF), ca să comparăm județe de mărimi diferite. Fără București.{% if rank1000.mine %} Brașovul: locul {{ rank1000.mine.rank }} din {{ rank1000.of }}.{% endif %}</p>
         <figure class="biz-fig">{{ chart_rank }}</figure>
         {% if peers|length > 1 %}
@@ -199,7 +209,7 @@
       {% endif %}
 
       <div class="biz-section" id="joburi">
-        <h2>Locuri de muncă în județ</h2>
+        <h2>Piața muncii în județul Brașov</h2>
         {% if jobs_rep %}
         <div class="biz-kpis biz-kpis-sm">
           <div class="biz-kpi"><span class="label">Posturi libere</span><span class="value">{{ fmt_int(jobs_rep.positions) }}</span><span class="biz-note">în {{ plural(jobs_rep.offers, 'ofertă', 'oferte') }}</span></div>
@@ -220,10 +230,10 @@
       </div>
 
       <div class="biz-section" id="anunturi-primarii">
-        <h2>Ce cumpără și ce vând primăriile din județ</h2>
+        <h2>Achizițiile și licitațiile primăriilor din județ</h2>
         {% if lic_report.places %}
         <p class="biz-note">Localitățile cu cele mai multe anunțuri acum (achiziții, terenuri, bunuri ANAF):</p>
-        <ul class="biz-chips">{% for name, n, slug in lic_report.places %}<li><a href="{{ lic_path }}?localitate={{ slug }}">{{ name }} <b>{{ n }}</b></a></li>{% endfor %}</ul>
+        <ul class="biz-chips">{% for name, n, slug in lic_report.places %}<li><a href="{{ lic_path }}/{{ slug }}">{{ name }} <b>{{ n }}</b></a></li>{% endfor %}</ul>
         {% endif %}
         {% if lic.achizitii or lic.terenuri %}
         <ul class="biz-list">

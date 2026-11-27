@@ -10,7 +10,7 @@ import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
-from flask import Blueprint, current_app, render_template, request
+from flask import Blueprint, Response, abort, current_app, redirect, render_template, request
 
 from web import business_reports as rep
 from web import charts
@@ -25,6 +25,9 @@ LICITATII_STORE = Path(__file__).resolve().parent.parent / "data" / "business" /
 LICITATII_PATH = HUB_PATH + "/licitatii"
 MAP_FILE = Path(__file__).resolve().parent.parent / "data" / "geo" / "harta_brasov.json"
 SHOW_DAYS = 30
+INDEX_MIN_ITEMS = 3  # o pagină de localitate intră în Google doar cu cel puțin atâtea anunțuri active
+CSV_PATH = HUB_PATH + "/date-onrc-brasov.csv"
+MONTHS_TITLE = ["ian.", "feb.", "mar.", "apr.", "mai", "iun.", "iul.", "aug.", "sep.", "oct.", "nov.", "dec."]
 MONTHS = ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august",
           "septembrie", "octombrie", "noiembrie", "decembrie"]
 FLOWS = [  # indicatorii de flux, în ordinea afișării
@@ -317,6 +320,7 @@ def dataset_jsonld(payload):
         "publisher": {"@type": "NewsMediaOrganization", "name": "KronPapir", "url": SITE_URL},
         "dateModified": payload.get("fetched_at"),
         "variableMeasured": [label for _, label, _ in FLOWS] + ["Profesioniști activi"],
+        "distribution": [{"@type": "DataDownload", "encodingFormat": "text/csv", "contentUrl": SITE_URL + CSV_PATH}],
         "measurementTechnique": "Statistici lunare publicate de ONRC; variațiile sunt calculate de KronPapir.",
     }
 
@@ -359,6 +363,8 @@ def hub():
         ytd, month = period_label(payload["period_end"])
         reg_rank = rank(payload["stats"], "inmatriculari")
         act_rank = rank(payload["stats"], "activi", field="total")
+        d = date.fromisoformat(payload["period_end"])
+        ctx["title_period"] = f"{MONTHS_TITLE[d.month - 1]} {d.year}"
         ctx.update(ytd_label=ytd, month_label=month, rows=indicators(payload), active=active(payload),
                    forms=forms(payload), peers=peers(payload), reg_rank=reg_rank, act_rank=act_rank,
                    year=int(payload["period_end"][:4]))
@@ -422,29 +428,90 @@ def build_reports(payload, jobs, ctx):
     return out
 
 
-@bp.route(LICITATII_PATH)
-def licitatii():
-    store = load_licitatii()
-    harta = load_map()
-    groups = with_places(licitatii_groups(store), harta["uat"])
+def licitatii_counts(groups):
     counts = {}
     for items in groups.values():
         for it in items:
             if it.get("loc"):
                 counts[it["loc"]] = counts.get(it["loc"], 0) + 1
+    return counts
+
+
+def datafeed_jsonld(groups, store, url, selected=""):
+    """Feed-ul de anunțuri (schema.org DataFeed), cu titlul oficial și linkul fiecărui anunț."""
+    items = [it for k in ("achizitii", "terenuri", "anaf") for it in groups.get(k, [])
+             if not selected or it.get("loc") == selected]
+    return {"@context": "https://schema.org", "@type": "DataFeed", "url": url,
+            "name": "Licitații, achiziții și terenuri ale primăriilor din județul Brașov",
+            "dateModified": store.get("updated"),
+            "dataFeedElement": [{"@type": "DataFeedItem", "dateCreated": (it.get("published") or it.get("first_seen") or "")[:10] or None,
+                                 "item": {"@type": "Thing", "name": it.get("title"), "url": it.get("url")}}
+                                for it in items[:50]]}
+
+
+@bp.route(LICITATII_PATH)
+def licitatii():
+    old = request.args.get("localitate", "").strip().lower()
+    if old:  # adresa veche cu parametru -> pagina localității
+        return redirect(f"{LICITATII_PATH}/{old}", code=301)
+    return _licitatii_page("")
+
+
+@bp.route(LICITATII_PATH + "/<slug>")
+def licitatii_localitate(slug):
+    return _licitatii_page(slug)
+
+
+def _licitatii_page(selected):
+    store = load_licitatii()
+    harta = load_map()
+    groups = with_places(licitatii_groups(store), harta["uat"])
+    counts = licitatii_counts(groups)
     by_slug = {u["slug"]: u for u in harta["uat"]}
-    selected = request.args.get("localitate", "").strip().lower()
-    if selected not in by_slug:
-        selected = ""
+    if selected and selected not in by_slug:
+        abort(404)
+    name = by_slug[selected]["title"] if selected else ""
+    url = SITE_URL + LICITATII_PATH + (f"/{selected}" if selected else "")
     crumbs = breadcrumbs()
     crumbs["itemListElement"].append({"@type": "ListItem", "position": 3, "name": "Licitații și achiziții",
                                       "item": SITE_URL + LICITATII_PATH})
+    if selected:
+        crumbs["itemListElement"].append({"@type": "ListItem", "position": 4, "name": name, "item": url})
+    indexable = not selected or counts.get(selected, 0) >= INDEX_MIN_ITEMS
     return render_template("licitatii.html", groups=groups, updated=store.get("updated"),
-                           show_days=SHOW_DAYS, hub_path=HUB_PATH, lic_path=LICITATII_PATH, jsonld=[crumbs],
-                           harta=harta, counts=counts, selected=selected,
-                           selected_name=by_slug[selected]["title"] if selected else "",
+                           show_days=SHOW_DAYS, hub_path=HUB_PATH, lic_path=LICITATII_PATH,
+                           jsonld=[crumbs, datafeed_jsonld(groups, store, url, selected)],
+                           harta=harta, counts=counts, selected=selected, selected_name=name,
+                           indexable=indexable, page_url=url, n_selected=counts.get(selected, 0),
                            localitati=sorted(harta["uat"], key=lambda u: u["slug"]),
                            categories=current_app.config.get("KP_CATEGORIES", {}))
+
+
+@bp.route(CSV_PATH)
+def onrc_csv():
+    """Seria lunară ONRC pentru Brașov și România, ca CSV (sursa: fișierele ONRC)."""
+    hist = rep.load_history(data_dir())
+    lines = ["luna,indicator,brasov,romania,sursa"]
+    for stat in ("inmatriculari", "radieri", "dizolvari", "suspendari", "insolvente", "activi"):
+        for month, p in sorted((hist.get(stat) or {}).items()):
+            v = p.get("counties", {}).get(COUNTY)
+            if v is None:
+                continue
+            nat = p.get("national")
+            lines.append(f"{month},{stat},{v},{'' if nat is None else nat},{p.get('source_url', '')}")
+    return Response("\n".join(lines) + "\n", mimetype="text/csv",
+                    headers={"Content-Disposition": "inline; filename=onrc-brasov.csv",
+                             "Cache-Control": "public, max-age=3600"})
+
+
+def locality_sitemap_entries():
+    """Paginile de localitate cu destule anunțuri ca să merite indexate."""
+    store = load_licitatii()
+    harta = load_map()
+    counts = licitatii_counts(with_places(licitatii_groups(store), harta["uat"]))
+    day = (store.get("updated") or "")[:10] or None
+    return [{"loc": f"{SITE_URL}{LICITATII_PATH}/{slug}", "lastmod": day}
+            for slug, n in sorted(counts.items()) if n >= INDEX_MIN_ITEMS]
 
 
 def sitemap_entry():
@@ -452,7 +519,50 @@ def sitemap_entry():
     return {"loc": SITE_URL + HUB_PATH, "lastmod": (payload or {}).get("fetched_at", "")[:10] or None}
 
 
+_counts_cache = {"key": None, "counts": {}}
+LINK_CATEGORIES = ("local", "economie")
+
+
+def _indexable_counts():
+    """{slug: nr. anunțuri} pentru localitățile cu pagină indexabilă; recalculat doar când se schimbă store-ul."""
+    store = load_licitatii()
+    key = store.get("updated")
+    if _counts_cache["key"] != key:
+        counts = licitatii_counts(with_places(licitatii_groups(store), load_map()["uat"]))
+        _counts_cache.update(key=key, counts={k: v for k, v in counts.items() if v >= INDEX_MIN_ITEMS})
+    return _counts_cache["counts"]
+
+
+def locality_link(article):
+    """Link spre licitațiile localității despre care e articolul (Local / Economie), sau None.
+
+    Alegem o localitate pomenită în titlu sau în începutul textului. „Brașov” apare aproape peste tot,
+    așa că îl folosim doar când nu e pomenită altă localitate și apare în titlu.
+    """
+    try:
+        if (article.get("category") or "").lower() not in LINK_CATEGORIES:
+            return None
+        counts = _indexable_counts()
+        if not counts:
+            return None
+        title = article.get("title") or ""
+        body = re.sub(r"<[^>]+>", " ", article.get("content") or "")[:800]
+        blob_t = " " + place_slug(title).replace("-", " ") + " "
+        blob = blob_t + place_slug(body).replace("-", " ") + " "
+        uats = {u["slug"]: u for u in load_map()["uat"]}
+        hits = [s for s in counts if s != "brasov" and " " + s.replace("-", " ") + " " in blob]
+        if not hits and "brasov" in counts and " brasov " in blob_t:
+            hits = ["brasov"]
+        if not hits:
+            return None
+        slug = max(hits, key=lambda s: (" " + s.replace("-", " ") + " " in blob_t, counts[s]))
+        return {"name": uats[slug]["title"], "url": f"{LICITATII_PATH}/{slug}", "n": counts[slug]}
+    except Exception:  # un link în plus nu are voie să strice pagina articolului
+        return None
+
+
 def register(app, categories, load_articles):
+    app.jinja_env.globals["locality_link"] = locality_link
     app.config.setdefault("KP_CATEGORIES", categories)
     app.config["KP_LOAD_ARTICLES"] = load_articles
     app.register_blueprint(bp)
