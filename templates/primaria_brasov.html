@@ -1,0 +1,161 @@
+{% extends "base.html" %}
+{% set page_title = "Primăria Brașov: proiecte de hotărâre, hotărâri HCL și licitații" %}
+{% block title %}Hotărâri Consiliul Local Brașov, proiecte HCL și licitații Primăria Brașov | KronPapir{% endblock %}
+{% block meta_description %}<meta name="description" content="{{ g.hcl_open|length }} {{ 'proiect' if g.hcl_open|length == 1 else 'proiecte' }} de hotărâre în dezbatere publică, {{ g.lic_open|length }} {{ 'licitație deschisă' if g.lic_open|length == 1 else 'licitații deschise' }} și hotărârile Consiliului Local Brașov, cu termenul și documentele oficiale. Actualizat zilnic.">{% endblock %}
+{% block robots %}<meta name="robots" content="index, follow">{% endblock %}
+{% block canonical %}<link rel="canonical" href="https://kronpapir.ro{{ page_path }}">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ page_title }}">
+<meta property="og:description" content="Ce se decide în Consiliul Local Brașov și ce licitează Primăria, cu termenele și documentele oficiale.">
+<meta property="og:url" content="https://kronpapir.ro{{ page_path }}">
+{% endblock %}
+{% block json_ld %}{% for item in jsonld %}<script type="application/ld+json">{{ item|tojson }}</script>{% endfor %}{% endblock %}
+{% block extra_css %}
+<style>
+  .pb-hero { background: #2d5a3d; color: #fff; border-radius: var(--radius-lg); padding: 20px 24px; margin: 0 0 20px; }
+  .pb-hero .kicker { margin: 0 0 6px; font-size: .78rem; letter-spacing: .12em; text-transform: uppercase; font-weight: 700; color: #e8cf7a; }
+  .pb-hero h1 { margin: 0 0 14px; color: #fff; font-family: var(--font-serif); font-size: clamp(1.45rem, 3.6vw, 2.1rem); line-height: 1.2; max-width: 30ch; }
+  .pb-stats { display: flex; flex-wrap: wrap; gap: 10px; }
+  .pb-stats a { display: flex; flex-direction: column; min-width: 150px; padding: 10px 14px; border-radius: 10px; background: rgba(255,255,255,.1); color: #fff; text-decoration: none; }
+  .pb-stats a:hover { background: rgba(255,255,255,.18); }
+  .pb-stats b { font-size: 1.7rem; line-height: 1.1; font-variant-numeric: tabular-nums; }
+  .pb-stats span { font-size: .85rem; color: rgba(255,255,255,.88); }
+  .pb-hero .sub { margin: 12px 0 0; font-size: .85rem; color: rgba(255,255,255,.82); }
+  .pb-hero .sub a { color: #fff; }
+  .pb-section { margin: 0 0 32px; }
+  .pb-section h2 { font-size: 1.25rem; margin: 0 0 4px; }
+  .pb-section > p.lead { color: var(--text-secondary); font-size: .92rem; margin: 0 0 12px; max-width: 72ch; }
+  .pb-cards { display: grid; gap: 10px; }
+  .pb-card { background: var(--surface); border: 1px solid var(--border); border-left: 5px solid var(--primary); border-radius: var(--radius-lg); padding: 12px 16px; }
+  .pb-card.urgent { border-left-color: #b45309; }
+  .pb-card.wait { border-left-color: var(--text-secondary); }
+  .pb-card h3 { font-size: 1rem; margin: 0 0 6px; line-height: 1.35; font-family: var(--font-sans); }
+  .pb-card h3 a { color: inherit; text-decoration: none; }
+  .pb-card h3 a:hover { color: var(--primary); text-decoration: underline; }
+  .pb-meta { display: flex; flex-wrap: wrap; gap: 6px 12px; align-items: center; font-size: .85rem; color: var(--text-secondary); }
+  .pb-badge { display: inline-block; font-size: .75rem; font-weight: 700; padding: 2px 9px; border-radius: 999px; }
+  .b-days { background: #fdf0d5; color: #7a3e00; }
+  .b-ok { background: #e3f3e7; color: #155d2b; } .b-no { background: #fbe4e4; color: #8f1d1d; } .b-gray { background: color-mix(in srgb, var(--text-secondary) 15%, transparent); color: var(--text); }
+  .b-hcl { background: #e7f1fb; color: #1d4f8a; } .b-lic { background: #f9eeda; color: #7a4b00; } .b-ach { background: #efedff; color: #4a3d9a; }
+  .pb-files { margin: 8px 0 0; padding: 0; list-style: none; display: flex; flex-wrap: wrap; gap: 6px; }
+  .pb-files a { display: inline-flex; align-items: center; min-height: 32px; padding: 4px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: .82rem; color: var(--primary); text-decoration: none; }
+  .pb-files a:hover { border-color: var(--primary); }
+  .pb-pdf { font-size: .68rem; font-weight: 800; color: #fff; background: #a4242b; border-radius: 3px; padding: 0 4px; margin-right: 6px; }
+  .pb-notes { margin: 6px 0 0; font-size: .85rem; }
+  .pb-notes summary { cursor: pointer; color: var(--primary); min-height: 32px; display: flex; align-items: center; }
+  .pb-notes p { color: var(--text-secondary); margin: 4px 0 0; white-space: pre-line; }
+  .pb-list { list-style: none; padding: 0; margin: 0; }
+  .pb-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .pb-list a { color: inherit; font-weight: 500; text-decoration: none; }
+  .pb-list a:hover { color: var(--primary); text-decoration: underline; }
+  .pb-list .pb-meta { margin-top: 3px; }
+  .pb-year { margin: 6px 0; }
+  .pb-year > summary { cursor: pointer; font-weight: 700; min-height: 40px; display: flex; align-items: center; color: var(--primary); }
+  .pb-empty { padding: 12px 16px; border: 1px dashed var(--border); border-radius: var(--radius-lg); color: var(--text-secondary); font-size: .92rem; }
+  .pb-nav { display: flex; flex-wrap: wrap; gap: 6px; margin: 0 0 22px; }
+  .pb-nav a { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; text-decoration: none; font-size: .9rem; min-height: 36px; display: inline-flex; align-items: center; }
+  .pb-nav a:hover { border-color: var(--primary); color: var(--primary); }
+  @media (prefers-color-scheme: dark) {
+    .b-days { background: #4a3210; color: #ffd99a; } .b-ok { background: #173a22; color: #9fe0b0; } .b-no { background: #4a1c1c; color: #ffb4b4; }
+    .b-hcl { background: #18324f; color: #b9d7ff; } .b-lic { background: #46330f; color: #ffd99a; } .b-ach { background: #2c2552; color: #d4ccff; }
+  }
+</style>
+{% endblock %}
+
+{% macro status_badge(st) -%}
+{%- set s = (st or '')|lower -%}
+<span class="pb-badge {{ 'b-ok' if 'aprobat' in s else 'b-no' if 'respins' in s else 'b-gray' }}">{{ st }}</span>
+{%- endmacro %}
+{% macro dmy(d) %}{{ d[8:10] }}.{{ d[5:7] }}.{{ d[:4] }}{% endmacro %}
+{% macro files(d, n=4) -%}
+{% if d.files %}<ul class="pb-files">{% for f in d.files[:n] %}<li><a href="{{ f.url }}" rel="noopener nofollow" target="_blank"><span class="pb-pdf">PDF</span> {{ f.name[:60] }}</a></li>{% endfor %}{% if d.n_files > n %}<li><a href="{{ d.url }}" rel="noopener nofollow" target="_blank">+ încă {{ d.n_files - n }} pe brasovcity.ro</a></li>{% endif %}</ul>{% endif %}
+{%- endmacro %}
+
+{% block content %}
+<div class="main-container" style="display:block">
+  <div>
+    <section class="section">
+      <div class="pb-hero">
+        <p class="kicker">Afaceri în Brașov · Primăria și Consiliul Local</p>
+        <h1>Ce se decide în Consiliul Local Brașov și ce licitează Primăria</h1>
+        <div class="pb-stats">
+          <a href="#dezbatere"><b>{{ g.hcl_open|length }}</b><span>{{ 'proiect' if g.hcl_open|length == 1 else 'proiecte' }} la care poți trimite propuneri</span></a>
+          <a href="#licitatii"><b>{{ g.lic_open|length }}</b><span>{{ 'licitație sau achiziție deschisă' if g.lic_open|length == 1 else 'licitații și achiziții deschise' }}</span></a>
+          <a href="#hotarari"><b>{{ approved_year }}</b><span>proiecte publicate în {{ year }} și aprobate</span></a>
+        </div>
+        <p class="sub">Sursa: <a href="https://www.brasovcity.ro" rel="noopener" target="_blank">brasovcity.ro</a>, paginile publice ale Primăriei Brașov.{% if updated %} Verificat {{ dmy(updated) }}, la {{ updated[11:16] }}.{% endif %} Fiecare document trimite la pagina oficială.</p>
+      </div>
+
+      <nav class="pb-nav" aria-label="Pe această pagină">
+        <a href="#dezbatere">Proiecte în dezbatere</a><a href="#licitatii">Licitații</a><a href="#hotarari">Hotărâri</a><a href="{{ hub_path }}">← Afaceri în Brașov</a><a href="{{ hub_path }}/licitatii">Licitațiile din județ</a>
+      </nav>
+
+      <div class="pb-section" id="dezbatere">
+        <h2>Proiecte de hotărâre în dezbatere publică</h2>
+        <p class="lead">Înainte de vot, orice proiect de hotărâre stă în consultare publică (Legea 52/2003). Până la termen, oricine poate trimite propuneri, sugestii sau opinii, după instrucțiunile din anunț.</p>
+        {% if g.hcl_open %}
+        <div class="pb-cards">
+          {% for d in g.hcl_open %}
+          <article class="pb-card{{ ' urgent' if d.days_left is defined and d.days_left <= 5 }}">
+            <h3><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a></h3>
+            <div class="pb-meta"><span class="pb-badge b-days">{% if d.days_left == 0 %}ultima zi pentru propuneri{% elif d.days_left == 1 %}mai e o zi pentru propuneri{% else %}mai sunt {{ d.days_left }} zile pentru propuneri{% endif %}</span><span>termen {{ dmy(d.deadline) }}</span>{% if d.published %}<span>publicat {{ dmy(d.published) }}</span>{% endif %}</div>
+            {% if d.notes %}<details class="pb-notes"><summary>Cum trimiți o propunere</summary><p>{{ d.notes }}</p></details>{% endif %}
+            {{ files(d) }}
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="pb-empty">Acum nu e niciun proiect cu termenul de propuneri deschis. Verificăm pagina Primăriei în fiecare zi.</p>
+        {% endif %}
+        {% if g.hcl_waiting %}
+        <h3 style="font-size:1.05rem;margin:18px 0 6px">Termenul de propuneri a trecut, urmează votul</h3>
+        <ul class="pb-list">
+          {% for d in g.hcl_waiting %}<li><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><div class="pb-meta">{{ status_badge(d.status) }}{% if d.deadline %}<span>propuneri până la {{ dmy(d.deadline) }}</span>{% endif %}{% if d.published %}<span>publicat {{ dmy(d.published) }}</span>{% endif %}</div></li>{% endfor %}
+        </ul>
+        {% endif %}
+      </div>
+
+      <div class="pb-section" id="licitatii">
+        <h2>Licitații și achiziții ale Primăriei Brașov</h2>
+        <p class="lead">Închirieri și vânzări de imobile ale municipiului și achizițiile directe ale Primăriei. Un anunț e deschis până la termenul de depunere a ofertelor.</p>
+        {% if g.lic_open %}
+        <div class="pb-cards">
+          {% for d in g.lic_open %}
+          <article class="pb-card{{ ' urgent' if d.days_left <= 5 }}">
+            <h3><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a></h3>
+            <div class="pb-meta"><span class="pb-badge {{ 'b-lic' if d.kind == 'licitatie' else 'b-ach' }}">{{ 'Licitație' if d.kind == 'licitatie' else 'Achiziție' }}</span><span class="pb-badge b-days">{% if d.days_left == 0 %}ultima zi{% elif d.days_left == 1 %}o zi rămasă{% else %}{{ d.days_left }} zile rămase{% endif %}</span><span>oferte până la {{ dmy(d.deadline) }}</span></div>
+            {{ files(d, 3) }}
+          </article>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="pb-empty">Acum nu e nicio licitație sau achiziție cu termenul deschis.</p>
+        {% endif %}
+        {% if g.lic_past %}
+        <details class="pb-year"><summary>Anunțuri încheiate ({{ g.lic_past|length }})</summary>
+          <ul class="pb-list">
+            {% for d in g.lic_past %}<li><a href="{{ d.url }}" rel="noopener nofollow" target="_blank">{{ d.title }}</a><div class="pb-meta"><span class="pb-badge {{ 'b-lic' if d.kind == 'licitatie' else 'b-ach' }}">{{ 'Licitație' if d.kind == 'licitatie' else 'Achiziție' }}</span>{% if d.deadline %}<span>termen {{ dmy(d.deadline) }}</span>{% endif %}</div></li>{% endfor %}
+          </ul>
+        </details>
+        {% endif %}
+      </div>
+
+      <div class="pb-section" id="hotarari">
+        <h2>Hotărârile Consiliului Local Brașov</h2>
+        <p class="lead">Proiectele care au trecut prin consultare și au primit o decizie: aprobate prin HCL, respinse sau retrase de pe ordinea de zi. Data este cea a publicării proiectului; pagina Primăriei nu arată data ședinței.</p>
+        {% for y, docs in by_year %}
+        <details class="pb-year"{% if loop.first %} open{% endif %}><summary>{{ y }} ({{ docs|length }})</summary>
+          <ul class="pb-list">
+            {% for d in docs %}<li><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><div class="pb-meta">{{ status_badge(d.status) }}{% if d.published %}<span>proiect publicat {{ dmy(d.published) }}</span>{% endif %}{% if d.status_since %}<span>decizie constatată de noi pe {{ dmy(d.status_since) }}</span>{% endif %}</div></li>{% endfor %}
+          </ul>
+        </details>
+        {% else %}
+        <p class="pb-empty">Lista se completează la prima verificare a paginii Primăriei.</p>
+        {% endfor %}
+      </div>
+
+      <p class="biz-note" style="font-size:.9rem;color:var(--text-secondary)">Nu modificăm documentele: le adunăm de pe brasovcity.ro și le ordonăm. Numele funcționarilor de contact nu le publicăm. Ai găsit o greșeală? <a href="/contact">Scrie-ne</a>. Cum lucrăm: <a href="/surse">sursele noastre</a>.</p>
+    </section>
+  </div>
+</div>
+{% endblock %}

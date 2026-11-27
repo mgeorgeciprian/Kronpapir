@@ -150,3 +150,36 @@ class SpacedDecimalsTest(unittest.TestCase):
     def test_official_spaced_decimals_match(self):
         art = {"title": "x", "content": "<p>Are 9,16 mp.</p>", "excerpt": "", "url": "u"}
         self.assertEqual(fc.deterministic("suprafață de 9, 16 mp", art, NOW)["erori"], [])
+
+
+class StoreTest(unittest.TestCase):
+    def test_store_keeps_all_documents_and_status_changes(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            data = Path(tmp)
+            mk = lambda st: FakeClient({bc.HCL_URL: hcl_card("taxe", st) + hcl_card("puz", "Aprobat prin HCL"),
+                                        bc.TENDER_PAGES["licitatie"]: TENDER, bc.TENDER_PAGES["achizitie"]: ""})
+            with mock.patch.object(bc, "pdf_to_text", return_value="Text proiect. " * 40):
+                bc.run(data_dir=data, client=mk("În dezbatere publică"), now=NOW)
+                store = json.loads(bc.store_path(data).read_text(encoding="utf-8"))
+                self.assertEqual({i["kind"] for i in store["items"].values()}, {"hcl", "licitatie"})
+                taxe = next(i for i in store["items"].values() if "taxe" in i["url"])
+                self.assertIsNone(taxe["first_seen"])  # prima rulare: nu știm de când există
+                self.assertEqual(taxe["deadline"], "2026-12-05")
+                bc.run(data_dir=data, client=mk("Aprobat prin HCL"), now=NOW)
+                taxe = next(i for i in json.loads(bc.store_path(data).read_text(encoding="utf-8"))["items"].values()
+                            if "taxe" in i["url"])
+                self.assertEqual(taxe["status_since"], NOW.date().isoformat())
+                self.assertEqual(taxe["status_prev"], "În dezbatere publică")
+                lic = next(i for i in json.loads(bc.store_path(data).read_text(encoding="utf-8"))["items"].values()
+                           if i["kind"] == "licitatie")
+                self.assertNotIn("POPESCU", lic["notes"])
+
+
+class RedactTest(unittest.TestCase):
+    def test_private_initiator_is_hidden_companies_stay(self):
+        self.assertEqual(bc.redact_private("PUZ str Merilor FN, initiator NISTOR VIORICA RODICA"),
+                         "PUZ str Merilor FN, initiator: persoană fizică")
+        for keep in ("PUZ, inițiator SC MADEX S.R.L.", "nr 28 - inițiator Fundația HOSPICE Casa Speranței",
+                     "având ca inițiator PREMS – TECHNOLOGICAL PRODUCTS S.A.", "beneficiari SC West Garden Braşov"):
+            self.assertEqual(bc.redact_private(keep), keep)
+        self.assertEqual(bc.redact_private("Ghidul solicitantului pentru finanțare"), "Ghidul solicitantului pentru finanțare")

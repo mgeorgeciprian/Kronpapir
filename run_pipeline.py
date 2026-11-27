@@ -443,6 +443,9 @@ def run_ai_processing():
                     logger.error(f"Eroare la citirea {f.name}: {e}")
 
             logger.info(f"   Clasificare: {len(local_articles)} locale, {len(national_articles)} naționale, {len(intl_articles)} internaționale")
+            # Documentele oficiale (proiecte HCL, licitații ale Primăriei) trec primele: altfel pierd
+            # cele 5 locuri în fața știrilor din presă și ies din fereastra de 48h nescrise.
+            local_articles.sort(key=lambda a: 0 if a.get('doc_type') else 1)
 
             # === 1. RESCRIE ARTICOLE LOCALE INDIVIDUAL (max 5) ===
             # Înainte de rescriere: aceeași știre de la altă sursă nu se publică a doua oară.

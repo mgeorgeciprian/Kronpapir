@@ -343,14 +343,30 @@
               <p class="biz-note">Acum: {{ plural(lic_counts.achizitii, 'cerere de ofertă sau licitație', 'cereri de ofertă și licitații') }} de la primării, {{ plural(lic_counts.terenuri, 'teren', 'terenuri') }} și {{ plural(lic_counts.anaf, 'bun ANAF', 'bunuri ANAF') }}{% if lic_report.anaf_types %} ({% for t, n in lic_report.anaf_types[:3] %}{{ t|lower }}: {{ n }}{{ ', ' if not loop.last }}{% endfor %}){% endif %}.</p>
               <a class="biz-more" href="{{ lic_path }}">Vezi toate licitațiile pe hartă →</a>
             </div>
-            {% if docs %}
             <div class="biz-section" id="licitatii">
-              <h2>Primăria Brașov: licitații, achiziții și proiecte</h2>
+              <h2>Primăria Brașov: proiecte HCL și licitații</h2>
+              {% set open_docs = pb.hcl_open + pb.lic_open %}
+              {% if open_docs %}
               <ul class="biz-list">
-                {% for a in docs %}<li><a href="{{ a|article_url }}">{{ a.title }}</a><span class="meta">{{ a.date|ro_datetime }}{% if a.relevant_until %} · termen {{ a.relevant_until[8:10] }}.{{ a.relevant_until[5:7] }}.{{ a.relevant_until[:4] }}{% endif %}</span></li>{% endfor %}
+                {% for d in open_docs[:6] %}<li><a href="{{ d.url }}" rel="noopener" target="_blank">{{ d.title }}</a><span class="meta"><span class="kp-chip {{ 't-achizitie' if d.kind == 'hcl' else 't-teren' }}">{{ 'Proiect HCL' if d.kind == 'hcl' else 'Licitație' if d.kind == 'licitatie' else 'Achiziție' }}</span> termen {{ d.deadline[8:10] }}.{{ d.deadline[5:7] }}.{{ d.deadline[:4] }}{% if d.days_left is defined %} · {{ 'azi' if d.days_left == 0 else plural(d.days_left, 'zi', 'zile') ~ ' rămase' }}{% endif %}</span></li>{% endfor %}
               </ul>
+              {% else %}
+              <p class="biz-note">Acum nu e niciun proiect de hotărâre cu termen de propuneri deschis și nicio licitație deschisă.</p>
+              {% endif %}
+              {% if pb.hcl_decided %}<p class="biz-note">Ultima decizie: {{ pb.hcl_decided[0].title[:110] }}{{ '…' if pb.hcl_decided[0].title|length > 110 }} ({{ pb.hcl_decided[0].status|lower }}).</p>{% endif %}
+              <a class="biz-more" href="{{ primaria_path }}">Hotărâri, proiecte și licitații →</a>
             </div>
-            {% endif %}
+            <div class="biz-section" id="anaf">
+              <h2>Bunuri scoase la licitație de ANAF în județ</h2>
+              {% if lic.anaf %}
+              <ul class="biz-list">
+                {% for i in lic.anaf[:5] %}<li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a><span class="meta"><span class="kp-chip t-anaf">ANAF</span> {{ i.place }}{% if i.when %} · {{ i.when[8:10] }}.{{ i.when[5:7] }}{% endif %}</span></li>{% endfor %}
+              </ul>
+              {% else %}
+              <p class="biz-note">Acum nu e niciun bun ANAF scos la licitație în județ.</p>
+              {% endif %}
+              <a class="biz-more" href="{{ lic_path }}#anaf">Toate bunurile ANAF →</a>
+            </div>
           </div>
         </div>
 
@@ -384,7 +400,7 @@
 <script>
 (function () {
   var map = {firme: 't-firme', sanatate: 't-firme', evolutie: 't-firme', judete: 't-firme',
-             'anunturi-primarii': 't-lic', licitatii: 't-lic', rapoarte: 't-nou', stiri: 't-nou'};
+             'anunturi-primarii': 't-lic', licitatii: 't-lic', anaf: 't-lic', rapoarte: 't-nou', stiri: 't-nou'};
   function open() { var t = map[location.hash.slice(1)]; if (t) document.getElementById(t).checked = true; }
   open(); window.addEventListener('hashchange', open);
 })();

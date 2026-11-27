@@ -122,3 +122,36 @@ def test_hub_renders(tmp_path):
         assert "3.481" in html and "+37,4%" in html and '"@type": "Dataset"' in html
     finally:
         app.config.pop("ONRC_DIR")
+
+
+def test_primaria_groups_and_page(tmp_path):
+    from datetime import date as _d
+    store = {"updated": "2026-11-27T05:50:00", "source": "https://www.brasovcity.ro/x", "items": {
+        "hcl-1": {"kind": "hcl", "title": "PROIECT DE HOTĂRÂRE privind taxele locale", "url": "https://www.brasovcity.ro/a",
+                  "status": "În dezbatere publică", "published": "2026-11-20", "deadline": "2026-12-05", "files": [], "n_files": 0, "notes": "Propuneri la registratura@brasovcity.ro"},
+        "hcl-2": {"kind": "hcl", "title": "PROIECTUL DE HOTĂRÂRE privind PUZ", "url": "https://www.brasovcity.ro/b",
+                  "status": "În dezbatere publică", "published": "2026-11-01", "deadline": "2026-11-11", "files": [], "n_files": 0, "notes": ""},
+        "hcl-3": {"kind": "hcl", "title": "Proiect de hotărâre privind bugetul", "url": "https://www.brasovcity.ro/c",
+                  "status": "Aprobat prin HCL", "published": "2026-03-01", "deadline": None, "files": [], "n_files": 0, "notes": ""},
+        "licitatie-1": {"kind": "licitatie", "title": "Licitația publică privind închirierea", "url": "https://www.brasovcity.ro/d",
+                        "status": "deschis", "published": None, "deadline": "2027-01-08", "files": [], "n_files": 0, "notes": ""},
+        "licitatie-2": {"kind": "licitatie", "title": "Licitație veche", "url": "https://www.brasovcity.ro/e",
+                        "status": "deschis", "published": None, "deadline": "2026-06-29", "files": [], "n_files": 0, "notes": ""}}}
+    g = business.primaria_groups(store, today=_d(2026, 11, 27))
+    assert [d["url"][-1] for d in g["hcl_open"]] == ["a"] and g["hcl_open"][0]["days_left"] == 8
+    assert g["hcl_open"][0]["title"].startswith("Proiect de hotărâre privind taxele")
+    assert [d["url"][-1] for d in g["hcl_waiting"]] == ["b"]
+    assert [d["url"][-1] for d in g["hcl_decided"]] == ["c"]
+    assert [d["url"][-1] for d in g["lic_open"]] == ["d"] and [d["url"][-1] for d in g["lic_past"]] == ["e"]
+    from web.app import app
+    p = tmp_path / "store.json"
+    p.write_text(json.dumps(store), encoding="utf-8")
+    app.config["BRASOVCITY_STORE"] = str(p)
+    try:
+        html = app.test_client().get("/afaceri-brasov/primaria-brasov").get_data(as_text=True)
+        assert "Hotărârile Consiliului Local Brașov" in html and "Licitația publică privind închirierea" in html
+        assert '"@type": "ItemList"' in html and "index, follow" in html
+        hub = app.test_client().get("/afaceri-brasov").get_data(as_text=True)
+        assert "/afaceri-brasov/primaria-brasov" in hub and 'id="anaf"' in hub
+    finally:
+        app.config.pop("BRASOVCITY_STORE")

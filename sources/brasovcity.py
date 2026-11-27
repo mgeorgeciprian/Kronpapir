@@ -82,6 +82,24 @@ def scrub(text):
     return _CONTACT_LINE.sub("", text or "")
 
 
+_ROLE = re.compile(r"((?:având ca\s+)?\b(?:ini[tț]iator|beneficiar|solicitant|proprietar)i?\b\s*:?\s*)([^,;()]+)", re.I)
+_LEGAL = re.compile(r"\b(S\.?R\.?L|S\.?A|S\.?C|S\.?N\.?C|R\.?A|Fundați|Fundati|Asocia|Parohi|Biseric|Municipi|"
+                    r"Consiliul|Primar|Societ|Compan|Grup|Universit|Regia|Direcți|Directi|Cooperativ|Ministerul|"
+                    r"Uniunea|Clubul|Centrul|Institut|Episcopi|Mitropoli|Protopopi|Holding|Invest|Development|Imobiliar)", re.I)
+
+
+def redact_private(text):
+    """Inițiatorul sau beneficiarul unui PUZ poate fi o persoană fizică: numele ei nu îl publicăm.
+
+    „…, initiator NISTOR VIORICA RODICA” -> „…, initiator: persoană fizică”. Firmele, fundațiile,
+    parohiile și instituțiile rămân, fiindcă sunt date publice despre persoane juridice.
+    """
+    def repl(m):
+        who = m.group(2).strip()
+        return m.group(0) if _LEGAL.search(who) else m.group(1).rstrip(": ") + ": persoană fizică"
+    return _ROLE.sub(repl, text or "")
+
+
 # ---------- parsare ----------
 
 def parse_hcl_page(html):
@@ -226,7 +244,7 @@ def build_raw(item, client, now, decided_from=None):
     key = item["url"] + (f"#{item['status']}" if decided_from else "")
     return {
         "id": hashlib.sha1(key.encode()).hexdigest(),
-        "title": (f"{item['status']}: " if decided_from else "") + item["title"],
+        "title": (f"{item['status']}: " if decided_from else "") + redact_private(item["title"]),
         "content": content,
         "text": content,
         "source": SOURCE_NAME,
@@ -245,6 +263,44 @@ def build_raw(item, client, now, decided_from=None):
 
 def state_path(data_root):
     return Path(data_root) / "brasovcity" / "state.json"
+
+
+def store_path(data_root):
+    return Path(data_root) / "brasovcity" / "store.json"
+
+
+STORE_NOTES = 600  # cât păstrăm din textul cardului (perioada de consultare, termenul)
+
+
+def update_store(data_root, items, now, baseline):
+    """Toate documentele de pe brasovcity.ro, pentru pagina /afaceri-brasov/primaria-brasov.
+
+    Păstrăm când am văzut prima oară documentul și de când are starea curentă (`status_since`).
+    La prima rulare nu știm de când e starea, deci rămâne null: nu inventăm date.
+    """
+    path = store_path(data_root)
+    try:
+        old = json.loads(path.read_text(encoding="utf-8")).get("items", {})
+    except (FileNotFoundError, ValueError):
+        old = {}
+    today = now.date().isoformat()
+    out = {}
+    for it in items:
+        prev = old.get(it["id"]) or {}
+        changed = prev and prev.get("status") != it["status"]
+        out[it["id"]] = {
+            "kind": it["kind"], "title": redact_private(it["title"]), "url": it["url"], "status": it["status"],
+            "published": it["published"].isoformat() if it["published"] else None,
+            "deadline": it["deadline"].isoformat() if it["deadline"] else None,
+            "files": [{"name": n, "url": u} for n, u in it["files"]][:12],
+            "n_files": len(it["files"]),
+            "notes": scrub(it["notes"])[:STORE_NOTES],
+            "first_seen": prev.get("first_seen") or (None if baseline else today),
+            "status_since": today if changed else prev.get("status_since"),
+            "status_prev": prev.get("status") if changed else prev.get("status_prev"),
+        }
+    _write(path, {"updated": now.isoformat(timespec="seconds"), "source": HCL_URL, "items": out})
+    return out
 
 
 def load_state(path):
@@ -319,6 +375,7 @@ def run(data_dir=None, client=None, dry_run=False, now=None):
         stats["salvate"] += 1
     if not dry_run:
         _write(state_path(data_root), state)
+        update_store(data_root, items, now, baseline=not store_path(data_root).exists())
     stats["cereri"] = client.requests_made
     return stats
 

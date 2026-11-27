@@ -2397,7 +2397,7 @@ def _sitemap_lastmod(article):
 
 def _sitemap_page_entries():
     today = datetime.now().strftime('%Y-%m-%d')
-    paths = ['/', '/local', '/national', '/editoriale', '/afaceri-brasov', '/afaceri-brasov/licitatii', '/despre', '/politica-editoriala',
+    paths = ['/', '/local', '/national', '/editoriale', '/afaceri-brasov', '/afaceri-brasov/licitatii', '/afaceri-brasov/primaria-brasov', '/despre', '/politica-editoriala',
              '/surse', '/confidentialitate', '/termeni', '/contact']
     paths += [f'/categorie/{c}' for c in CATEGORIES]
     entries = [{'loc': SITEMAP_BASE + p, 'lastmod': today} for p in paths]

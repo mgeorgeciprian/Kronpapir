@@ -27,6 +27,9 @@ MAP_FILE = Path(__file__).resolve().parent.parent / "data" / "geo" / "harta_bras
 SHOW_DAYS = 30
 INDEX_MIN_ITEMS = 3  # o pagină de localitate intră în Google doar cu cel puțin atâtea anunțuri active
 CSV_PATH = HUB_PATH + "/date-onrc-brasov.csv"
+PRIMARIA_PATH = HUB_PATH + "/primaria-brasov"
+BRASOVCITY_STORE = Path(__file__).resolve().parent.parent / "data" / "brasovcity" / "store.json"
+WAITING_DAYS = 180  # proiect în dezbatere cu termenul trecut: îl arătăm ca „așteaptă votul” cel mult atât
 MONTHS_TITLE = ["ian.", "feb.", "mar.", "apr.", "mai", "iun.", "iul.", "aug.", "sep.", "oct.", "nov.", "dec."]
 MONTHS = ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august",
           "septembrie", "octombrie", "noiembrie", "decembrie"]
@@ -297,6 +300,71 @@ def with_places(groups, uats):
     return groups
 
 
+_bc_cache = {"key": None, "data": None}
+
+
+def load_brasovcity(path=None):
+    path = Path(path or current_app.config.get("BRASOVCITY_STORE") or BRASOVCITY_STORE)
+    try:
+        st = path.stat()
+    except FileNotFoundError:
+        return {"items": {}}
+    key = (str(path), st.st_mtime_ns, st.st_size)
+    with _lock:
+        if _bc_cache["key"] != key:
+            try:
+                _bc_cache.update(key=key, data=json.loads(path.read_text(encoding="utf-8")))
+            except ValueError:
+                _bc_cache.update(key=key, data={"items": {}})
+        return _bc_cache["data"]
+
+
+_HCL_PREFIX = re.compile(r"^\s*PROIECT(UL)?\s+DE\s+HOT[ĂA]R[ÂA]RE\s*", re.I)
+
+
+def clean_doc_title(title):
+    """„PROIECT DE HOTĂRÂRE privind…” -> „Proiect de hotărâre privind…”."""
+    from sources.brasovcity import redact_private  # și pentru store-uri scrise înainte de regulă
+    t = redact_private(_HCL_PREFIX.sub("Proiect de hotărâre ", title or "").strip())
+    return t[:1].upper() + t[1:]
+
+
+def primaria_groups(store, today=None):
+    """Documentele Primăriei Brașov pe grupe, pentru pagina dedicată și pentru hub.
+
+    - hcl_open: proiecte în dezbatere publică, cu termen de propuneri neexpirat;
+    - hcl_waiting: în dezbatere, termenul de propuneri a trecut (urmează votul), publicate recent;
+    - hcl_decided: aprobate, respinse, retrase, expirate; cele mai noi întâi;
+    - lic_open / lic_past: licitații și achiziții, după termenul de depunere (site-ul nu le închide singur).
+    """
+    today = (today or date.today()).isoformat()
+    since = (date.fromisoformat(today) - timedelta(days=WAITING_DAYS)).isoformat()
+    out = {k: [] for k in ("hcl_open", "hcl_waiting", "hcl_decided", "lic_open", "lic_past")}
+    for it in (store.get("items") or {}).values():
+        d = dict(it, title=clean_doc_title(it.get("title")))
+        dl, pub, status = d.get("deadline"), d.get("published") or "", (d.get("status") or "").lower()
+        if dl and dl >= today:
+            d["days_left"] = (date.fromisoformat(dl) - date.fromisoformat(today)).days
+        if d["kind"] == "hcl":
+            if "dezbatere" in status:
+                if dl and dl >= today:
+                    out["hcl_open"].append(d)
+                elif pub >= since:
+                    out["hcl_waiting"].append(d)
+            else:
+                out["hcl_decided"].append(d)
+        elif dl and dl >= today and status != "expirat":
+            out["lic_open"].append(d)
+        else:
+            out["lic_past"].append(d)
+    out["hcl_open"].sort(key=lambda d: d["deadline"])
+    out["lic_open"].sort(key=lambda d: d["deadline"])
+    for k in ("hcl_waiting", "hcl_decided"):
+        out[k].sort(key=lambda d: (d.get("status_since") or "", d.get("published") or ""), reverse=True)
+    out["lic_past"].sort(key=lambda d: d.get("deadline") or d.get("published") or "", reverse=True)
+    return out
+
+
 def breadcrumbs():
     return {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": [
         {"@type": "ListItem", "position": 1, "name": "Acasă", "item": SITE_URL + "/"},
@@ -342,10 +410,9 @@ def hub():
     loader = current_app.config["KP_LOAD_ARTICLES"]
     articles = loader(all_types=True)
     articles = [a for a in articles if not a.get("duplicate_of") and not a.get("is_editorial")]
-    docs = [a for a in articles if _is_public_doc(a)][:8]
     news = [a for a in articles if _is_business(a) and not _is_public_doc(a)][:8]
     reports = [a for a in articles if str(a.get("id", "")).startswith(("onrc-raport-", "ajofm-raport-"))][:6]
-    ctx = {"payload": payload, "docs": docs, "news": news, "reports": reports,
+    ctx = {"payload": payload, "pb": primaria_groups(load_brasovcity()), "primaria_path": PRIMARIA_PATH, "news": news, "reports": reports,
            "hub_path": HUB_PATH,
            "categories": current_app.config.get("KP_CATEGORIES", {}),
            "fmt_int": fmt_int, "fmt_pct": fmt_pct, "hide_ticker": True}
@@ -485,6 +552,30 @@ def _licitatii_page(selected):
                            harta=harta, counts=counts, selected=selected, selected_name=name,
                            indexable=indexable, page_url=url, n_selected=counts.get(selected, 0),
                            localitati=sorted(harta["uat"], key=lambda u: u["slug"]),
+                           categories=current_app.config.get("KP_CATEGORIES", {}))
+
+
+@bp.route(PRIMARIA_PATH)
+def primaria():
+    store = load_brasovcity()
+    g = primaria_groups(store)
+    url = SITE_URL + PRIMARIA_PATH
+    crumbs = breadcrumbs()
+    crumbs["itemListElement"].append({"@type": "ListItem", "position": 3, "name": "Primăria Brașov", "item": url})
+    listed = g["hcl_open"] + g["lic_open"] + g["hcl_waiting"] + g["hcl_decided"][:20]
+    itemlist = {"@context": "https://schema.org", "@type": "ItemList", "url": url,
+                "name": "Proiecte de hotărâre, hotărâri și licitații ale Primăriei Brașov",
+                "itemListElement": [{"@type": "ListItem", "position": i, "name": d["title"][:200], "url": d["url"]}
+                                    for i, d in enumerate(listed, 1)]}
+    by_year = {}
+    for d in g["hcl_decided"]:
+        by_year.setdefault((d.get("published") or "")[:4] or "fără dată", []).append(d)
+    return render_template("primaria_brasov.html", g=g, by_year=sorted(by_year.items(), reverse=True),
+                           updated=store.get("updated"), source=store.get("source"),
+                           hub_path=HUB_PATH, page_path=PRIMARIA_PATH, jsonld=[crumbs, itemlist],
+                           approved_year=sum(1 for d in g["hcl_decided"] if "aprobat" in (d.get("status") or "").lower()
+                                             and (d.get("published") or "")[:4] == str(date.today().year)),
+                           year=date.today().year,
                            categories=current_app.config.get("KP_CATEGORIES", {}))
 
 
