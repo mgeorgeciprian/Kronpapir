@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Arhiva licitațiilor din județul Brașov: anunțuri încheiate | KronPapir{% endblock %}
+{% block meta_description %}<meta name="description" content="{{ total }} cereri de ofertă, licitații, terenuri și bunuri ANAF din județul Brașov care s-au încheiat, pe luni, cu localitatea și link la anunțul oficial.">{% endblock %}
+{% block robots %}<meta name="robots" content="{% if indexable %}index, follow{% else %}noindex, follow{% endif %}">{% endblock %}
+{% block canonical %}<link rel="canonical" href="{{ page_url }}">{% endblock %}
+{% block json_ld %}{% for item in jsonld %}<script type="application/ld+json">{{ item|tojson }}</script>{% endfor %}{% endblock %}
+{% block extra_css %}
+<style>
+  .kp-chip { display: inline-block; font-size: .72rem; font-weight: 700; padding: 1px 7px; border-radius: 999px; margin-right: 6px; vertical-align: 2px; }
+  .t-achizitie { background: #e7f1fb; color: #1d4f8a; } .t-teren { background: #f9eeda; color: #7a4b00; } .t-anaf { background: #efedff; color: #4a3d9a; }
+  .arh-intro, .arh-note { color: var(--text-secondary); max-width: 70ch; }
+  .arh-note a, .arh-intro a { color: var(--primary); }
+  .arh-top { display: flex; flex-wrap: wrap; gap: 8px; margin: var(--space-md) 0 var(--space-lg); padding: 0; list-style: none; }
+  .arh-top li { padding: 4px 10px; border: 1px solid var(--border); border-radius: 999px; font-size: .85rem; }
+  .arh-month { margin-bottom: var(--space-xl, 40px); }
+  .arh-month h2 { font-size: 1.2rem; margin-bottom: 4px; }
+  .lic-list { list-style: none; padding: 0; margin: 0; }
+  .lic-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .lic-list a { color: inherit; font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
+  .lic-list a:hover { color: var(--primary); text-decoration: underline; }
+  .lic-meta { display: block; font-size: .85rem; color: var(--text-secondary); margin-top: 2px; }
+</style>
+{% endblock %}
+{% macro arow(i) -%}
+{% set k = 'anaf' if i.source == 'anaf' else ('teren' if i.topic == 'terenuri' else 'achizitie') %}
+{% set parts = [] %}{% if i.place %}{% set _ = parts.append(i.place) %}{% endif %}{% if i.ended %}{% set _ = parts.append(('termen ' if i.deadline else 'scos de pe listă ') ~ i.ended[8:10] ~ '.' ~ i.ended[5:7] ~ '.' ~ i.ended[:4]) %}{% endif %}{% if i.subcategory or i.category %}{% set _ = parts.append(i.subcategory or i.category) %}{% endif %}
+<li><span class="kp-chip t-{{ k }}">{{ {'anaf': 'ANAF', 'teren': 'Teren', 'achizitie': 'Achiziție'}[k] }}</span><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
+<span class="lic-meta">{{ parts|join(' · ') }}</span></li>
+{%- endmacro %}
+{% block content %}
+<div class="main-container" style="display:block"><section class="section">
+  <h1 class="section-title">Arhiva licitațiilor din județul Brașov</h1>
+  <p class="arh-intro">Anunțurile care s-au încheiat: cererile de ofertă și licitațiile primăriilor după termenul limită (sau după 30 de zile, când termenul nu era scris), terenurile și bunurile ANAF scoase de pe listă. Arată ce cumpără și ce vând primăriile de-a lungul timpului. Anunțurile active sunt pe <a href="{{ lic_path }}">pagina licitațiilor</a>.</p>
+  {% if top_places %}
+  <h2 style="font-size:1rem;margin:var(--space-md) 0 0">Cele mai multe anunțuri încheiate</h2>
+  <ul class="arh-top">{% for name, n in top_places %}<li>{{ name }}: {{ n }}</li>{% endfor %}</ul>
+  {% endif %}
+  {% for label, rows in months %}
+  <div class="arh-month">
+    <h2>{{ label|capitalize }} ({{ rows|length }})</h2>
+    <ul class="lic-list">{% for i in rows %}{{ arow(i) }}{% endfor %}</ul>
+  </div>
+  {% else %}
+  <p class="arh-note">Arhiva se umple pe măsură ce anunțurile expiră. Prima actualizare: luni.</p>
+  {% endfor %}
+  <p class="arh-note">{% if updated %}Actualizat: {{ updated[8:10] }}.{{ updated[5:7] }}.{{ updated[:4] }}. {% endif %}Titlurile sunt cele de pe site-urile oficiale; unele linkuri pot să nu mai funcționeze după ce primăria scoate anunțul. Vezi și <a href="/surse">sursele noastre</a>.</p>
+</section></div>
+{% endblock %}

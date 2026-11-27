@@ -24,6 +24,9 @@ PEERS = ["Cluj", "Sibiu", "Timiș", "Prahova", "Mureș", "Covasna"]
 DEFAULT_DIR = Path(__file__).resolve().parent.parent / "data" / "business" / "onrc"
 LICITATII_STORE = Path(__file__).resolve().parent.parent / "data" / "business" / "licitatii" / "store.json"
 LICITATII_PATH = HUB_PATH + "/licitatii"
+LICITATII_ARCHIVE = LICITATII_STORE.with_name("arhiva.json")
+ARCHIVE_PATH = LICITATII_PATH + "/arhiva"
+ARCHIVE_INDEX_MIN = 10  # arhiva intră în Google doar de la atâtea anunțuri expirate
 MAP_FILE = Path(__file__).resolve().parent.parent / "data" / "geo" / "harta_brasov.json"
 SHOW_DAYS = 30  # fără termen limită scris, un anunț rămâne activ atâtea zile (sources/licitatii/expiry.py)
 INDEX_MIN_ITEMS = 3  # o pagină de localitate intră în Google doar cu cel puțin atâtea anunțuri active
@@ -45,6 +48,7 @@ FLOWS = [  # indicatorii de flux, în ordinea afișării
 bp = Blueprint("business", __name__)
 _cache = {"key": None, "data": None}
 _lic_cache = {"key": None, "data": None}
+_arch_cache = {"key": None, "data": None}
 _lock = threading.Lock()
 
 
@@ -167,20 +171,27 @@ def load_latest(folder=None):
         return _cache["data"]
 
 
-def load_licitatii(path=None):
-    path = Path(path or current_app.config.get("LICITATII_STORE") or LICITATII_STORE)
+def _load_cached(path, cache):
     try:
         st = path.stat()
     except FileNotFoundError:
         return {"items": {}}
     key = (str(path), st.st_mtime_ns, st.st_size)
     with _lock:
-        if _lic_cache["key"] != key:
+        if cache["key"] != key:
             try:
-                _lic_cache.update(key=key, data=json.loads(path.read_text(encoding="utf-8")))
+                cache.update(key=key, data=json.loads(path.read_text(encoding="utf-8")))
             except ValueError:
-                _lic_cache.update(key=key, data={"items": {}})
-        return _lic_cache["data"]
+                cache.update(key=key, data={"items": {}})
+        return cache["data"]
+
+
+def load_licitatii(path=None):
+    return _load_cached(Path(path or current_app.config.get("LICITATII_STORE") or LICITATII_STORE), _lic_cache)
+
+
+def load_licitatii_archive(path=None):
+    return _load_cached(Path(path or current_app.config.get("LICITATII_ARCHIVE") or LICITATII_ARCHIVE), _arch_cache)
 
 
 # Numele localităților cu diacritice (config/primarii_brasov.yaml le are fără).
@@ -252,6 +263,46 @@ def licitatii_groups(store, today=None):
     for g in groups.values():
         g.sort(key=lambda i: (i.get("when") or i.get("published") or ""), reverse=True)
     return groups
+
+
+def archive_items(archive, uats):
+    """Anunțurile expirate de afișat, cele încheiate recent primele.
+
+    Aceleași reguli ca la cele active: link http(s), titlu real (nu text de buton) și, pentru
+    primării, doar anunțurile despre care știm că erau recente când le-am găsit.
+    """
+    groups = {"achizitii": [], "terenuri": [], "anaf": []}
+    for it in (archive.get("items") or {}).values():
+        if not str(it.get("url", "")).startswith(("https://", "http://")):
+            continue
+        title = clean_title(it.get("title"))
+        if not title:
+            continue
+        if it.get("source") != "anaf" and it.get("date_guessed") and not it.get("is_new"):
+            continue
+        ended = str(it.get("deadline") or it.get("archived_at") or "")[:10]
+        row = dict(it, title=title, ended=ended, when=None)
+        if it.get("source") == "anaf":
+            groups["anaf"].append(row)
+        else:
+            row["place"] = _place(it.get("authority"))
+            groups["terenuri" if it.get("topic") == "terenuri" else "achizitii"].append(row)
+    with_places(groups, uats)
+    rows = [r for g in groups.values() for r in g]
+    rows.sort(key=lambda r: (r["ended"], r.get("title") or ""), reverse=True)
+    return rows
+
+
+def archive_by_month(rows):
+    """[(„noiembrie 2026”, [rânduri])], după luna în care s-a încheiat anunțul."""
+    out = []
+    for r in rows:
+        ym = r["ended"][:7]
+        label = f"{MONTHS[int(ym[5:7]) - 1]} {ym[:4]}" if len(ym) == 7 else "fără dată"
+        if not out or out[-1][0] != label:
+            out.append((label, []))
+        out[-1][1].append(r)
+    return out
 
 
 def place_slug(name):
@@ -585,6 +636,29 @@ def licitatii():
     return _licitatii_page("")
 
 
+@bp.route(ARCHIVE_PATH)
+def licitatii_arhiva():
+    archive = load_licitatii_archive()
+    harta = load_map()
+    rows = archive_items(archive, harta["uat"])
+    by_loc = {}
+    for r in rows:
+        if r.get("loc"):
+            by_loc[r["place"]] = by_loc.get(r["place"], 0) + 1
+    url = SITE_URL + ARCHIVE_PATH
+    crumbs = breadcrumbs()
+    crumbs["itemListElement"] += [
+        {"@type": "ListItem", "position": 3, "name": "Licitații și achiziții", "item": SITE_URL + LICITATII_PATH},
+        {"@type": "ListItem", "position": 4, "name": "Arhivă", "item": url}]
+    feed = datafeed_jsonld({"achizitii": rows}, archive, url)
+    feed["name"] = "Arhiva licitațiilor și achizițiilor primăriilor din județul Brașov"
+    return render_template("licitatii_arhiva.html", months=archive_by_month(rows), total=len(rows),
+                           top_places=sorted(by_loc.items(), key=lambda kv: (-kv[1], kv[0]))[:10],
+                           updated=archive.get("updated"), indexable=len(rows) >= ARCHIVE_INDEX_MIN,
+                           page_url=url, lic_path=LICITATII_PATH, hub_path=HUB_PATH,
+                           jsonld=[crumbs, feed], categories=current_app.config.get("KP_CATEGORIES", {}))
+
+
 @bp.route(LICITATII_PATH + "/<slug>")
 def licitatii_localitate(slug):
     return _licitatii_page(slug)
@@ -606,7 +680,10 @@ def _licitatii_page(selected):
     if selected:
         crumbs["itemListElement"].append({"@type": "ListItem", "position": 4, "name": name, "item": url})
     indexable = not selected or counts.get(selected, 0) >= INDEX_MIN_ITEMS
+    expired = archive_items(load_licitatii_archive(), harta["uat"])
+    expired = [r for r in expired if r.get("loc") == selected][:10] if selected else []
     return render_template("licitatii.html", groups=groups, updated=store.get("updated"),
+                           expired=expired, archive_path=ARCHIVE_PATH,
                            show_days=SHOW_DAYS, hub_path=HUB_PATH, lic_path=LICITATII_PATH,
                            jsonld=[crumbs, datafeed_jsonld(groups, store, url, selected)],
                            harta=harta, counts=counts, selected=selected, selected_name=name,
@@ -662,8 +739,12 @@ def locality_sitemap_entries():
     harta = load_map()
     counts = licitatii_counts(with_places(licitatii_groups(store), harta["uat"]))
     day = (store.get("updated") or "")[:10] or None
-    return [{"loc": f"{SITE_URL}{LICITATII_PATH}/{slug}", "lastmod": day}
-            for slug, n in sorted(counts.items()) if n >= INDEX_MIN_ITEMS]
+    out = [{"loc": f"{SITE_URL}{LICITATII_PATH}/{slug}", "lastmod": day}
+           for slug, n in sorted(counts.items()) if n >= INDEX_MIN_ITEMS]
+    archive = load_licitatii_archive()
+    if len(archive_items(archive, harta["uat"])) >= ARCHIVE_INDEX_MIN:
+        out.append({"loc": SITE_URL + ARCHIVE_PATH, "lastmod": (archive.get("updated") or "")[:10] or None})
+    return out
 
 
 def sitemap_entry():

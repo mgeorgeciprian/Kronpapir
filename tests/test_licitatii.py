@@ -236,3 +236,48 @@ def test_article_locality_link(tmp_path):
             assert business.locality_link({"category": "sanatate", "title": "Prejmer", "content": ""}) is None
     finally:
         app.config.pop("LICITATII_STORE")
+
+
+def test_archive_page_lists_expired_by_month_and_locality_shows_recent(tmp_path):
+    from web.app import app
+    store, arch = tmp_path / "store.json", tmp_path / "arhiva.json"
+    store.write_text(json.dumps({"items": {}}), encoding="utf-8")
+    items = {f"e{k}": {"url": f"https://x/e{k}", "title": f"Cerere de ofertă reparații drum {k}", "source": "sites",
+                       "authority": "PRIMARIA COMUNEI PREJMER", "published": "2026-10-01", "archived_at": "2026-11-02",
+                       "archive_reason": "mai vechi de 30 de zile"} for k in range(11)}
+    items["btn"] = dict(items["e0"], title="Deschide de aici", url="https://x/btn")
+    items["guess"] = dict(items["e0"], url="https://x/g", date_guessed=True, is_new=False, title="Cerere de ofertă veche arhivă")
+    items["dl"] = dict(items["e0"], url="https://x/dl", title="Licitație teren Hărman", authority="PRIMARIA COMUNEI HARMAN",
+                       topic="terenuri", deadline="2026-12-01", archived_at="2026-12-02")
+    arch.write_text(json.dumps({"updated": "2026-12-03T07:05:00", "items": items}), encoding="utf-8")
+    app.config.update(LICITATII_STORE=str(store), LICITATII_ARCHIVE=str(arch))
+    try:
+        c = app.test_client()
+        r = c.get("/afaceri-brasov/licitatii/arhiva")
+        html = r.get_data(as_text=True)
+        assert r.status_code == 200
+        assert "Decembrie 2026 (1)" in html and "Noiembrie 2026 (11)" in html
+        assert html.index("Decembrie 2026") < html.index("Noiembrie 2026")
+        assert "termen 01.12.2026" in html and "Prejmer: 11" in html
+        assert "Deschide de aici" not in html and "veche arhivă" not in html
+        assert '<meta name="robots" content="index, follow">' in html
+        assert "/afaceri-brasov/licitatii/arhiva" in c.get("/sitemap-pagini.xml").get_data(as_text=True)
+        loc = c.get("/afaceri-brasov/licitatii/harman").get_data(as_text=True)
+        assert "Încheiate recent în Hărman" in loc and "Licitație teren Hărman" in loc
+        assert "Încheiate recent" not in c.get("/afaceri-brasov/licitatii").get_data(as_text=True)
+    finally:
+        app.config.pop("LICITATII_STORE"); app.config.pop("LICITATII_ARCHIVE")
+
+
+def test_small_archive_is_noindex_and_not_in_sitemap(tmp_path):
+    from web.app import app
+    arch = tmp_path / "arhiva.json"
+    arch.write_text(json.dumps({"items": {}}), encoding="utf-8")
+    app.config["LICITATII_ARCHIVE"] = str(arch)
+    try:
+        c = app.test_client()
+        html = c.get("/afaceri-brasov/licitatii/arhiva").get_data(as_text=True)
+        assert "noindex, follow" in html and "Arhiva se umple" in html
+        assert "/licitatii/arhiva" not in c.get("/sitemap-pagini.xml").get_data(as_text=True)
+    finally:
+        app.config.pop("LICITATII_ARCHIVE")
