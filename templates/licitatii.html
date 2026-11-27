@@ -1,13 +1,35 @@
 {% extends "base.html" %}
 {% set page_title = "Licitații, cereri de ofertă și terenuri în județul Brașov" %}
-{% block title %}{{ page_title }} | KronPapir{% endblock %}
-{% block meta_description %}<meta name="description" content="Cererile de ofertă și licitațiile primăriilor din județul Brașov, terenurile scoase la vânzare și bunurile ANAF vândute în județ, adunate zilnic de pe site-urile oficiale, cu link la fiecare anunț.">{% endblock %}
-{% block robots %}<meta name="robots" content="index, follow">{% endblock %}
+{% block title %}{% if selected %}Licitații și achiziții în {{ selected_name }}{% else %}{{ page_title }}{% endif %} | KronPapir{% endblock %}
+{% block meta_description %}<meta name="description" content="Cererile de ofertă și licitațiile primăriilor din județul Brașov, terenurile scoase la vânzare și bunurile ANAF vândute în județ, adunate zilnic de pe site-urile oficiale, cu link la fiecare anunț. Alege localitatea pe hartă.">{% endblock %}
+{% block robots %}<meta name="robots" content="{% if selected %}noindex, follow{% else %}index, follow{% endif %}">{% endblock %}
 {% block canonical %}<link rel="canonical" href="https://kronpapir.ro{{ lic_path }}">{% endblock %}
 {% block json_ld %}{% for item in jsonld %}<script type="application/ld+json">{{ item|tojson }}</script>{% endfor %}{% endblock %}
 {% block extra_css %}
 <style>
   .lic-intro { color: var(--text-secondary); max-width: 66ch; margin-bottom: var(--space-md); }
+  .lic-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(280px, 400px); gap: var(--space-lg, 24px); align-items: start; }
+  .lic-map { position: sticky; top: 16px; order: 2; background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px; }
+  .lic-main { order: 1; min-width: 0; }
+  .lic-map h2 { font-size: 1rem; margin: 0 0 8px; }
+  .lic-map svg { display: block; width: 100%; height: auto; }
+  .lic-map a path { fill: var(--bg, #f4f1e8); stroke: var(--text-secondary); stroke-width: .6; transition: fill .15s; }
+  .lic-map a.has path { fill: color-mix(in srgb, var(--primary) 28%, transparent); }
+  .lic-map a:hover path, .lic-map a:focus path { fill: color-mix(in srgb, var(--primary) 50%, transparent); outline: none; }
+  .lic-map a.on path { fill: var(--primary); stroke: var(--primary); }
+  .lic-map a:focus-visible path { stroke: var(--text); stroke-width: 2; }
+  .lic-map .lbl { font-size: 9px; fill: var(--text); pointer-events: none; text-anchor: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; }
+  .lic-map .cnt { font-size: 9px; font-weight: 700; fill: var(--text); pointer-events: none; text-anchor: middle; paint-order: stroke; stroke: var(--surface); stroke-width: 2.5px; }
+  .lic-pick { display: flex; gap: 8px; align-items: center; margin-top: 10px; flex-wrap: wrap; }
+  .lic-pick label { font-size: .9rem; font-weight: 600; }
+  .lic-pick select { flex: 1; min-width: 160px; padding: 6px 8px; border: 1px solid var(--border); border-radius: 6px; background: var(--surface); color: inherit; font: inherit; }
+  .lic-pick button { padding: 6px 12px; border: 1px solid var(--primary); border-radius: 6px; background: var(--primary); color: #fff; font: inherit; cursor: pointer; }
+  .js .lic-pick button { display: none; }
+  .lic-legend { font-size: .8rem; color: var(--text-secondary); margin: 8px 0 0; }
+  .lic-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 4px; background: color-mix(in srgb, var(--primary) 28%, transparent); border: 1px solid var(--text-secondary); }
+  .lic-filter { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; padding: 8px 12px; margin-bottom: var(--space-md); border-left: 3px solid var(--primary); background: color-mix(in srgb, var(--primary) 8%, transparent); }
+  .lic-filter[hidden] { display: none; }
+  .lic-filter a { color: var(--primary); font-size: .9rem; }
   .lic-nav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: var(--space-lg); }
   .lic-nav a { padding: 6px 12px; border: 1px solid var(--border); border-radius: 999px; color: inherit; text-decoration: none; font-size: .9rem; }
   .lic-nav a:hover { border-color: var(--primary); color: var(--primary); }
@@ -16,45 +38,125 @@
   .lic-section > p { font-size: .9rem; color: var(--text-secondary); max-width: 70ch; }
   .lic-list { list-style: none; padding: 0; margin: 0; }
   .lic-list li { padding: 10px 0; border-bottom: 1px solid var(--border); }
+  .lic-list li[hidden] { display: none; }
   .lic-list a { color: inherit; font-weight: 500; text-decoration: none; overflow-wrap: anywhere; }
   .lic-list a:hover { color: var(--primary); text-decoration: underline; }
   .lic-meta { display: block; font-size: .85rem; color: var(--text-secondary); margin-top: 2px; }
   .lic-new { display: inline-block; font-size: .7rem; font-weight: 700; color: #fff; background: var(--primary); border-radius: 4px; padding: 1px 6px; margin-right: 6px; vertical-align: 2px; }
   .lic-note { font-size: .9rem; color: var(--text-secondary); max-width: 70ch; }
   .lic-note a { color: var(--primary); }
+  .lic-note[hidden] { display: none; }
+  @media (max-width: 860px) {
+    .lic-layout { grid-template-columns: 1fr; }
+    .lic-map { position: static; order: 0; }
+    .lic-map .lbl { display: none; }
+  }
 </style>
 {% endblock %}
 {% macro row(i, show_place=True) -%}
-<li>{% if i.is_new %}<span class="lic-new">NOU</span>{% endif %}<a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
-{% set parts = [] %}{% if show_place and i.place %}{% set _ = parts.append(i.place) %}{% endif %}{% if i.when %}{% set _ = parts.append(i.when[8:10] ~ '.' ~ i.when[5:7] ~ '.' ~ i.when[:4] ~ (' (data la care l-am găsit)' if i.date_guessed else '')) %}{% endif %}{% if i.procedure and i.source == 'anaf' %}{% set _ = parts.append(i.procedure) %}{% endif %}{% if i.subcategory or i.category %}{% set _ = parts.append(i.subcategory or i.category) %}{% endif %}<span class="lic-meta">{{ parts|join(' · ') }}</span></li>
+{% set parts = [] %}{% if show_place and i.place %}{% set _ = parts.append(i.place) %}{% endif %}{% if i.when %}{% set _ = parts.append(i.when[8:10] ~ '.' ~ i.when[5:7] ~ '.' ~ i.when[:4] ~ (' (data la care l-am găsit)' if i.date_guessed else '')) %}{% endif %}{% if i.procedure and i.source == 'anaf' %}{% set _ = parts.append(i.procedure) %}{% endif %}{% if i.subcategory or i.category %}{% set _ = parts.append(i.subcategory or i.category) %}{% endif %}
+<li data-loc="{{ i.loc or '' }}"{% if selected and i.loc != selected %} hidden{% endif %}>{% if i.is_new %}<span class="lic-new">NOU</span>{% endif %}<a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
+<span class="lic-meta">{{ parts|join(' · ') }}</span></li>
+{%- endmacro %}
+{% macro section_list(items, base, all_suffix='', show_place=True) -%}
+{% set visible = items|selectattr('loc', 'equalto', selected)|list if selected else items %}
+{% if items %}<ul class="lic-list">{% for i in items %}{{ row(i, show_place) }}{% endfor %}</ul>{% endif %}
+<p class="lic-note lic-empty" data-base="{{ base }}" data-all="{{ all_suffix }}"{% if visible %} hidden{% endif %}>{{ base }}{{ (' în ' ~ selected_name) if selected else all_suffix }}.</p>
 {%- endmacro %}
 {% block content %}
-<div class="main-container"><div><section class="section">
+<div class="main-container" style="display:block"><section class="section">
   <h1 class="section-title">Licitații și achiziții în județul Brașov</h1>
   <p class="lic-intro">Ce vor să cumpere primăriile din județ, ce terenuri vând și ce bunuri scoate ANAF la licitație. Le adunăm în fiecare dimineață de pe site-urile oficiale ale celor 58 de primării și din fluxurile publice ANAF. Fiecare rând trimite la anunțul original: acolo găsești termenele, documentele și condițiile.</p>
-  <nav class="lic-nav" aria-label="Secțiuni"><a href="#achizitii">Cereri de ofertă și licitații ({{ groups.achizitii|length }})</a><a href="#terenuri">Terenuri ({{ groups.terenuri|length }})</a><a href="#anaf">Bunuri ANAF ({{ groups.anaf|length }})</a><a href="{{ hub_path }}">Afaceri în Brașov</a></nav>
+
+  <div class="lic-layout">
+  <aside class="lic-map" aria-labelledby="lic-map-title">
+    <h2 id="lic-map-title">Alege localitatea</h2>
+    <svg viewBox="0 0 {{ harta.width }} {{ harta.height }}" role="group" aria-label="Harta județului Brașov, pe localități">
+      {% for u in harta.uat %}{% set n = counts.get(u.slug, 0) %}
+      <a href="{{ lic_path }}?localitate={{ u.slug }}" data-loc="{{ u.slug }}" data-name="{{ u.title }}" class="{% if n %}has{% endif %}{% if u.slug == selected %} on{% endif %}" aria-label="{{ u.title }}: {{ n }} anunțuri"{% if u.slug == selected %} aria-current="true"{% endif %}><title>{{ u.title }} · {{ n }} {{ 'anunț' if n == 1 else 'anunțuri' }}</title><path d="{{ u.d }}"/></a>
+      {% endfor %}
+      {% for u in harta.uat %}{% set n = counts.get(u.slug, 0) %}{% if n or u.slug in ('brasov', 'fagaras', 'sacele', 'codlea', 'rasnov', 'zarnesti', 'rupea', 'predeal', 'victoria', 'ghimbav') %}<text class="{{ 'cnt' if n else 'lbl' }}" x="{{ u.label[0] }}" y="{{ u.label[1] }}">{{ u.title }}{% if n %} ({{ n }}){% endif %}</text>{% endif %}{% endfor %}
+    </svg>
+    <form class="lic-pick" method="get" action="{{ lic_path }}">
+      <label for="lic-loc">Localitate</label>
+      <select id="lic-loc" name="localitate">
+        <option value="">Tot județul</option>
+        {% for u in localitati %}{% set n = counts.get(u.slug, 0) %}<option value="{{ u.slug }}"{% if u.slug == selected %} selected{% endif %}>{{ u.title }}{% if n %} ({{ n }}){% endif %}</option>{% endfor %}
+      </select>
+      <button type="submit">Arată</button>
+    </form>
+    <p class="lic-legend"><i></i>are anunțuri acum · clic pe hartă ca să filtrezi</p>
+    <p class="lic-legend">Limite administrative: <a href="{{ harta.source.url }}" rel="noopener" target="_blank">{{ harta.source.name }}</a>, {{ harta.source.license }}.</p>
+  </aside>
+
+  <div class="lic-main">
+  <div class="lic-filter" id="lic-filter"{% if not selected %} hidden{% endif %}><strong>Doar <span id="lic-filter-name">{{ selected_name }}</span></strong><a href="{{ lic_path }}" id="lic-filter-reset">Arată tot județul</a></div>
+  <nav class="lic-nav" aria-label="Secțiuni"><a href="#achizitii">Cereri de ofertă și licitații</a><a href="#terenuri">Terenuri</a><a href="#anaf">Bunuri ANAF</a><a href="{{ hub_path }}">Afaceri în Brașov</a></nav>
 
   <div class="lic-section" id="achizitii">
     <h2>Cereri de ofertă și licitații ale primăriilor</h2>
     <p>Anunțurile publicate pe site-urile primăriilor în ultimele {{ show_days }} de zile. Multe achiziții mici apar doar acolo, nu și în SEAP.</p>
-    {% if groups.achizitii %}<ul class="lic-list">{% for i in groups.achizitii %}{{ row(i) }}{% endfor %}</ul>
-    {% else %}<p class="lic-note">Niciun anunț nou în ultimele {{ show_days }} de zile.</p>{% endif %}
+    {{ section_list(groups.achizitii, "Niciun anunț în ultimele " ~ show_days ~ " de zile") }}
   </div>
 
   <div class="lic-section" id="terenuri">
     <h2>Terenuri scoase la vânzare sau concesionare</h2>
     <p>Ofertele de vânzare a terenurilor agricole extravilane afișate de primării (Legea 17/2014, cu drept de preempțiune), plus licitațiile de vânzare, concesionare sau închiriere de terenuri.</p>
-    {% if groups.terenuri %}<ul class="lic-list">{% for i in groups.terenuri %}{{ row(i) }}{% endfor %}</ul>
-    {% else %}<p class="lic-note">Niciun anunț nou în ultimele {{ show_days }} de zile.</p>{% endif %}
+    {{ section_list(groups.terenuri, "Niciun anunț în ultimele " ~ show_days ~ " de zile") }}
   </div>
 
   <div class="lic-section" id="anaf">
     <h2>Bunuri vândute de ANAF în județul Brașov</h2>
-    <p>Bunuri sechestrate sau intrate în proprietatea statului, de pe <a href="https://elicitatii.anaf.ro" rel="noopener" target="_blank">elicitatii.anaf.ro</a>. Fluxurile ANAF nu spun județul, așa că aici apar doar bunurile a căror descriere pomenește o localitate din județ. Prețul de pornire și condițiile sunt pe platformă.</p>
-    {% if groups.anaf %}<ul class="lic-list">{% for i in groups.anaf %}{{ row(i, False) }}{% endfor %}</ul>
-    {% else %}<p class="lic-note">Acum nu găsim bunuri ANAF cu localitate din județul Brașov în descriere.</p>{% endif %}
+    <p>Bunuri sechestrate sau intrate în proprietatea statului, de pe <a href="https://elicitatii.anaf.ro" rel="noopener" target="_blank">elicitatii.anaf.ro</a>. Fluxurile ANAF nu spun județul, așa că aici apar doar bunurile a căror descriere pomenește o localitate din județ; localitatea o deducem din descriere. Prețul de pornire și condițiile sunt pe platformă.</p>
+    {{ section_list(groups.anaf, "Acum nu găsim bunuri ANAF", " cu localitate din județul Brașov în descriere") }}
   </div>
 
   <p class="lic-note">{% if updated %}Actualizat: {{ updated[8:10] }}.{{ updated[5:7] }}.{{ updated[:4] }}, ora {{ updated[11:16] }}. {% endif %}Titlurile sunt cele de pe site-urile oficiale. Licitațiile Primăriei Brașov apar și ca <a href="{{ hub_path }}#licitatii">articole</a>. Vezi și <a href="/surse">sursele noastre</a>.</p>
-</section></div></div>
+  </div>
+  </div>
+</section></div>
+<script>
+(function () {
+  document.documentElement.classList.add('js');
+  var map = document.querySelector('.lic-map svg'), sel = document.getElementById('lic-loc');
+  var bar = document.getElementById('lic-filter'), barName = document.getElementById('lic-filter-name');
+  var allTitle = {{ (page_title ~ ' | KronPapir')|tojson }};
+  function apply(loc, push) {
+    var name = '';
+    map.querySelectorAll('a[data-loc]').forEach(function (a) {
+      var on = a.dataset.loc === loc;
+      a.classList.toggle('on', on);
+      if (on) { a.setAttribute('aria-current', 'true'); name = a.dataset.name; } else { a.removeAttribute('aria-current'); }
+    });
+    document.querySelectorAll('.lic-section').forEach(function (sec) {
+      var shown = 0;
+      sec.querySelectorAll('.lic-list li').forEach(function (li) {
+        var ok = !loc || li.dataset.loc === loc;
+        li.hidden = !ok; if (ok) shown++;
+      });
+      var empty = sec.querySelector('.lic-empty');
+      if (empty) {
+        empty.hidden = shown > 0;
+        empty.textContent = empty.dataset.base + (loc ? ' în ' + name : empty.dataset.all) + '.';
+      }
+    });
+    sel.value = loc;
+    bar.hidden = !loc; barName.textContent = name;
+    document.title = loc ? 'Licitații și achiziții în ' + name + ' | KronPapir' : allTitle;
+    var url = location.pathname + (loc ? '?localitate=' + encodeURIComponent(loc) : '');
+    if (push) history.pushState({ loc: loc }, '', url);
+  }
+  map.addEventListener('click', function (e) {
+    var a = e.target.closest('a[data-loc]');
+    if (!a) return;
+    e.preventDefault();
+    apply(a.dataset.loc === sel.value ? '' : a.dataset.loc, true);
+  });
+  sel.addEventListener('change', function () { apply(sel.value, true); });
+  document.getElementById('lic-filter-reset').addEventListener('click', function (e) { e.preventDefault(); apply('', true); });
+  window.addEventListener('popstate', function () {
+    apply(new URLSearchParams(location.search).get('localitate') || '', false);
+  });
+})();
+</script>
 {% endblock %}

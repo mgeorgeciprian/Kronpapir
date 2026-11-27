@@ -103,3 +103,39 @@ def test_undated_baseline_items_and_button_titles_are_hidden():
     assert [i["url"] for i in g["achizitii"]] == ["https://x.ro/2", "https://x.ro/4"]
     assert clean_title("ANUNT DE PARTICIPARE PAZA – Vezi") == "ANUNT DE PARTICIPARE PAZA"
     assert clean_title("Achizitii directe") is None
+
+
+def test_map_has_the_58_uat_and_filter_by_locality(tmp_path):
+    from web.app import app
+    from web.business import load_map, _anaf_place
+    uats = load_map()["uat"]
+    assert len(uats) == 58 and {"brasov", "sercaia", "zarnesti"} <= {u["slug"] for u in uats}
+    assert _anaf_place({"title": "Pasune 3500 MP", "description": "carte funciara Zarnesti, extravilan"}, uats)["slug"] == "zarnesti"
+    assert _anaf_place({"title": "Loc de parcare Brasov- subsol", "description": ""}, uats)["slug"] == "brasov"
+    assert _anaf_place({"title": "Apartament", "description": "situat in Cluj"}, uats) is None
+    today = date.today().isoformat()
+    path = tmp_path / "store.json"
+    path.write_text(json.dumps({"items": {
+        "a": {"url": "https://x/a", "title": "Cerere de ofertă pază școală", "authority": "PRIMARIA COMUNEI SERCAIA",
+              "source": "sites", "published": today},
+        "b": {"url": "https://x/b", "title": "Anunț de participare deszăpezire", "authority": "PRIMARIA COMUNEI PREJMER",
+              "source": "sites", "published": today}}}), encoding="utf-8")
+    app.config["LICITATII_STORE"] = str(path)
+    try:
+        c = app.test_client()
+        html = c.get("/afaceri-brasov/licitatii").get_data(as_text=True)
+        assert 'data-loc="sercaia"' in html and "Șercaia (1)" in html and "noindex" not in html
+        html = c.get("/afaceri-brasov/licitatii?localitate=sercaia").get_data(as_text=True)
+        assert '<li data-loc="prejmer" hidden>' in html and '<li data-loc="sercaia">' in html
+        assert "Doar <span id=\"lic-filter-name\">Șercaia" in html and "noindex, follow" in html
+        assert "noindex" not in c.get("/afaceri-brasov/licitatii?localitate=nu-exista").get_data(as_text=True)
+    finally:
+        app.config.pop("LICITATII_STORE")
+
+
+def test_menu_category_titles_are_not_notices():
+    from web.business import clean_title
+    assert clean_title("Dezbateri Publice") is None
+    assert clean_title("Anunțuri Vânzări Terenuri") is None
+    assert clean_title("Ofertă de vânzare teren extravilan nr. 2679/2026")
+    assert clean_title("Anunt licitatie str. Pietii, nr. 3, CF 109819")

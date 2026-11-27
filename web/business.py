@@ -6,10 +6,11 @@ Toate cifrele sunt cele din fișierele ONRC; calculăm doar variații procentual
 import json
 import re
 import threading
+import unicodedata
 from datetime import date, timedelta
 from pathlib import Path
 
-from flask import Blueprint, current_app, render_template
+from flask import Blueprint, current_app, render_template, request
 
 from editorial.presentation import SITE_URL
 
@@ -19,6 +20,7 @@ PEERS = ["Cluj", "Sibiu", "Timiș", "Prahova", "Mureș", "Covasna"]
 DEFAULT_DIR = Path(__file__).resolve().parent.parent / "data" / "business" / "onrc"
 LICITATII_STORE = Path(__file__).resolve().parent.parent / "data" / "business" / "licitatii" / "store.json"
 LICITATII_PATH = HUB_PATH + "/licitatii"
+MAP_FILE = Path(__file__).resolve().parent.parent / "data" / "geo" / "harta_brasov.json"
 SHOW_DAYS = 30
 MONTHS = ["ianuarie", "februarie", "martie", "aprilie", "mai", "iunie", "iulie", "august",
           "septembrie", "octombrie", "noiembrie", "decembrie"]
@@ -193,6 +195,10 @@ def _place(authority):
 # Textul linkului, nu titlul anunțului: nu spune cititorului ce se cumpără.
 GENERIC_TITLES = re.compile(r"^(deschide( de aici)?|aici|vezi|detalii|citeste( mai mult)?|click|descarca|"
                             r"achizitii( directe| publice)?|anunt(uri)?|document)\W*$", re.I)
+# Titluri de meniu sau de categorie (la plural, fără un obiect anume), nu anunțuri.
+CATEGORY_TITLES = re.compile(r"^(anunturi|dezbateri|licitatii|achizitii|oferte|vanzari|concesionari|inchirieri)"
+                             r"( (publice|de|si|vanzari|vanzare|terenuri|teren|achizitii|licitatii|publicitare|"
+                             r"participare|ofertă|oferta|imobile|bunuri)){0,4}\W*$", re.I)
 TITLE_TAIL = re.compile(r"\s*[–-]\s*(vezi|detalii|citește mai mult|citeste mai mult)\s*$", re.I)
 
 
@@ -200,7 +206,7 @@ def clean_title(title):
     """Titlul de afișat sau None dacă e doar textul unui buton."""
     t = TITLE_TAIL.sub("", (title or "").strip())
     plain = t.translate(str.maketrans("ăâîșşțţĂÂÎȘŞȚŢ", "aaisstt" + "AAISSTT"))
-    if len(t) < 12 or GENERIC_TITLES.match(plain):
+    if len(t) < 12 or GENERIC_TITLES.match(plain) or CATEGORY_TITLES.match(plain):
         return None
     return t
 
@@ -235,6 +241,53 @@ def licitatii_groups(store, today=None, days=SHOW_DAYS):
                 dict(it, title=title, when=when, place=_place(it.get("authority"))))
     for g in groups.values():
         g.sort(key=lambda i: (i.get("when") or i.get("published") or ""), reverse=True)
+    return groups
+
+
+def place_slug(name):
+    """„Șercaia” / „SERCAIA” -> „sercaia” (aceeași cheie ca în data/geo/harta_brasov.json)."""
+    t = unicodedata.normalize("NFKD", name or "")
+    t = "".join(c for c in t if not unicodedata.combining(c)).lower()
+    return re.sub(r"[^a-z0-9]+", "-", t).strip("-")
+
+
+_map_cache = {}
+
+
+def load_map(path=MAP_FILE):
+    """Contururile celor 58 de UAT-uri (generate de tools/build_harta_brasov.py), cu numele cu diacritice."""
+    if path not in _map_cache:
+        try:
+            data = json.loads(Path(path).read_text(encoding="utf-8"))
+        except (FileNotFoundError, ValueError):
+            data = {"width": 600, "height": 475, "uat": []}
+        for u in data["uat"]:
+            u["title"] = PLACE_NAMES.get(u["name"].title(), u["name"].title())
+        _map_cache[path] = data
+    return _map_cache[path]
+
+
+def _anaf_place(item, uats):
+    """Localitatea unui bun ANAF, din titlu și descriere. Alt UAT decât Brașov are prioritate:
+    „Brasov” apare des doar ca județ. Fără nicio potrivire: None."""
+    blob = " " + place_slug((item.get("title") or "") + " " + (item.get("description") or "")).replace("-", " ") + " "
+    hits = [u for u in uats if " " + u["slug"].replace("-", " ") + " " in blob]
+    hits.sort(key=lambda u: (u["slug"] == "brasov", -len(u["slug"])))
+    return hits[0] if hits else None
+
+
+def with_places(groups, uats):
+    """Pune pe fiecare anunț `loc` (slug) și `place` (nume afișat), ca să-l putem filtra pe hartă."""
+    by_slug = {u["slug"]: u for u in uats}
+    for key, items in groups.items():
+        for it in items:
+            if key == "anaf":
+                u = _anaf_place(it, uats)
+            else:
+                u = by_slug.get(place_slug(it.get("place")))
+            it["loc"] = u["slug"] if u else None
+            if u:
+                it["place"] = u["title"]
     return groups
 
 
@@ -315,12 +368,25 @@ def hub():
 @bp.route(LICITATII_PATH)
 def licitatii():
     store = load_licitatii()
-    groups = licitatii_groups(store)
+    harta = load_map()
+    groups = with_places(licitatii_groups(store), harta["uat"])
+    counts = {}
+    for items in groups.values():
+        for it in items:
+            if it.get("loc"):
+                counts[it["loc"]] = counts.get(it["loc"], 0) + 1
+    by_slug = {u["slug"]: u for u in harta["uat"]}
+    selected = request.args.get("localitate", "").strip().lower()
+    if selected not in by_slug:
+        selected = ""
     crumbs = breadcrumbs()
     crumbs["itemListElement"].append({"@type": "ListItem", "position": 3, "name": "Licitații și achiziții",
                                       "item": SITE_URL + LICITATII_PATH})
     return render_template("licitatii.html", groups=groups, updated=store.get("updated"),
                            show_days=SHOW_DAYS, hub_path=HUB_PATH, lic_path=LICITATII_PATH, jsonld=[crumbs],
+                           harta=harta, counts=counts, selected=selected,
+                           selected_name=by_slug[selected]["title"] if selected else "",
+                           localitati=sorted(harta["uat"], key=lambda u: u["slug"]),
                            categories=current_app.config.get("KP_CATEGORIES", {}))
 
 
