@@ -42,7 +42,7 @@ def test_jobs_report_keeps_brut_and_net_apart():
     r = rep.jobs_report(jobs, today=date(2026, 11, 27))
     assert r["median_brut"] == 4500 and r["n_brut"] == 2 and r["median_net"] == 3000
     assert r["positions"] == 4 and r["no_experience"] == 1 and r["new_week"] == 1
-    assert r["domains"][-1] == ("Altele", 1) and r["employers"][0] == ("Acme Srl", 3)
+    assert r["domains"][-1] == ("Altele", 1) and r["employers"][0] == ("Acme SRL", 3)
 
 
 def test_charts_are_accessible_fixed_size_svg():

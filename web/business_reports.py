@@ -3,6 +3,7 @@
 Doar numărăm, sortăm și calculăm variații sau mediane; nu estimăm și nu completăm lipsurile.
 O lună lipsă din istoric rămâne lipsă (graficul are o bară mai puțin, nu una inventată).
 """
+import re
 import json
 import statistics
 from collections import Counter
@@ -83,6 +84,13 @@ def _median(vals):
     return int(round(statistics.median(vals))) if vals else None
 
 
+def _company(name):
+    """Numele angajatorului din MAJUSCULE AJOFM, scris normal, cu formele juridice tot cu majuscule."""
+    if not name.isupper():
+        return name
+    return re.sub(r"\b(Srl|Sa|Srl-D|Pfa|Ii|If|Snc|Sca|Ong)\b", lambda m: m.group(0).upper(), name.title())
+
+
 def jobs_report(jobs, today=None, top=6):
     """Ofertele AJOFM active pe domenii, localități și angajatori, plus câteva cifre-cheie.
 
@@ -111,7 +119,7 @@ def jobs_report(jobs, today=None, top=6):
         "offers": len(jobs), "positions": positions, "no_experience": no_exp, "new_week": new_week,
         "median_brut": _median(brut), "n_brut": len(brut), "median_net": _median(net), "n_net": len(net),
         "domains": domains, "places": by_place.most_common(top),
-        "employers": [(e.title() if e.isupper() else e, n) for e, n in by_employer.most_common(top)],
+        "employers": [(_company(e), n) for e, n in by_employer.most_common(top)],
     }
 
 

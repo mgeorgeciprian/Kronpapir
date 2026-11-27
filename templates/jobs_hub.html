@@ -56,6 +56,25 @@
   .facet { display: flex; justify-content: space-between; gap: 8px; padding: 6px 0; border-bottom: 1px solid var(--border); font-size: .95rem; }
   .facet span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
   .facet.active a { font-weight: 700; }
+  .jobs-market { margin: var(--space-lg) 0; padding-top: var(--space-md); border-top: 1px solid var(--border); }
+  .jobs-market h2 { font-size: 1.25rem; margin: 0 0 var(--space-sm); }
+  .jm-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-sm); margin-bottom: var(--space-md); }
+  .jm-kpi { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 10px 12px; display: flex; flex-direction: column; gap: 2px; }
+  .jm-kpi .label, .jm-kpi .note, .jm-fig figcaption { font-size: .8rem; color: var(--text-secondary); }
+  .jm-kpi .value { font-size: 1.35rem; font-weight: 700; }
+  .jm-tabs { display: flex; flex-wrap: wrap; gap: 6px; }
+  .jm-tabs > input { position: absolute; opacity: 0; pointer-events: none; }
+  .jm-tabs > label { padding: 7px 14px; border: 1px solid var(--border); border-radius: 999px; cursor: pointer; font-size: .9rem; min-height: 36px; }
+  .jm-tabs > input:checked + label { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .jm-tabs > input:focus-visible + label { outline: 2px solid var(--primary); outline-offset: 2px; }
+  .jm-fig { display: none; flex-basis: 100%; margin: var(--space-sm) 0 0; }
+  #jb-dom:checked ~ #panel-dom, #jb-loc:checked ~ #panel-loc, #jb-ang:checked ~ #panel-ang { display: block; }
+  .kp-chart { display: block; width: 100%; height: auto; max-width: 600px; }
+  .kp-chart .bar { fill: color-mix(in srgb, var(--primary) 45%, transparent); }
+  .kp-chart .bar.now { fill: var(--primary); }
+  .kp-chart text { fill: var(--text-secondary); font-size: 11px; font-family: inherit; }
+  .kp-chart .val, .kp-chart .lab.hi { fill: var(--text-primary, var(--text)); font-weight: 600; }
+  .kp-chart .lab { fill: var(--text-primary, var(--text)); font-size: 12px; }
 </style>
 {% endblock %}
 
@@ -143,6 +162,26 @@
       <div class="job-item">
         {% if total_all %}Nicio ofertă nu se potrivește filtrelor. <a href="{{ hub_path }}">Vezi toate ofertele ({{ total_all }})</a>.
         {% else %}Momentan nu avem oferte de afișat. Revino mai târziu.{% endif %}
+      </div>
+      {% endif %}
+
+      {% if jobs_rep %}
+      <div class="jobs-market" id="piata-muncii">
+        <h2>Piața muncii în județul Brașov</h2>
+        <div class="jm-kpis">
+          <div class="jm-kpi"><span class="label">Posturi libere</span><span class="value">{{ job_num(jobs_rep.positions) }}</span><span class="note">în {{ ro_count(jobs_rep.offers, 'ofertă', 'oferte') }}</span></div>
+          {% if jobs_rep.median_brut %}<div class="jm-kpi"><span class="label">Salariul median oferit</span><span class="value">{{ job_num(jobs_rep.median_brut) }} lei</span><span class="note">brut, din {{ ro_count(jobs_rep.n_brut, 'ofertă', 'oferte') }} cu salariu brut{% if jobs_rep.median_net %}; net: {{ job_num(jobs_rep.median_net) }} lei ({{ jobs_rep.n_net }}){% endif %}</span></div>{% endif %}
+          <div class="jm-kpi"><span class="label">Fără experiență</span><span class="value">{{ jobs_rep.no_experience }}</span><span class="note">oferte pentru începători</span></div>
+          <div class="jm-kpi"><span class="label">Publicate în ultimele 7 zile</span><span class="value">{{ jobs_rep.new_week }}</span><span class="note">oferte noi</span></div>
+        </div>
+        <div class="jm-tabs" role="group" aria-label="Alege graficul">
+          <input type="radio" name="jb" id="jb-dom" checked><label for="jb-dom">Domenii</label>
+          <input type="radio" name="jb" id="jb-loc"><label for="jb-loc">Localități</label>
+          <input type="radio" name="jb" id="jb-ang"><label for="jb-ang">Angajatori</label>
+          {% for key, pid in (('domains', 'dom'), ('places', 'loc'), ('employers', 'ang')) %}
+          <figure class="jm-fig" id="panel-{{ pid }}">{{ chart_jobs[key] }}<figcaption>Numărul de posturi din ofertele active AJOFM Brașov.</figcaption></figure>
+          {% endfor %}
+        </div>
       </div>
       {% endif %}
 

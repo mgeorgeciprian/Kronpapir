@@ -239,6 +239,14 @@ class WebTests(unittest.TestCase):
         self.assertNotIn('Ion Popescu', html)
         self.assertNotIn('JobPosting', html)  # Google: JobPosting doar pe pagina ofertei
 
+    def test_hub_shows_market_charts_only_unfiltered(self):
+        html = self.client.get('/locuri-de-munca-brasov').get_data(as_text=True)
+        self.assertIn('Piața muncii în județul Brașov', html)
+        self.assertEqual(html.count('class="kp-chart"'), 3)
+        self.assertIn('Posturi pe domenii (AJOFM Brașov)', html)
+        filtered = self.client.get('/locuri-de-munca-brasov?domeniu=Financiar').get_data(as_text=True)
+        self.assertNotIn('Piața muncii în județul Brașov', filtered)
+
     def test_hub_filters_are_noindex(self):
         html = self.client.get('/locuri-de-munca-brasov?loc=F%C4%83g%C4%83ra%C8%99').get_data(as_text=True)
         self.assertIn('noindex, follow', html)

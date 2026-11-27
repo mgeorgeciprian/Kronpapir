@@ -304,6 +304,21 @@ def _context():
     return {"categories": cats, "hub_path": HUB_PATH}
 
 
+def market(all_jobs):
+    """Piața muncii din ofertele active: cifre-cheie și trei grafice (domenii, localități, angajatori)."""
+    from web import business_reports as rep, charts
+    if not all_jobs:
+        return None, {}
+    jr = rep.jobs_report(all_jobs)
+    out = {}
+    for key, title in (("domains", "Posturi pe domenii"), ("places", "Posturi pe localități"),
+                       ("employers", "Angajatorii cu cele mai multe posturi")):
+        items = [(name if len(name) <= 21 else name[:20].rstrip() + "…", n, False) for name, n in jr[key]]
+        out[key] = charts.hbars(items, title + " (AJOFM Brașov)",
+                                "; ".join(f"{name}: {n}" for name, n in jr[key]), width=460, label_w=175)
+    return jr, out
+
+
 @bp.route(HUB_PATH)
 def hub():
     store = load_store()
@@ -336,6 +351,8 @@ def hub():
     shown = jobs[(page - 1) * PER_PAGE: page * PER_PAGE]
     updated, stale = freshness(store)
     filtered = bool(loc or dom or q or only_salary or sort != "recente")
+    # Graficele apar doar pe prima pagină nefiltrată; cine caută un job vede întâi lista.
+    jobs_rep, chart_jobs = market(all_jobs) if (page == 1 and not filtered) else (None, {})
 
     def page_url(p):
         args = {k: v for k, v in request.args.items() if k != "page"}
@@ -352,6 +369,7 @@ def hub():
         loc=loc, dom=dom, q=q, sort=sort, only_salary=only_salary,
         page=page, total_pages=total_pages, page_url=page_url,
         updated=updated, stale=stale, filtered=filtered,
+        jobs_rep=jobs_rep, chart_jobs=chart_jobs,
         source_url=store.get("source_url"),
         breadcrumbs=breadcrumbs(),
         **_context(),
@@ -396,4 +414,5 @@ def register(app, categories):
     app.add_template_global(positions_text, "job_positions")
     app.add_template_global(fmt_date, "fmt_date_ro")
     app.add_template_global(ro_count, "ro_count")
+    app.add_template_global(fmt_lei, "job_num")
     app.add_template_global(SITE_NAME, "site_name")
