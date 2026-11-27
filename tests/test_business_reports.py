@@ -113,3 +113,23 @@ def test_sparkline_and_paired_bars():
     assert str(charts.sparkline([("2026-10", 1)], "x")) == ""
     pb = str(charts.paired_hbars([("SRL-uri", 1725, 2784)], "t", "d", series=("2026", "2025")))
     assert ">1.725<" in pb and ">2.784<" in pb
+
+
+def test_hero_and_insights_from_onrc_rows():
+    rows = [{"key": "inmatriculari", "ytd": 3481, "ytd_prev": 4362, "change": -20.2},
+            {"key": "radieri", "ytd": 2056, "ytd_prev": 2166, "change": -5.1},
+            {"key": "insolvente", "ytd": 169, "ytd_prev": 123, "change": 37.4, "national_change": 13.0}]
+    h = rep.hero(rows)
+    assert h["per10"] == 6 and h["closed_pct"] == 59 and h["net"] == 1425
+    forms = [{"form": "SRL", "label": "SRL-uri", "ytd": 1725, "change": -38.0},
+             {"form": "PFA", "label": "PFA-uri", "ytd": 1632, "change": 13.8}]
+    ins = rep.insights(rows, forms, {"mine": {"rank": 6, "value": 59.2}, "of": 41})
+    assert [i["key"] for i in ins] == ["insolvente", "forme", "loc"]
+    assert ins[0]["value"] == "+37%" and "2,9 ori" in ins[0]["text"] and ins[0]["tone"] == "rau"
+    assert ins[1]["value"] == "PFA +14%" and "1.725" in ins[1]["text"]
+    assert rep.hero([]) is None
+
+
+def test_insights_skip_small_or_missing():
+    rows = [{"key": "insolvente", "ytd": 12, "ytd_prev": 10, "change": 20.0}]
+    assert rep.insights(rows, [], None) == []

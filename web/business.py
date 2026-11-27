@@ -345,17 +345,8 @@ def hub():
     docs = [a for a in articles if _is_public_doc(a)][:8]
     news = [a for a in articles if _is_business(a) and not _is_public_doc(a)][:8]
     reports = [a for a in articles if str(a.get("id", "")).startswith(("onrc-raport-", "ajofm-raport-"))][:6]
-    jobs_count = positions = 0
-    active_jobs, jobs_updated = [], None
-    try:
-        from web import jobs as jobs_web
-        active_jobs = jobs_web.active_jobs()
-        jobs_updated = max((str(j.get("last_seen") or "")[:10] for j in active_jobs), default=None)
-        jobs_count, positions = len(active_jobs), sum(j.get("positions") or 0 for j in active_jobs)
-    except Exception:  # pagina merge și fără joburi
-        pass
     ctx = {"payload": payload, "docs": docs, "news": news, "reports": reports,
-           "jobs_count": jobs_count, "positions": positions, "hub_path": HUB_PATH,
+           "hub_path": HUB_PATH,
            "categories": current_app.config.get("KP_CATEGORIES", {}),
            "fmt_int": fmt_int, "fmt_pct": fmt_pct, "hide_ticker": True}
     jsonld = [breadcrumbs()]
@@ -380,17 +371,17 @@ def hub():
     ctx["lic_counts_by_loc"] = licitatii_counts(lic)
     ctx["plural"] = rep.plural
     ctx["de"] = rep.de
-    ctx.update(build_reports(payload, active_jobs if jobs_count else [], ctx))
-    updated = [d for d in ((payload or {}).get("fetched_at", "")[:10], (lic_store.get("updated") or "")[:10], jobs_updated) if d]
+    ctx.update(build_reports(payload, ctx))
+    updated = [d for d in ((payload or {}).get("fetched_at", "")[:10], (lic_store.get("updated") or "")[:10]) if d]
     ctx["updated"] = max(updated) if updated else None
     return render_template("business_hub.html", **ctx)
 
 
-def build_reports(payload, jobs, ctx):
+def build_reports(payload, ctx):
     """Graficele și cifrele-cheie ale hub-ului. Un grafic fără date suficiente nu apare deloc."""
     out = {"chart_reg": None, "chart_rad": None, "chart_vs": None, "chart_rank": None, "health": [], "sparks": {},
            "chart_forms": None,
-           "headline": None, "rank1000": None, "jobs_rep": None, "chart_jobs": {}}
+           "headline": None, "rank1000": None, "hero": None, "insights": []}
     if payload:
         period = payload["period_end"][:7]
         hist = rep.load_history(data_dir())
@@ -405,6 +396,7 @@ def build_reports(payload, jobs, ctx):
                             "points": pts, "desc": desc, "months": len(pts)}
         rows = ctx.get("rows") or []
         out["headline"] = rep.headline(rows)
+        out["hero"] = rep.hero(rows)
         out["health"] = rep.health_index(payload)
         out["sparks"] = {stat: charts.sparkline(rep.series(hist, stat), f"{word.capitalize()} pe lună")
                          for stat, word in (("inmatriculari", "înmatriculări"), ("radieri", "radieri"),
@@ -433,14 +425,7 @@ def build_reports(payload, jobs, ctx):
                 (f"Brașovul e pe locul {mine['rank']} din {r1000['of']}, cu {str(mine['value']).replace('.', ',')} "
                  f"înmatriculări la 1.000 de profesioniști activi." if mine else ""),
                 fmt=lambda v: f"{v:.1f}".replace(".", ","))
-    if jobs:
-        jr = rep.jobs_report(jobs)
-        out["jobs_rep"] = jr
-        for key, title in (("domains", "Posturi pe domenii"), ("places", "Posturi pe localități"),
-                           ("employers", "Angajatorii cu cele mai multe posturi")):
-            items = [(name if len(name) <= 26 else name[:25] + "…", n, False) for name, n in jr[key]]
-            out["chart_jobs"][key] = charts.hbars(
-                items, title + " (AJOFM Brașov)", "; ".join(f"{name}: {n}" for name, n in jr[key]), label_w=200)
+    out["insights"] = rep.insights(ctx.get("rows") or [], ctx.get("forms") or [], out["rank1000"])
     return out
 
 

@@ -171,3 +171,63 @@ def health_index(payload, county=COUNTY):
                     "change": change, "state": state,
                     "formula": f"{c.get('ytd')} {'insolvențe' if stat == 'insolvente' else 'radieri'} / {r.get('ytd')} înmatriculări × {per}"})
     return out
+
+
+def _pct(p):
+    return f"{'+' if p > 0 else '−' if p < 0 else ''}{abs(round(p)):.0f}%"
+
+
+def _cap(s):
+    return s[:1].upper() + s[1:]
+
+
+def _n(v):
+    return f"{v:,}".replace(",", ".")
+
+
+def hero(rows):
+    """Deschideri față de închideri (radieri) de la începutul anului: cifrele mari din capul paginii."""
+    by = {r["key"]: r for r in rows or []}
+    reg, rad = by.get("inmatriculari") or {}, by.get("radieri") or {}
+    opened, closed = reg.get("ytd"), rad.get("ytd")
+    if not opened or closed is None:
+        return None
+    per10 = round(closed * 10 / opened)
+    return {"opened": opened, "closed": closed, "per10": per10,
+            "closed_pct": min(100, round(closed * 100 / opened)),
+            "opened_change": reg.get("change"), "closed_change": rad.get("change"),
+            "net": opened - closed}
+
+
+def insights(rows, forms, rank1000):
+    """Cel mult trei constatări, fiecare cu cifra ei din ONRC. Doar comparații, fără estimări.
+
+    tone: „rau” (veste proastă), „bine”, „info”. Constatările fără date sau cu variații mici nu apar.
+    """
+    out = []
+    by = {r["key"]: r for r in rows or []}
+    ins = by.get("insolvente") or {}
+    ch, nat = ins.get("change"), ins.get("national_change")
+    if ch is not None and abs(ch) >= 10 and (ins.get("ytd_prev") or 0) >= 50:
+        text = f"{_n(ins['ytd'])}{de(ins['ytd'])} firme intrate în insolvență, față de {_n(ins['ytd_prev'])} anul trecut."
+        if nat is not None:
+            text += f" În toată țara: {_pct(nat)}."
+            if ch > 0 and nat > 0 and ch / nat >= 1.5:
+                text += f" În Brașov cresc de {ch / nat:.1f} ori mai repede.".replace(".", ",", 1)
+        out.append({"key": "insolvente", "value": _pct(ch), "title": "Insolvențele au crescut" if ch > 0 else "Insolvențele au scăzut", "text": text,
+                    "tone": "rau" if ch > 0 else "bine", "tab": "firme"})
+    fm = {f["form"]: f for f in forms or []}
+    srl, pfa = fm.get("SRL") or {}, fm.get("PFA") or {}
+    if srl.get("change") is not None and pfa.get("change") is not None and srl["change"] * pfa["change"] < 0:
+        up, down = (pfa, srl) if pfa["change"] > 0 else (srl, pfa)
+        out.append({"key": "forme", "value": f"{up['form']} {_pct(up['change'])}", "title": f"{up['form']} în loc de {down['form']}",
+                    "text": f"{_cap(up['label'])} noi: {_n(up['ytd'])} ({_pct(up['change'])}). "
+                            f"{_cap(down['label'])} noi: {_n(down['ytd'])} ({_pct(down['change'])}).",
+                    "tone": "info", "tab": "firme"})
+    mine = (rank1000 or {}).get("mine")
+    if mine:
+        out.append({"key": "loc", "value": f"Locul {mine['rank']}", "title": f"din {rank1000['of']} de județe la firme noi",
+                    "text": f"{str(mine['value']).replace('.', ',')} firme noi la 1.000 de firme active, "
+                            f"ca să comparăm județe de mărimi diferite. Fără București.",
+                    "tone": "info", "tab": "firme"})
+    return out[:3]
