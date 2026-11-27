@@ -966,6 +966,12 @@ footer {
   color: var(--surface);
 }
 
+.footer-bottom p a,
+.footer-section p a {
+  text-decoration: underline; /* linkurile din text nu se disting doar prin culoare (WCAG 1.4.1) */
+  text-underline-offset: 2px;
+}
+
 .footer-section p,
 .footer-bottom p {
   color: #b8c4bb; /* 7.9:1 pe --footer-bg (WCAG AA) */
