@@ -54,7 +54,7 @@ class FactChecker:
             self.client = Anthropic()
         return self.client
 
-    def check(self, source_article, rewritten, source_chars=SOURCE_CHARS):
+    def check(self, source_article, rewritten, source_chars=SOURCE_CHARS, note=""):
         now = datetime.now()
         try:
             costs.check(self.cfg, now)
@@ -69,7 +69,7 @@ class FactChecker:
                      f"Rezumat: {plain(rewritten.get('excerpt') or '')}\n{plain(rewritten.get('content') or '')}")
         # sursa în cache: după o rescriere, aceeași sursă se verifică din nou cu 5% din prețul de intrare
         user = [{"type": "text", "text": src_block, "cache_control": {"type": "ephemeral"}},
-                {"type": "text", "text": art_block}]
+                {"type": "text", "text": art_block + (f"\n\nPRECIZĂRI PENTRU VERIFICARE: {note}" if note else "")}]
         try:
             msg = self._client().beta.messages.create(
                 model=self.cfg["model"],

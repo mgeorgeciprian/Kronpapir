@@ -63,6 +63,8 @@ def deterministic(source_text, article, now=None, official=False):
     src = plain(source_text)
     # documentele oficiale scriu uneori „9, 16 mp” sau „1. 204”: lipim zecimalele/miile despărțite de spațiu
     src_numbers = numbers(re.sub(r"(\d)([.,])\s+(\d)", r"\1\2\3", src)) | numbers(src)
+    # în PDF-uri cifra e des lipită de unitate („501lei”, „400kV”): o despărțim doar în textul sursă
+    src_numbers |= numbers(re.sub(r"(\d)([^\W\d_])", r"\1 \2", src))
     body = " ".join(plain(article.get(k) or "") for k in ("title", "content", "excerpt"))
     erori, avert = [], []
 

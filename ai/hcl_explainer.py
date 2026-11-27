@@ -38,6 +38,12 @@ PUBLISH_MIN_SCORE = 8
 MAX_ATTEMPTS = 2
 PER_DOC_CHARS = 25000
 TOTAL_CHARS = 60000
+FACTCHECK_NOTE = (
+    "Textul verificat nu e o știre, ci explicația pe înțeles a unui proiect de hotărâre, scrisă doar din documentele "
+    "de mai sus. (1) Ultimul paragraf descrie ce NU reiese din documente: lipsa unei informații din sursă e exact ce "
+    "trebuie să spună, deci nu e eroare. (2) Numele persoanelor fizice (inițiatori, proprietari, funcționari) sunt "
+    "omise intenționat (regula de date personale); înlocuirea lor cu „persoană fizică” nu e eroare. (3) Erori sunt doar "
+    "afirmațiile pe care documentele le contrazic sau nu le susțin.")
 LABEL = "Explicație generată automat de Redacția AI KronPapir din documentele oficiale ale proiectului."
 
 # ordinea documentelor de citit; ce nu se potrivește (planuri, memorii tehnice de zeci de MB) nu descărcăm
@@ -207,7 +213,8 @@ class Explainer:
             llm = None
             if not det["erori"] and self.fact_checker is not None:
                 llm = self.fact_checker.check({"content": text, "source": "Primăria Brașov", "url": item["url"],
-                                               "title": item["title"]}, art, source_chars=TOTAL_CHARS)
+                                               "title": item["title"]}, art, source_chars=TOTAL_CHARS,
+                                              note=FACTCHECK_NOTE)
             if not det["erori"] and llm and not llm.get("erori_blocante") and llm["scor"] >= PUBLISH_MIN_SCORE:
                 break
             feedback = factcheck.feedback(det, llm)
@@ -227,19 +234,20 @@ class Explainer:
         }
 
 
-def candidates(store, done, year=None, only=None):
+def candidates(store, done, year=None, only=None, redo_drafts=False):
     """Proiectele HCL fără explicație: întâi cele în dezbatere, apoi cele mai noi."""
     items = [dict(it, id=k) for k, it in (store.get("items") or {}).items() if it.get("kind") == "hcl"]
     if only:
         return [it for it in items if it["id"] == only]
-    items = [it for it in items if it["id"] not in done]
+    items = [it for it in items if it["id"] not in done
+             or (redo_drafts and done[it["id"]].get("status") == "draft" and not done[it["id"]].get("reviewed_at"))]
     if year:
         items = [it for it in items if (it.get("published") or "")[:4] >= str(year) or "dezbatere" in it["status"].lower()]
     items.sort(key=lambda it: ("dezbatere" not in it["status"].lower(), -int((it.get("published") or "0000-00-00").replace("-", ""))))
     return items
 
 
-def run(limit=3, year=None, only=None, data_dir=None, client=None, explainer=None, dry_run=False):
+def run(limit=3, year=None, only=None, data_dir=None, client=None, explainer=None, dry_run=False, redo_drafts=False):
     root = data_root(data_dir)
     try:
         store = json.loads((root / "store.json").read_text(encoding="utf-8"))
@@ -247,7 +255,7 @@ def run(limit=3, year=None, only=None, data_dir=None, client=None, explainer=Non
         log.warning("Lipsește %s; rulează întâi python -m sources.brasovcity.", root / "store.json")
         return {"explicate": 0}
     done = load_explanations(root)
-    todo = candidates(store, done, year=year, only=only)[:limit]
+    todo = candidates(store, done, year=year, only=only, redo_drafts=redo_drafts)[:limit]
     if dry_run:
         for it in todo:
             log.info("[de explicat] %s | %s | %s", it["id"], it.get("published"), it["title"][:90])
@@ -284,6 +292,7 @@ def main(argv=None):
     parser.add_argument("--id", default=None)
     parser.add_argument("--data-dir", default=None)
     parser.add_argument("--dry-run", action="store_true")
+    parser.add_argument("--redo-drafts", action="store_true", help="refă ciornele nevăzute de George")
     args = parser.parse_args(argv)
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(name)s: %(message)s")
     try:
@@ -291,7 +300,8 @@ def main(argv=None):
         load_dotenv(BASE_DIR / ".env")
     except ImportError:
         pass
-    stats = run(limit=args.limit, year=args.year, only=args.id, data_dir=args.data_dir, dry_run=args.dry_run)
+    stats = run(limit=args.limit, year=args.year, only=args.id, data_dir=args.data_dir, dry_run=args.dry_run,
+                redo_drafts=args.redo_drafts)
     log.info("Explicații HCL: %s", stats)
     return 0
 

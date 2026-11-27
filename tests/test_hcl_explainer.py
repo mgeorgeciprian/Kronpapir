@@ -32,7 +32,7 @@ class FakeChecker:
     def __init__(self, score):
         self.score = score
 
-    def check(self, src, art, source_chars=0):
+    def check(self, src, art, source_chars=0, note=""):
         return {"scor": self.score, "erori_blocante": [], "subiect_sensibil": False, "motiv_sensibil": "", "model": "x"}
 
 
@@ -122,3 +122,15 @@ def test_documents_go_in_cached_block(monkeypatch, tmp_path):
     blocks = seen["messages"][0]["content"]
     assert blocks[0]["cache_control"] == {"type": "ephemeral"} and SOURCE[:50] in blocks[0]["text"]
     assert "cifra 9" in blocks[1]["text"] and "cache_control" not in blocks[1]
+
+
+def test_numbers_glued_to_units_in_pdf_are_found():
+    from editorial import factcheck as fc
+    art = {"title": "x", "content": "<p>Între 501 lei și 800 lei; linia de 400 kV.</p>", "url": "u"}
+    assert fc.deterministic("Sub 500 lei – 0; 501lei – 800lei – 300; LEA 400kV", art, NOW, official=True)["erori"] == []
+
+
+def test_redo_drafts_only_unreviewed():
+    store = {"items": {"hcl-a": dict(ITEM), "hcl-b": dict(ITEM), "hcl-c": dict(ITEM)}}
+    done = {"hcl-a": {"status": "draft"}, "hcl-b": {"status": "published"}, "hcl-c": {"status": "draft", "reviewed_at": "x"}}
+    assert [c["id"] for c in hx.candidates(store, done, redo_drafts=True)] == ["hcl-a"]
