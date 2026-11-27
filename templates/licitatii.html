@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set page_title = "Licitații, cereri de ofertă și terenuri în județul Brașov" %}
 {% block title %}{% if selected %}Licitații și achiziții în {{ selected_name }}{% else %}Licitații primării Brașov: achiziții și terenuri{% endif %} | KronPapir{% endblock %}
-{% block meta_description %}{% if selected %}<meta name="description" content="{{ n_selected }} {{ 'anunț' if n_selected == 1 else 'anunțuri' }} acum în {{ selected_name }}: cereri de ofertă și licitații ale primăriei, terenuri de vânzare și bunuri ANAF, cu link la fiecare anunț oficial. Actualizat zilnic.">{% else %}<meta name="description" content="Cererile de ofertă și licitațiile celor 58 de primării din județul Brașov, terenurile scoase la vânzare și bunurile ANAF din județ, zilnic, cu link la anunțul oficial. Filtrezi pe hartă.">{% endif %}{% endblock %}
+{% block meta_description %}{% if selected %}<meta name="description" content="{{ n_selected }} {{ 'anunț' if n_selected == 1 else 'anunțuri' }} acum în {{ selected_name }}: cereri de ofertă și licitații ale primăriei, terenuri de vânzare și bunuri ANAF, cu link la fiecare anunț oficial. Actualizat de două ori pe săptămână.">{% else %}<meta name="description" content="Cererile de ofertă și licitațiile celor 58 de primării din județul Brașov, terenurile scoase la vânzare și bunurile ANAF din județ, actualizate de două ori pe săptămână, cu link la anunțul oficial. Filtrezi pe hartă.">{% endif %}{% endblock %}
 {% block robots %}<meta name="robots" content="{% if indexable %}index, follow{% else %}noindex, follow{% endif %}">{% endblock %}
 {% block canonical %}<link rel="canonical" href="{{ page_url if indexable else 'https://kronpapir.ro' ~ lic_path }}">{% endblock %}
 {% block json_ld %}{% for item in jsonld %}<script type="application/ld+json">{{ item|tojson }}</script>{% endfor %}{% endblock %}
@@ -56,7 +56,7 @@
 </style>
 {% endblock %}
 {% macro row(i, show_place=True) -%}
-{% set parts = [] %}{% if show_place and i.place %}{% set _ = parts.append(i.place) %}{% endif %}{% if i.when %}{% set _ = parts.append(i.when[8:10] ~ '.' ~ i.when[5:7] ~ '.' ~ i.when[:4] ~ (' (data la care l-am găsit)' if i.date_guessed else '')) %}{% endif %}{% if i.procedure and i.source == 'anaf' %}{% set _ = parts.append(i.procedure) %}{% endif %}{% if i.subcategory or i.category %}{% set _ = parts.append(i.subcategory or i.category) %}{% endif %}
+{% set parts = [] %}{% if show_place and i.place %}{% set _ = parts.append(i.place) %}{% endif %}{% if i.when %}{% set _ = parts.append(i.when[8:10] ~ '.' ~ i.when[5:7] ~ '.' ~ i.when[:4] ~ (' (data la care l-am găsit)' if i.date_guessed else '')) %}{% endif %}{% if i.deadline %}{% set _ = parts.append('termen ' ~ i.deadline[8:10] ~ '.' ~ i.deadline[5:7] ~ '.' ~ i.deadline[:4]) %}{% endif %}{% if i.procedure and i.source == 'anaf' %}{% set _ = parts.append(i.procedure) %}{% endif %}{% if i.subcategory or i.category %}{% set _ = parts.append(i.subcategory or i.category) %}{% endif %}
 <li data-loc="{{ i.loc or '' }}"{% if selected and i.loc != selected %} hidden{% endif %}>{% if i.is_new %}<span class="lic-new">NOU</span>{% endif %}{% set k = 'anaf' if i.source == 'anaf' else ('teren' if i.topic == 'terenuri' else 'achizitie') %}<span class="kp-chip t-{{ k }}">{{ {'anaf': 'ANAF', 'teren': 'Teren', 'achizitie': 'Achiziție'}[k] }}</span><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
 <span class="lic-meta">{{ parts|join(' · ') }}</span></li>
 {%- endmacro %}
@@ -68,7 +68,7 @@
 {% block content %}
 <div class="main-container" style="display:block"><section class="section">
   <h1 class="section-title" id="lic-h1" data-all="Licitații și achiziții în județul Brașov">Licitații și achiziții în {{ selected_name if selected else 'județul Brașov' }}</h1>
-  <p class="lic-intro">Ce vor să cumpere primăriile din județ, ce terenuri vând și ce bunuri scoate ANAF la licitație. Le adunăm în fiecare dimineață de pe site-urile oficiale ale celor 58 de primării și din fluxurile publice ANAF. Fiecare rând trimite la anunțul original: acolo găsești termenele, documentele și condițiile.</p>
+  <p class="lic-intro">Ce vor să cumpere primăriile din județ, ce terenuri vând și ce bunuri scoate ANAF la licitație. Le adunăm de două ori pe săptămână (luni și joi) de pe site-urile oficiale ale celor 58 de primării și din fluxurile publice ANAF. Fiecare rând trimite la anunțul original: acolo găsești termenele, documentele și condițiile.</p>
 
   <div class="lic-layout">
   <aside class="lic-map" aria-labelledby="lic-map-title">
@@ -97,14 +97,14 @@
 
   <div class="lic-section" id="achizitii">
     <h2>Cereri de ofertă și licitații ale primăriilor</h2>
-    <p>Anunțurile publicate pe site-urile primăriilor în ultimele {{ show_days }} de zile. Multe achiziții mici apar doar acolo, nu și în SEAP.</p>
-    {{ section_list(groups.achizitii, "Niciun anunț în ultimele " ~ show_days ~ " de zile") }}
+    <p>Anunțurile active de pe site-urile primăriilor: rămân aici până la termenul limită sau, dacă termenul nu e scris în titlu, {{ show_days }} de zile. Multe achiziții mici apar doar acolo, nu și în SEAP.</p>
+    {{ section_list(groups.achizitii, "Niciun anunț activ") }}
   </div>
 
   <div class="lic-section" id="terenuri">
     <h2>Terenuri scoase la vânzare sau concesionare</h2>
     <p>Ofertele de vânzare a terenurilor agricole extravilane afișate de primării (Legea 17/2014, cu drept de preempțiune), plus licitațiile de vânzare, concesionare sau închiriere de terenuri.</p>
-    {{ section_list(groups.terenuri, "Niciun anunț în ultimele " ~ show_days ~ " de zile") }}
+    {{ section_list(groups.terenuri, "Niciun anunț activ") }}
   </div>
 
   <div class="lic-section" id="anaf">

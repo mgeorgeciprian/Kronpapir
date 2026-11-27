@@ -19,14 +19,49 @@ def test_first_run_is_baseline_then_new_items_marked():
     assert store["items"]["b"]["is_new"] is True and store["items"]["a"]["last_seen"] == "2026-11-21"
 
 
-def test_anaf_items_leaving_the_feed_are_dropped_and_old_site_items_expire():
-    store = {}
-    lb.merge(store, [_it("s", "https://x/s", published="2026-08-01")], "sites", "2026-08-01")
-    lb.merge(store, [_it("n1", "https://anaf/1"), _it("n2", "https://anaf/2")], "anaf", "2026-11-20")
-    lb.merge(store, [_it("n1", "https://anaf/1")], "anaf", "2026-11-21")
+def test_anaf_items_leaving_the_feed_and_old_site_items_are_archived():
+    store, archive = {}, {}
+    lb.merge(store, [_it("s", "https://x/s", published="2026-08-01")], "sites", "2026-08-01", archive)
+    lb.merge(store, [_it("n1", "https://anaf/1"), _it("n2", "https://anaf/2")], "anaf", "2026-11-20", archive)
+    lb.merge(store, [_it("n1", "https://anaf/1")], "anaf", "2026-11-21", archive)
     assert set(store["items"]) == {"s", "n1"}
-    lb.merge(store, [], "sites", "2026-11-21")
+    assert archive["items"]["n2"]["archived_at"] == "2026-11-21"
+    lb.merge(store, [], "sites", "2026-11-21", archive)
     assert "s" not in store["items"]
+    assert archive["items"]["s"]["archive_reason"] == "mai vechi de 30 de zile"
+
+
+def test_site_item_stays_until_its_deadline_then_is_archived_and_not_readded():
+    store, archive = {}, {}
+    lb.merge(store, [], "sites", "2026-11-01", archive)  # prima rulare: baseline
+    title = "Cerere de ofertă reparații școală, termen limită 30.12.2026"
+    lb.merge(store, [_it("d", "https://x/d", title=title)], "sites", "2026-11-20", archive)
+    assert store["items"]["d"]["deadline"] == "2026-12-30"
+    lb.merge(store, [_it("d", "https://x/d", title=title)], "sites", "2026-12-28", archive)  # peste 30 de zile, dar în termen
+    assert "d" in store["items"]
+    lb.merge(store, [_it("d", "https://x/d", title=title)], "sites", "2026-12-31", archive)
+    assert "d" not in store["items"] and archive["items"]["d"]["archive_reason"] == "termen expirat"
+    lb.merge(store, [_it("d", "https://x/d", title=title)], "sites", "2027-01-04", archive)
+    assert "d" not in store["items"]
+
+
+def test_expiry_rules():
+    from sources.licitatii.expiry import deadline_in_title, expires_on
+    assert deadline_in_title("Anunț achiziție mobilier – termen de depunere a ofertelor: 05.12.2026") == "2026-12-05"
+    assert deadline_in_title("Anunț achiziție mobilier 05.12.2026") is None
+    assert expires_on({"source": "anaf", "published": "2026-11-01"}) is None
+    assert expires_on({"source": "sites", "published": "2026-11-01"}) == "2026-12-01"
+    assert expires_on({"source": "sites", "published": "2026-11-27", "date_guessed": True, "first_seen": "2026-11-10"}) == "2026-12-10"
+
+
+def test_run_writes_store_and_archive(tmp_path, monkeypatch):
+    monkeypatch.setattr(lb, "fetch_sites", lambda today, known: ([], {}))
+    monkeypatch.setattr(lb, "fetch_anaf", lambda: ([], {}))
+    lb.write_store(lb.store_path(tmp_path), {"baseline": {"anaf": "2026-11-01"}, "items": {
+        "n": _it("n", "https://anaf/n", source="anaf")}})
+    lb.run(data_dir=tmp_path)
+    assert lb.load_store(lb.store_path(tmp_path))["items"] == {}
+    assert "n" in lb.load_archive(lb.archive_path(tmp_path))["items"]
 
 
 def test_site_client_uses_kronpapir_agent_and_respects_robots():

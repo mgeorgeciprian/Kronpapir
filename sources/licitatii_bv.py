@@ -6,7 +6,10 @@ Surse (o rulare pe zi, KronPapirBot, robots.txt respectat, pauză de 2 s):
 - vânzările de bunuri ANAF, doar din sitemap-ul și fluxurile RSS ale elicitatii.anaf.ro
   (termenii platformei interzic colectarea paginilor), păstrate doar când descrierea pomenește
   o localitate din județul Brașov.
-Nu preluăm documentele și nici date de contact. Rezultatul: data/business/licitatii/store.json.
+Nu preluăm documentele și nici date de contact. Rezultatul: data/business/licitatii/store.json
+(anunțurile active). Un anunț expirat (termenul limită trecut sau, fără termen, 30 de zile;
+bunurile ANAF când ies din fluxuri) se mută în data/business/licitatii/arhiva.json, nu se șterge.
+Rulează de două ori pe săptămână (luni și joi).
 
 Rulare: python -m sources.licitatii_bv [--only sites,anaf] [--dry-run]
 """
@@ -22,6 +25,7 @@ from zoneinfo import ZoneInfo
 import yaml
 
 from sources.licitatii.anaf_sales import AnafSalesClient
+from sources.licitatii.expiry import deadline_in_title, is_expired
 from sources.licitatii.sites import SitesClient
 
 log = logging.getLogger("sources.licitatii_bv")
@@ -29,13 +33,23 @@ log = logging.getLogger("sources.licitatii_bv")
 TZ = ZoneInfo("Europe/Bucharest")
 BASE_DIR = Path(__file__).resolve().parent.parent
 SITES_FILE = BASE_DIR / "config" / "primarii_brasov.yaml"
-KEEP_DAYS = 30          # cât păstrăm (și afișăm) un anunț de pe site-ul unei primării
 MAX_AGE_DAYS = 14       # un anunț publicat acum mai mult de 14 zile nu mai e luat în seamă
 ANAF_BASE = "https://elicitatii.anaf.ro"
 
 
 def store_path(data_dir=None):
     return Path(data_dir or BASE_DIR / "data") / "business" / "licitatii" / "store.json"
+
+
+def archive_path(data_dir=None):
+    return store_path(data_dir).with_name("arhiva.json")
+
+
+def load_archive(path):
+    try:
+        return json.loads(Path(path).read_text(encoding="utf-8"))
+    except (FileNotFoundError, ValueError):
+        return {"items": {}}
 
 
 def load_store(path):
@@ -61,13 +75,16 @@ def too_old(item, today, max_age_days=MAX_AGE_DAYS):
     return when < (date.fromisoformat(today) - timedelta(days=max_age_days)).isoformat()
 
 
-def merge(store, fresh, source, today, keep_days=KEEP_DAYS):
+def merge(store, fresh, source, today, archive=None):
     """Adaugă doar elementele noi și recente (cel mult MAX_AGE_DAYS); cele cunoscute nu se mai procesează.
 
-    Prima rulare a unei surse doar le reține, fără să le marcheze „nou”.
+    Prima rulare a unei surse doar le reține, fără să le marcheze „nou”. Anunțurile expirate și
+    bunurile ANAF ieșite din fluxuri se mută în `archive` (dict cu „items”), cu motivul și ziua.
+    Un anunț deja arhivat nu mai revine ca nou.
     """
     items = store.setdefault("items", {})
     baseline = store.setdefault("baseline", {})
+    archived = (archive if archive is not None else {}).setdefault("items", {})
     first_run = not baseline.get(source)
     seen_now = set()
     new = 0
@@ -77,21 +94,25 @@ def merge(store, fresh, source, today, keep_days=KEEP_DAYS):
         if old:
             old["last_seen"] = today  # cunoscut: nu-l mai procesăm
             continue
-        if too_old(it, today):
+        if it["id"] in archived or too_old(it, today):
             continue
         it = dict(it, source=source, first_seen=today, last_seen=today, is_new=not first_run)
+        if not it.get("deadline"):
+            it["deadline"] = deadline_in_title(it.get("title"))
         items[it["id"]] = it
         new += 0 if first_run else 1
     baseline[source] = baseline.get(source) or today
-    cut = (date.fromisoformat(today) - timedelta(days=keep_days)).isoformat()
     for key in list(items):
         it = items[key]
         if it.get("source") != source:
             continue
         if source == "anaf" and key not in seen_now:
-            del items[key]  # bunul a ieșit din fluxuri: vândut sau retras
-        elif source == "sites" and it.get("first_seen", "") < cut:
-            del items[key]
+            reason = "ieșit din fluxurile ANAF (vândut sau retras)"
+        elif is_expired(it, today):
+            reason = "termen expirat" if it.get("deadline") else "mai vechi de 30 de zile"
+        else:
+            continue
+        archived[key] = dict(items.pop(key), archived_at=today, archive_reason=reason)
     return new
 
 
@@ -114,8 +135,11 @@ def run(data_dir=None, only=("sites", "anaf"), dry_run=False, now=None):
     today = now.date().isoformat()
     path = store_path(data_dir)
     store = load_store(path)
+    apath = archive_path(data_dir)
+    archive = load_archive(apath)
     report = {}
     known = {i.get("url") for i in (store.get("items") or {}).values()}
+    known |= {i.get("url") for i in (archive.get("items") or {}).values()}
     for source, fetch in (("sites", lambda: fetch_sites(today, known)), ("anaf", fetch_anaf)):
         if source not in only:
             continue
@@ -125,7 +149,7 @@ def run(data_dir=None, only=("sites", "anaf"), dry_run=False, now=None):
             log.error("%s a eșuat: %s", source, e)
             report[source] = {"error": str(e)}
             continue
-        new = 0 if dry_run else merge(store, fresh, source, today)
+        new = 0 if dry_run else merge(store, fresh, source, today, archive)
         report[source] = dict(info, found=len(fresh), new=new)
         log.info("%s: %d găsite, %d noi %s", source, len(fresh), new,
                  json.dumps({k: (len(v) if isinstance(v, list) else v) for k, v in info.items()}, ensure_ascii=False))
@@ -133,6 +157,9 @@ def run(data_dir=None, only=("sites", "anaf"), dry_run=False, now=None):
         store["updated"] = now.isoformat(timespec="seconds")
         store["last_report"] = report
         write_store(path, store)
+        archive["updated"] = store["updated"]
+        write_store(apath, archive)
+        log.info("active: %d, arhivate: %d", len(store["items"]), len(archive["items"]))
     return report
 
 

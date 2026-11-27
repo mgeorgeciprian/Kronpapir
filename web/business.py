@@ -16,6 +16,7 @@ from web import business_reports as rep
 from web import charts
 
 from editorial.presentation import SITE_URL
+from sources.licitatii.expiry import is_expired
 
 HUB_PATH = "/afaceri-brasov"
 COUNTY = "Brașov"
@@ -24,7 +25,7 @@ DEFAULT_DIR = Path(__file__).resolve().parent.parent / "data" / "business" / "on
 LICITATII_STORE = Path(__file__).resolve().parent.parent / "data" / "business" / "licitatii" / "store.json"
 LICITATII_PATH = HUB_PATH + "/licitatii"
 MAP_FILE = Path(__file__).resolve().parent.parent / "data" / "geo" / "harta_brasov.json"
-SHOW_DAYS = 30
+SHOW_DAYS = 30  # fără termen limită scris, un anunț rămâne activ atâtea zile (sources/licitatii/expiry.py)
 INDEX_MIN_ITEMS = 3  # o pagină de localitate intră în Google doar cu cel puțin atâtea anunțuri active
 CSV_PATH = HUB_PATH + "/date-onrc-brasov.csv"
 PRIMARIA_PATH = HUB_PATH + "/primaria-brasov"
@@ -220,15 +221,15 @@ def clean_title(title):
     return t
 
 
-def licitatii_groups(store, today=None, days=SHOW_DAYS):
-    """Anunțurile afișate, pe grupe: achiziții ale primăriilor, terenuri, bunuri ANAF.
+def licitatii_groups(store, today=None):
+    """Anunțurile active, pe grupe: achiziții ale primăriilor, terenuri, bunuri ANAF.
 
-    Un anunț de pe site-ul unei primării apare doar dacă știm că e recent: are dată reală
-    în ultimele `days` zile sau a apărut pe site după prima noastră vizită (is_new).
+    Un anunț de pe site-ul unei primării apare până la termenul limită (sau 30 de zile, fără
+    termen), dacă știm că e recent: are dată reală sau a apărut pe site după prima noastră vizită (is_new).
+    Între două rulări, ce expiră dispare de pe pagină; la rularea următoare trece în arhivă.
     Cele fără dată găsite la prima vizită pot fi din arhivă (ani vechi), deci nu le arătăm.
     """
     today = today or date.today()
-    cut = (today - timedelta(days=days)).isoformat()
     groups = {"achizitii": [], "terenuri": [], "anaf": []}
     seen = set()
     for it in (store.get("items") or {}).values():
@@ -244,7 +245,7 @@ def licitatii_groups(store, today=None, days=SHOW_DAYS):
         if it.get("date_guessed") and not it.get("is_new"):
             continue
         key = (it.get("authority"), title.lower())
-        if when[:10] >= cut and key not in seen:
+        if not is_expired(it, today) and key not in seen:
             seen.add(key)
             groups["terenuri" if it.get("topic") == "terenuri" else "achizitii"].append(
                 dict(it, title=title, when=when, place=_place(it.get("authority"))))
