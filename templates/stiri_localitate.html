@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% set n_news = ro_count(total, "știre", "știri") %}
+
+{% block title %}Știri {{ name }} azi: ultimele știri{% if n_jobs %}, locuri de muncă{% endif %}{% if n_tenders %}, licitații{% endif %} | KronPapir{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="Știri {{ name }}: {{ ro_count(n_30, 'știre', 'știri') }} în ultimele 30 de zile{% if n_jobs %}, {{ ro_count(n_jobs, 'loc de muncă', 'locuri de muncă') }} la AJOFM{% endif %}{% if n_tenders %}, {{ ro_count(n_tenders, 'anunț de licitație', 'anunțuri de licitații') }}{% endif %}. Tot ce se întâmplă în {{ kind }} {{ name }}, județul Brașov, pe scurt și cu link la sursă.">
+{% endblock %}
+
+{% block robots %}
+{% if indexable %}<meta name="robots" content="index, follow, max-image-preview:large">{% else %}<meta name="robots" content="noindex, follow">{% endif %}
+{% endblock %}
+
+{% block canonical %}<link rel="canonical" href="{{ canonical }}">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="Știri {{ name }} | KronPapir">
+<meta property="og:description" content="Ultimele știri, locuri de muncă și licitații din {{ name }}, județul Brașov.">
+<meta property="og:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+<meta property="og:url" content="{{ canonical }}">
+{% endblock %}
+
+{% block twitter_tags %}
+<meta name="twitter:title" content="Știri {{ name }} | KronPapir">
+<meta name="twitter:description" content="Ultimele știri, locuri de muncă și licitații din {{ name }}, județul Brașov.">
+<meta name="twitter:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+{% endblock %}
+
+{% block json_ld %}
+{% for block in jsonld %}<script type="application/ld+json">{{ block|tojson }}</script>
+{% endfor %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .loc-intro { color: var(--text-secondary); margin-bottom: var(--space-lg); max-width: 70ch; }
+  .loc-crumbs { font-size: .9rem; margin-bottom: var(--space-sm); color: var(--text-secondary); }
+  .loc-crumbs a { color: var(--primary); }
+  .loc-box { margin: var(--space-lg) 0; padding: var(--space-md) var(--space-lg); background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius-lg); }
+  .loc-box h2 { font-size: 1.15rem; margin: 0 0 var(--space-sm); }
+  .loc-box ul { list-style: none; margin: 0; padding: 0; }
+  .loc-box li { padding: 8px 0; border-bottom: 1px solid var(--border); }
+  .loc-box li:last-child { border-bottom: 0; }
+  .loc-box .meta { display: block; font-size: .85rem; color: var(--text-secondary); }
+  .loc-more { display: inline-block; margin-top: var(--space-sm); font-weight: 600; color: var(--primary); }
+  .facet { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid var(--border); }
+  .facet span { color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div>
+    <section class="section">
+      <nav class="loc-crumbs" aria-label="Navigare"><a href="/local">Știri locale</a> › {{ name }}</nav>
+      <h1 class="section-title">Știri {{ name }}</h1>
+      <p class="loc-intro">
+        {% if total %}
+        Știrile din {{ kind }} {{ name }}, județul Brașov, adunate din presa locală: {{ ro_count(n_30, 'știre', 'știri') }} în ultimele 30 de zile și {{ ro_count(n_recent, 'știre', 'știri') }} în ultimele {{ recent_days }} de zile{% if top_sources %}, mai ales de la {{ top_sources|join(', ') }}{% endif %}.
+        {% else %}
+        Încă nu avem știri recente din {{ kind }} {{ name }}.
+        {% endif %}
+        {% if n_jobs %}La AJOFM sunt acum {{ ro_count(n_jobs, 'ofertă de muncă', 'oferte de muncă') }} în {{ name }}.{% endif %}
+        {% if n_tenders %}Sunt deschise {{ ro_count(n_tenders, 'anunț', 'anunțuri') }} de achiziții, licitații de terenuri sau bunuri ANAF.{% endif %}
+        Fiecare știre are link la publicația care a scris-o.
+      </p>
+
+      {% if jobs or tenders %}
+      <div class="loc-grid">
+        {% if jobs %}
+        <div class="loc-box">
+          <h2>Locuri de muncă în {{ name }}</h2>
+          <ul>
+            {% for job in jobs %}
+            <li><a href="{{ job_path(job) }}">{{ job.title }}</a>
+              <span class="meta">{% if job.employer_name %}{{ job.employer_name }}{% endif %}{% if job_salary(job) %} · {{ job_salary(job) }}{% endif %}</span></li>
+            {% endfor %}
+          </ul>
+          {% if jobs_url %}<a class="loc-more" href="{{ jobs_url }}">Toate cele {{ ro_count(n_jobs, 'ofertă', 'oferte') }} din {{ name }} →</a>{% endif %}
+        </div>
+        {% endif %}
+        {% if tenders %}
+        <div class="loc-box">
+          <h2>Licitații și achiziții în {{ name }}</h2>
+          <ul>
+            {% for i in tenders %}
+            <li><a href="{{ i.url }}" rel="noopener nofollow" target="_blank">{{ i.title }}</a>
+              {% set d = i.deadline_shown or '' %}<span class="meta">{% if i.source == 'anaf' %}Bun scos la vânzare de ANAF{% else %}Anunț al primăriei{% endif %}{% if d %} · termen {{ d[8:10] }}.{{ d[5:7] }}.{{ d[:4] }}{% endif %}</span></li>
+            {% endfor %}
+          </ul>
+          <a class="loc-more" href="{{ tenders_url }}">Toate anunțurile din {{ name }} →</a>
+        </div>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      {% if articles %}
+      <h2 class="section-title" style="font-size: 1.3rem;">Ultimele știri din {{ name }}</h2>
+      <div class="articles-grid">
+        {% for article in articles %}
+        <article class="article-card">
+          <div class="article-card-image">
+            <img src="{{ article|display_image or url_for('static', filename=article|placeholder('local')) }}" alt="{{ article.title }}" loading="lazy" onerror="this.src='{{ url_for('static', filename='images/placeholders/default.svg') }}'">
+          </div>
+          <div class="article-card-content">
+            {% if article.category %}<span class="category-tag {{ article.category }}">{{ article.category }}</span>{% endif %}
+            <h3><a href="{{ article|article_url }}">{{ article.title }}</a></h3>
+            <p class="excerpt">{{ article.excerpt or (article.content|striptags)[:140] ~ '…' }}</p>
+            <div class="article-card-meta">
+              <span class="date">{{ article.date[:10] if article.date else '' }}</span>
+              {% if article.source %}<span class="article-source">{{ article.source }}</span>{% endif %}
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </div>
+
+      {% if total_pages > 1 %}
+      <nav class="pagination" aria-label="Pagini">
+        {% if page > 1 %}<a href="/stiri-{{ slug }}{% if page > 2 %}?page={{ page - 1 }}{% endif %}" rel="prev">‹ Anterior</a>{% endif %}
+        {% for p in range([1, page - 2]|max, [total_pages + 1, page + 3]|min) %}
+          {% if p == page %}<span class="current" aria-current="page">{{ p }}</span>{% else %}<a href="/stiri-{{ slug }}{% if p > 1 %}?page={{ p }}{% endif %}">{{ p }}</a>{% endif %}
+        {% endfor %}
+        {% if page < total_pages %}<a href="/stiri-{{ slug }}?page={{ page + 1 }}" rel="next">Următor ›</a>{% endif %}
+      </nav>
+      {% endif %}
+      {% endif %}
+    </section>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📍 Știri din alte localități</h3>
+      {% for r in others %}
+      <div class="facet"><a href="{{ r.url }}">{{ r.title }}</a><span>{{ r.news }}</span></div>
+      {% endfor %}
+      <div class="facet"><a href="/local">Brașov și tot județul</a><span></span></div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

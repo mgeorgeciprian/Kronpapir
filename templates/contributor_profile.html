@@ -2,15 +2,17 @@
 
 {% block title %}{{ contributor.name }} - Colaborator KronPapir{% endblock %}
 
+{% block robots %}{% if articles %}<meta name="robots" content="index, follow, max-image-preview:large">{% else %}<meta name="robots" content="noindex, follow">{% endif %}{% endblock %}
+
 {% block canonical %}
-<link rel="canonical" href="https://kronpapir.ro/colaborator/{{ contributor.id }}">
+<link rel="canonical" href="https://kronpapir.ro{{ contributor_path(contributor) }}">
 {% endblock %}
 
 {% block og_tags %}
 <meta property="og:title" content="{{ contributor.name }} - Colaborator KronPapir">
 <meta property="og:description" content="{{ contributor.bio or 'Colaborator KronPapir' }}">
 <meta property="og:type" content="profile">
-<meta property="og:url" content="https://kronpapir.ro/colaborator/{{ contributor.id }}">
+<meta property="og:url" content="https://kronpapir.ro{{ contributor_path(contributor) }}">
 {% endblock %}
 
 {% block content %}
@@ -157,7 +159,7 @@
   "@context": "https://schema.org",
   "@type": "Person",
   "name": "{{ contributor.name }}",
-  "url": "https://kronpapir.ro/colaborator/{{ contributor.id }}",
+  "url": "https://kronpapir.ro{{ contributor_path(contributor) }}",
   "description": "{{ contributor.bio or 'Colaborator KronPapir' }}",
   "worksFor": {
     "@type": "Organization",

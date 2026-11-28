@@ -1,13 +1,18 @@
 {% extends "base.html" %}
 
-{% block title %}{{ category_name }} - KronPapir{% endblock %}
+{% block title %}{{ seo.title }}{% if page > 1 %} (pagina {{ page }}){% endif %} | KronPapir{% endblock %}
+
+{% block meta_description %}<meta name="description" content="{{ seo.description }}">{% endblock %}
+
+{% block canonical %}<link rel="canonical" href="https://kronpapir.ro{{ '/local' if category == 'local' else '/categorie/' ~ category }}{% if page > 1 and category != 'local' %}?page={{ page }}{% endif %}">{% endblock %}
 
 {% block content %}
 
 <div class="main-container">
   <div>
     <section class="section">
-      <h1 class="section-title">{{ category_name }}</h1>
+      <h1 class="section-title">{{ seo.h1 }}</h1>
+      {% if seo.intro and page == 1 %}<p style="margin-bottom: var(--space-sm); max-width: 70ch;">{{ seo.intro|safe }}</p>{% endif %}
       <p style="margin-bottom: var(--space-lg); color: var(--text-secondary);">Total {{ total }} articole</p>
 
       {% if articles %}

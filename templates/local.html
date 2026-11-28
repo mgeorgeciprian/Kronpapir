@@ -10,10 +10,6 @@
 <link rel="canonical" href="https://kronpapir.ro/local">
 {% endblock %}
 
-{% block extra_css %}
-<meta name="description" content="Știri locale din Brașov - ultimele noutăți din județul Brașov. Politică, economie, sport, cultură și evenimente din inima Transilvaniei.">
-<meta name="keywords" content="știri locale Brașov, noutăți Brașov, știri Brașov azi, știri județul Brașov, stiri brasov">
-{% endblock %}
 
 {% block json_ld %}
 <script type="application/ld+json">
@@ -123,6 +119,18 @@
       <p style="margin-bottom: var(--space-md);">Acest agregator colectează și afișează automat știri locale din Brașov.</p>
       <a href="/despre" style="color: var(--primary); font-weight: 600;">Citește mai mult →</a>
     </div>
+
+    {% set loc_pages = locality_pages() %}
+    {% if loc_pages %}
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📍 Știri pe localități</h3>
+      {% for r in loc_pages %}
+      <div style="display: flex; justify-content: space-between; padding: var(--space-sm) 0; border-bottom: 1px solid var(--border);">
+        <a href="{{ r.url }}" style="font-weight: 500; color: var(--primary);">Știri {{ r.title }}</a><span style="color: var(--text-secondary);">{{ r.news }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
 
     <div class="sidebar-box">
       <h3 class="sidebar-title">📂 Alte Categorii</h3>

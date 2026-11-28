@@ -81,7 +81,7 @@
         <span class="article-meta-item">📰 Sursa: <strong>{{ article.source }}</strong></span>
         {% endif %}
         {% set by = byline(article) %}
-        <span class="article-meta-item article-byline">✍️ {% if contributor_info %}<a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">{{ by.text }}</a>{% else %}{{ by.text }}{% if by.source_name %} {% if by.source_url %}<a href="{{ by.source_url }}" target="_blank" rel="noopener" style="color: var(--primary);">{{ by.source_name }}</a>{% else %}{{ by.source_name }}{% endif %}{% endif %}{% endif %}</span>
+        <span class="article-meta-item article-byline">✍️ {% if contributor_info %}<a href="{{ contributor_path(contributor_info) }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">{{ by.text }}</a>{% else %}{{ by.text }}{% if by.source_name %} {% if by.source_url %}<a href="{{ by.source_url }}" target="_blank" rel="noopener" style="color: var(--primary);">{{ by.source_name }}</a>{% else %}{{ by.source_name }}{% endif %}{% endif %}{% endif %}</span>
         {% if article.updated and article.updated[:10] != (article.date or '')[:10] %}
         <span class="article-meta-item">🔄 Actualizat: {{ article.updated[:10] }}</span>
         {% endif %}
@@ -136,7 +136,7 @@
     <!-- Source Attribution -->
     <div class="article-source-info">
       {% if contributor_info %}
-      <strong>Autor colaborator:</strong> Acest articol a fost scris de <a href="/colaborator/{{ contributor_info.id }}" style="color: var(--primary); font-weight: 600;">{{ contributor_info.name }}</a>, colaborator KronPapir.
+      <strong>Autor colaborator:</strong> Acest articol a fost scris de <a href="{{ contributor_path(contributor_info) }}" style="color: var(--primary); font-weight: 600;">{{ contributor_info.name }}</a>, colaborator KronPapir.
       {% else %}
       <strong>Notă de transparență:</strong> {{ byline(article).text }}{% if byline(article).source_name %} {{ byline(article).source_name }}{% endif %}.
       Redacția KronPapir folosește inteligența artificială pentru redactare; <a href="/despre" style="color: var(--primary);">află cum lucrăm</a>.
@@ -158,8 +158,15 @@
       <button class="share-btn" title="Tipărește" onclick="window.print();">🖨️</button>
     </div>
 
+    {% set hub_link = locality_hub_link(article) %}
     {% set loc_link = locality_link(article) %}
-    {% if loc_link %}
+    {% if hub_link %}
+    <aside class="loc-link" style="margin: var(--space-md) 0; padding: 12px 14px; border-left: 3px solid var(--primary); background: var(--surface);">
+      <a href="{{ hub_link.url }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">Știri {{ hub_link.title }}: tot ce se întâmplă acolo →</a>
+      <span style="display: block; font-size: .85rem; color: var(--text-secondary);">{{ ro_count(hub_link.news, 'știre', 'știri') }}{% if hub_link.jobs %} · {{ ro_count(hub_link.jobs, 'loc de muncă', 'locuri de muncă') }}{% endif %}{% if hub_link.tenders %} · {{ ro_count(hub_link.tenders, 'licitație', 'licitații') }}{% endif %}</span>
+    </aside>
+    {% endif %}
+    {% if loc_link and not (hub_link and hub_link.tenders) %}
     <aside class="loc-link" style="margin: var(--space-md) 0; padding: 12px 14px; border-left: 3px solid var(--primary); background: var(--surface);">
       <a href="{{ loc_link.url }}" style="color: var(--primary); font-weight: 600; text-decoration: none;">Licitații și achiziții în {{ loc_link.name }} →</a>
       <span style="display: block; font-size: .85rem; color: var(--text-secondary);">{{ loc_link.n }} anunțuri oficiale acum: cereri de ofertă, terenuri, bunuri ANAF</span>

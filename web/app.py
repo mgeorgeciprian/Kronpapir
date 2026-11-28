@@ -20,7 +20,7 @@ from html import escape as html_escape
 from pathlib import Path
 from functools import wraps
 
-from flask import Flask, render_template, jsonify, request, abort, session, redirect, url_for, Response
+from flask import Flask, render_template, jsonify, request, abort, session, redirect, url_for, Response, send_from_directory
 from werkzeug.security import generate_password_hash, check_password_hash
 
 import sys as _sys
@@ -29,6 +29,9 @@ from editorial import presentation as pres  # noqa: E402
 from editorial import store as editorial_store  # noqa: E402
 from web import jobs as jobs_web  # noqa: E402
 from web import business as business_web  # noqa: E402
+from web import localities as localities_web  # noqa: E402
+from web import category_seo  # noqa: E402
+from web.job_topics import slugify as ascii_slug  # noqa: E402
 
 app = Flask(__name__, template_folder='../templates', static_folder='../static')
 app.config['JSON_SORT_KEYS'] = False
@@ -122,6 +125,30 @@ def get_contributor_by_id(cid):
     """Find a contributor by ID."""
     for c in load_contributors():
         if c.get('id') == cid:
+            return c
+    return None
+
+
+_CONTRIBUTOR_RESERVED = {'inregistrare', 'login', 'logout', 'panou', 'scrie', 'editeaza', 'sterge'}
+
+
+def contributor_slug(contributor, others=None):
+    """„Ana Popescu” -> „ana-popescu”; la nume identice sau rezervate se adaugă începutul id-ului."""
+    base = ascii_slug(contributor.get('name') or '') or 'autor'
+    others = others if others is not None else load_contributors()
+    clash = base in _CONTRIBUTOR_RESERVED or any(
+        o.get('id') != contributor.get('id') and ascii_slug(o.get('name') or '') == base for o in others)
+    return f"{base}-{str(contributor.get('id', ''))[:6]}" if clash else base
+
+
+def contributor_path(contributor):
+    return f"/colaborator/{contributor_slug(contributor)}"
+
+
+def get_contributor_by_slug(slug):
+    contributors = load_contributors()
+    for c in contributors:
+        if contributor_slug(c, contributors) == slug:
             return c
     return None
 
@@ -496,6 +523,19 @@ def _fallback_copy_web(article):
 
 _analytics_lock = threading.Lock()
 
+@app.route('/favicon.ico')
+def favicon_ico():
+    """Browserele și crawlerele cer /favicon.ico la rădăcină (era 404)."""
+    return send_from_directory(BASE_DIR / 'static' / 'images', 'favicon.ico',
+                               mimetype='image/vnd.microsoft.icon', max_age=86400 * 30)
+
+
+@app.route('/apple-touch-icon.png')
+@app.route('/apple-touch-icon-precomposed.png')
+def apple_touch_icon():
+    return send_from_directory(BASE_DIR / 'static' / 'images', 'apple-touch-icon.png', max_age=86400 * 30)
+
+
 @app.before_request
 def track_visit():
     """Lightweight internal analytics tracker."""
@@ -679,6 +719,8 @@ def category(category):
     articles = all_articles[start:end]
 
     total_pages = (total + per_page - 1) // per_page
+    if category not in CATEGORIES and not total:
+        abort(404)
     category_name = CATEGORIES.get(category, category)
 
     return render_template(
@@ -686,6 +728,7 @@ def category(category):
         articles=articles,
         category=category,
         category_name=category_name,
+        seo=category_seo.seo_for(category, category_name),
         page=page,
         total_pages=total_pages,
         total=total,
@@ -2035,11 +2078,16 @@ def contributor_delete(article_id):
 @app.route('/colaborator/<contributor_id>')
 def contributor_profile(contributor_id):
     """Public contributor profile page."""
-    contributor = get_contributor_by_id(contributor_id)
+    by_id = get_contributor_by_id(contributor_id)
+    if by_id:  # adresa veche, cu id-ul: trimitem la cea cu numele
+        if by_id.get('status') == 'suspended':
+            abort(404)
+        return redirect(contributor_path(by_id), code=301)
+    contributor = get_contributor_by_slug(contributor_id)
     if not contributor or contributor.get('status') == 'suspended':
         abort(404)
 
-    approved_articles = load_contributor_articles(contributor_id, status_filter='approved')
+    approved_articles = load_contributor_articles(contributor['id'], status_filter='approved')
 
     return render_template('contributor_profile.html',
                            contributor=contributor,
@@ -2238,6 +2286,7 @@ app.add_template_filter(pres.og_image, 'og_image')
 app.add_template_filter(pres.page_title, 'page_title')
 app.add_template_filter(pres.clean_content, 'clean_content')
 app.add_template_global(pres.byline, 'byline')
+app.add_template_global(contributor_path, 'contributor_path')
 app.add_template_global(pres.should_noindex, 'should_noindex')
 app.add_template_global(pres.build_jsonld, 'build_jsonld')
 app.add_template_global(pres.absolute_url, 'absolute_url')
@@ -2247,6 +2296,9 @@ jobs_web.register(app, CATEGORIES)
 
 # Afaceri în Brașov: firme (ONRC), licitații, joburi, știri economice (web/business.py)
 business_web.register(app, CATEGORIES, load_articles)
+
+# Știri pe localități: /stiri-sacele, /stiri-fagaras ... (web/localities.py)
+localities_web.register(app)
 
 
 # ============================================================
@@ -2431,8 +2483,12 @@ def _sitemap_page_entries():
     today = datetime.now().strftime('%Y-%m-%d')
     paths = ['/', '/local', '/national', '/editoriale', '/afaceri-brasov', '/afaceri-brasov/licitatii', '/afaceri-brasov/primaria-brasov', '/despre', '/politica-editoriala',
              '/surse', '/confidentialitate', '/termeni', '/contact']
-    paths += [f'/categorie/{c}' for c in CATEGORIES]
+    paths += [f'/categorie/{c}' for c in CATEGORIES if c != 'local']  # /categorie/local are canonical /local
     entries = [{'loc': SITEMAP_BASE + p, 'lastmod': today} for p in paths]
+    try:
+        entries += localities_web.sitemap_entries()
+    except Exception as e:
+        app.logger.warning('Sitemap: paginile de localitate nu s-au putut adăuga: %s', e)
     try:
         entries += business_web.locality_sitemap_entries()
     except Exception:
@@ -2440,7 +2496,7 @@ def _sitemap_page_entries():
     try:
         for contributor in load_contributors():
             if contributor.get('status') == 'active' and contributor.get('article_count', 0) > 0:
-                entries.append({'loc': f"{SITEMAP_BASE}/colaborator/{contributor['id']}", 'lastmod': today})
+                entries.append({'loc': SITEMAP_BASE + contributor_path(contributor), 'lastmod': today})
     except Exception:
         pass
     return entries
