@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% set page_title = "Primăria Brașov: proiecte de hotărâre, hotărâri HCL și licitații" %}
 {% block title %}Hotărâri Consiliul Local Brașov, proiecte HCL și licitații Primăria Brașov | KronPapir{% endblock %}
-{% block meta_description %}<meta name="description" content="{{ g.hcl_open|length }} {{ 'proiect' if g.hcl_open|length == 1 else 'proiecte' }} de hotărâre în dezbatere publică, {{ g.lic_open|length }} {{ 'licitație deschisă' if g.lic_open|length == 1 else 'licitații deschise' }} și hotărârile Consiliului Local Brașov, cu termenul și documentele oficiale. Actualizat zilnic.">{% endblock %}
+{% block meta_description %}<meta name="description" content="Hotărârile Consiliului Local Brașov și proiectele HCL{% if g.hcl_open %} ({{ g.hcl_open|length }} în dezbatere publică acum){% endif %}, explicate pe înțeles, plus licitațiile Primăriei Brașov{% if g.lic_open %} ({{ g.lic_open|length }} {{ 'deschisă' if g.lic_open|length == 1 else 'deschise' }}){% endif %}, cu documentele oficiale. Actualizat zilnic.">{% endblock %}
 {% block robots %}<meta name="robots" content="index, follow">{% endblock %}
 {% block canonical %}<link rel="canonical" href="https://kronpapir.ro{{ page_path }}">{% endblock %}
 {% block og_tags %}
@@ -109,7 +109,7 @@
     <section class="section">
       <div class="pb-hero">
         <p class="kicker">Afaceri în Brașov · Primăria și Consiliul Local</p>
-        <h1>Ce se decide în Consiliul Local Brașov și ce licitează Primăria</h1>
+        <h1>Consiliul Local Brașov: hotărâri, proiecte HCL și licitațiile Primăriei</h1>
         <div class="pb-stats">
           <a href="#dezbatere"><b>{{ g.hcl_open|length }}</b><span>{{ 'proiect' if g.hcl_open|length == 1 else 'proiecte' }} la care poți trimite propuneri</span></a>
           <a href="#licitatii"><b>{{ g.lic_open|length }}</b><span>{{ 'licitație sau achiziție deschisă' if g.lic_open|length == 1 else 'licitații și achiziții deschise' }}</span></a>

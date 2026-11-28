@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% set n_offers = ro_count(total, "ofertă", "oferte") %}
+
+{% block title %}{{ info.h1 }}: {{ n_offers }} ({{ month }}) | KronPapir{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="{{ info.h1 }}: {{ n_offers }} active{% if stats.positions %}, {{ ro_count(stats.positions, 'post', 'posturi') }}{% endif %}{% if stats.median_brut %}, salariu median {{ job_num(stats.median_brut) }} lei brut{% endif %}. Oferte oficiale AJOFM, actualizate zilnic.">
+{% endblock %}
+
+{% block robots %}
+{% if indexable %}<meta name="robots" content="index, follow, max-image-preview:large">{% else %}<meta name="robots" content="noindex, follow">{% endif %}
+{% endblock %}
+
+{% block canonical %}<link rel="canonical" href="{{ canonical }}">{% endblock %}
+
+{% block og_tags %}
+<meta property="og:title" content="{{ info.h1 }}: {{ n_offers }}">
+<meta property="og:description" content="Ofertele oficiale AJOFM, actualizate zilnic.">
+<meta property="og:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+<meta property="og:url" content="{{ canonical }}">
+{% endblock %}
+
+{% block twitter_tags %}
+<meta name="twitter:title" content="{{ info.h1 }}: {{ n_offers }}">
+<meta name="twitter:description" content="Ofertele oficiale AJOFM, actualizate zilnic.">
+<meta name="twitter:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+{% endblock %}
+
+{% block json_ld %}
+{% for block in jsonld %}<script type="application/ld+json">{{ block|tojson }}</script>
+{% endfor %}
+{% endblock %}
+
+{% block extra_css %}{% include "_jobs_css.html" %}{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div>
+    <section class="section">
+      <nav class="jobs-count" aria-label="Navigare"><a href="{{ hub_path }}">Locuri de muncă Brașov</a> › {{ info.short }}</nav>
+      <h1 class="section-title">{{ info.h1 }}</h1>
+      <p class="jobs-intro">
+        {% if total %}
+        În {{ month }} sunt {{ n_offers }} active{% if stats.positions %} cu {{ ro_count(stats.positions, 'post liber', 'posturi libere') }}{% endif %}{% if info.kind == 'loc' %} în {{ info.place }}{% else %} în județul Brașov{% endif %}, declarate de angajatori la AJOFM.
+        {% if stats.median_brut %}Salariul median oferit este {{ job_num(stats.median_brut) }} lei brut ({{ ro_count(stats.n_brut, 'ofertă', 'oferte') }} cu salariu brut afișat).{% endif %}
+        {% if stats.employers %}Cele mai multe posturi le au {{ stats.employers|join(', ') }}.{% endif %}
+        {% if stats.places %}Ofertele sunt mai ales în {{ stats.places|join(', ') }}.{% endif %}
+        {% if info.slug != 'fara-experienta' and stats.no_experience %}{{ ro_count(stats.no_experience, 'ofertă nu cere', 'oferte nu cer') }} experiență.{% endif %}
+        {% else %}
+        Momentan nu există oferte active pentru această căutare. Vezi <a href="{{ hub_path }}">toate cele {{ total_all }} de oferte din județ</a>.
+        {% endif %}
+      </p>
+
+      <div class="jobs-stats">
+        <span><strong>{{ n_offers }}</strong></span>
+        {% if updated %}<span>Actualizat: {{ updated }}</span>{% endif %}
+      </div>
+
+      {% if stale %}
+      <div class="jobs-stale" role="status">Lista nu s-a putut actualiza recent de la ANOFM. Unele oferte pot fi expirate; verifică pe pagina sursei înainte să aplici.</div>
+      {% endif %}
+
+      {% if jobs %}
+      <ul class="job-list">
+        {% for job in jobs %}
+        <li class="job-item">
+          <h2><a href="{{ job_path(job) }}">{{ job.title }}</a></h2>
+          {% if job.employer_name %}<div class="job-employer">{{ job.employer_name }}</div>{% endif %}
+          <div class="job-facts">
+            {% if job_salary(job) %}<span class="job-salary">{{ job_salary(job) }}</span>{% endif %}
+            {% if job_place(job) %}<span>📍 {{ job_place(job) }}</span>{% endif %}
+            {% if job.work_type %}<span>{{ job.work_type }}</span>{% endif %}
+            {% if job_positions(job) %}<span>{{ job_positions(job) }}</span>{% endif %}
+            {% if job.date_posted %}<span>Publicată: {{ fmt_date_ro(job.date_posted) }}</span>{% endif %}
+          </div>
+        </li>
+        {% endfor %}
+      </ul>
+
+      {% if total_pages > 1 %}
+      <nav class="pagination" aria-label="Pagini">
+        {% if page > 1 %}<a href="{{ hub_path }}/{{ info.slug }}{% if page > 2 %}?page={{ page - 1 }}{% endif %}" rel="prev">‹ Anterior</a>{% endif %}
+        {% for p in range(1, total_pages + 1) %}
+          {% if p == page %}<span class="current" aria-current="page">{{ p }}</span>{% else %}<a href="{{ hub_path }}/{{ info.slug }}{% if p > 1 %}?page={{ p }}{% endif %}">{{ p }}</a>{% endif %}
+        {% endfor %}
+        {% if page < total_pages %}<a href="{{ hub_path }}/{{ info.slug }}?page={{ page + 1 }}" rel="next">Următor ›</a>{% endif %}
+      </nav>
+      {% endif %}
+      {% endif %}
+
+      <p class="jobs-source">
+        <strong>Sursa:</strong> ANOFM / AJOFM Brașov, <a href="{{ source_url or 'https://mediere.anofm.ro/app/module/mediere/jobs' }}" target="_blank" rel="noopener">mediere.anofm.ro</a>.
+        Generat automat de Redacția AI KronPapir din date oficiale. KronPapir nu intermediază angajări și nu cere bani candidaților.
+      </p>
+    </section>
+  </div>
+
+  <aside class="sidebar">
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">🔎 Alte căutări</h3>
+      {% for s, n in others if s.kind == 'topic' %}
+      <div class="facet"><a href="{{ hub_path }}/{{ s.slug }}">{{ s.short }}</a><span>{{ n }}</span></div>
+      {% endfor %}
+    </div>
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">📍 Pe localități</h3>
+      {% for s, n in others if s.kind == 'loc' %}
+      <div class="facet"><a href="{{ hub_path }}/{{ s.slug }}">{{ s.short }}</a><span>{{ n }}</span></div>
+      {% endfor %}
+      <div class="facet"><a href="{{ hub_path }}">Tot județul</a><span>{{ total_all }}</span></div>
+    </div>
+  </aside>
+</div>
+{% endblock %}

@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from flask import Blueprint, abort, current_app, redirect, render_template, request, url_for
 
 from editorial.presentation import SITE_NAME, SITE_URL
+from web import job_topics as topics
 
 TZ = ZoneInfo("Europe/Bucharest")
 HUB_PATH = "/locuri-de-munca-brasov"
@@ -250,13 +251,16 @@ def jobposting_jsonld(job):
     return data
 
 
-def breadcrumbs(job=None):
+def breadcrumbs(job=None, landing=None):
     items = [
         {"@type": "ListItem", "position": 1, "name": "Acasă", "item": f"{SITE_URL}/"},
         {"@type": "ListItem", "position": 2, "name": "Locuri de muncă Brașov", "item": SITE_URL + HUB_PATH},
     ]
     if job:
         items.append({"@type": "ListItem", "position": 3, "name": job["title"], "item": job_url(job)})
+    elif landing:
+        items.append({"@type": "ListItem", "position": 3, "name": landing["h1"],
+                      "item": f"{SITE_URL}{HUB_PATH}/{landing['slug']}"})
     return {"@context": "https://schema.org", "@type": "BreadcrumbList", "itemListElement": items}
 
 
@@ -291,6 +295,10 @@ def sitemap_entries():
     jobs = active_jobs()
     lastmod = (store.get("fetched_at") or datetime.now(TZ).isoformat())[:10]
     entries = [{"loc": SITE_URL + HUB_PATH, "lastmod": lastmod, "changefreq": "daily", "priority": "0.9"}]
+    for info, n in topics.all_pages(jobs):
+        if topics.indexable(n):
+            entries.append({"loc": f"{SITE_URL}{HUB_PATH}/{info['slug']}", "lastmod": lastmod,
+                            "changefreq": "daily", "priority": "0.8"})
     for j in jobs:
         entries.append({"loc": job_url(j), "lastmod": (j.get("date_posted") or lastmod)[:10],
                         "changefreq": "weekly", "priority": "0.6"})
@@ -353,6 +361,7 @@ def hub():
     filtered = bool(loc or dom or q or only_salary or sort != "recente")
     # Graficele apar doar pe prima pagină nefiltrată; cine caută un job vede întâi lista.
     jobs_rep, chart_jobs = market(all_jobs) if (page == 1 and not filtered) else (None, {})
+    pages = topics.all_pages(all_jobs)
 
     def page_url(p):
         args = {k: v for k, v in request.args.items() if k != "page"}
@@ -370,6 +379,8 @@ def hub():
         page=page, total_pages=total_pages, page_url=page_url,
         updated=updated, stale=stale, filtered=filtered,
         jobs_rep=jobs_rep, chart_jobs=chart_jobs,
+        searches=[(i, n) for i, n in pages if i["kind"] == "topic" and topics.indexable(n)],
+        loc_pages={i["place"]: i["slug"] for i, n in pages if i["kind"] == "loc" and topics.indexable(n)},
         source_url=store.get("source_url"),
         breadcrumbs=breadcrumbs(),
         **_context(),
@@ -380,7 +391,7 @@ def hub():
 def detail(slug):
     head = slug.split("-", 1)[0]
     if not head.isdigit():
-        abort(404)
+        return landing(slug)
     job = load_store().get("jobs", {}).get(head)
     if not job:
         abort(404)
@@ -393,8 +404,15 @@ def detail(slug):
         related = [j for j in pool if j.get("domain") and j.get("domain") == job.get("domain")][:5]
         if len(related) < 5:
             related += [j for j in pool if j.get("locality") == job.get("locality") and j not in related][:5 - len(related)]
+    searches = []
+    if active:
+        # Linkuri spre paginile de căutare în care apare oferta (doar cele indexate).
+        pool = active_jobs()
+        for info, n in topics.all_pages(pool):
+            if topics.indexable(n) and any(j["id"] == job["id"] for j in topics.resolve(info["slug"], pool)[1]):
+                searches.append(info)
     html = render_template(
-        "job_detail.html",
+        "job_detail.html", searches=searches,
         job=job, active=active, rows=details(job), lead=lead(job),
         meta_description=meta_description(job),
         jsonld=[jobposting_jsonld(job), breadcrumbs(job)] if active else [breadcrumbs(job)],
@@ -403,6 +421,38 @@ def detail(slug):
     )
     # Oferta expirată sau retrasă: 410, ca Google s-o scoată repede din rezultate.
     return (html, 200) if active else (html, 410)
+
+
+def landing(slug):
+    """Pagina unei căutări: o localitate („locuri de muncă Făgăraș”) sau un tip de job."""
+    if slug != slug.lower():
+        return redirect(f"{HUB_PATH}/{slug.lower()}", code=301)
+    all_jobs = active_jobs()
+    info, jobs = topics.resolve(slug, all_jobs)
+    if info is None:
+        abort(404)
+    page = max(1, request.args.get("page", 1, type=int) or 1)
+    total_pages = max(1, math.ceil(len(jobs) / PER_PAGE))
+    page = min(page, total_pages)
+    store = load_store()
+    updated, stale = freshness(store)
+    now = datetime.now(TZ)
+    others = [(i, n) for i, n in topics.all_pages(all_jobs) if i["slug"] != slug and topics.indexable(n)]
+    canonical = f"{SITE_URL}{HUB_PATH}/{slug}" + (f"?page={page}" if page > 1 else "")
+    itemlist = {"@context": "https://schema.org", "@type": "ItemList", "name": info["h1"],
+                "numberOfItems": len(jobs),
+                "itemListElement": [{"@type": "ListItem", "position": i + 1, "url": job_url(j)}
+                                    for i, j in enumerate(jobs[:PER_PAGE])]}
+    return render_template(
+        "jobs_landing.html",
+        info=info, jobs=jobs[(page - 1) * PER_PAGE: page * PER_PAGE], total=len(jobs),
+        stats=topics.summary(info, jobs), indexable=topics.indexable(len(jobs)) and bool(jobs),
+        page=page, total_pages=total_pages, canonical=canonical,
+        month=f"{MONTHS[now.month - 1]} {now.year}", updated=updated, stale=stale,
+        others=others, total_all=len(all_jobs), source_url=store.get("source_url"),
+        jsonld=[breadcrumbs(landing=info), itemlist],
+        **_context(),
+    )
 
 
 def register(app, categories):

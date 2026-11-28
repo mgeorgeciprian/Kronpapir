@@ -453,10 +453,11 @@ nav.main-nav {
   margin-bottom: var(--space-md);
 }
 
-.featured-content h1 {
+.featured-content h1, .featured-content .featured-title {
   margin-bottom: var(--space-md);
   line-height: 1.4;
 }
+.featured-content .featured-title { font-size: 3rem; }
 
 .featured-content .excerpt {
   font-size: 1.1rem;
@@ -508,7 +509,7 @@ nav.main-nav {
     padding: var(--space-lg);
   }
 
-  .featured-content h1 {
+  .featured-content h1, .featured-content .featured-title {
     font-size: 1.5rem;
   }
 }

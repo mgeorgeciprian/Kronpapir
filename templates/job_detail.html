@@ -103,6 +103,14 @@
       </ul>
     </div>
     {% endif %}
+    {% if searches %}
+    <div class="sidebar-box">
+      <h3 class="sidebar-title">Mai multe oferte</h3>
+      <ul class="job-related">
+        {% for s in searches %}<li><a href="{{ hub_path }}/{{ s.slug }}">{{ s.h1 }}</a></li>{% endfor %}
+      </ul>
+    </div>
+    {% endif %}
     <div class="sidebar-box">
       <h3 class="sidebar-title">Toate ofertele</h3>
       <p><a href="{{ hub_path }}" style="color: var(--primary); font-weight: 600;">Locuri de muncă în Brașov →</a></p>

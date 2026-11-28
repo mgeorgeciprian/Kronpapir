@@ -1,6 +1,10 @@
 {% extends "base.html" %}
 
-{% block title %}Știri Brașov - Ultimele Noutăți din Brașov și Județul Brașov | KronPapir{% endblock %}
+{% block title %}Știri Brașov azi: noutăți din Brașov și Covasna, joburi, licitații | KronPapir{% endblock %}
+
+{% block meta_description %}
+<meta name="description" content="Știri Brașov azi: ce s-a întâmplat în Brașov și Covasna, locuri de muncă AJOFM, licitațiile primăriilor și hotărârile Consiliului Local, din surse oficiale, cu link la fiecare sursă.">
+{% endblock %}
 
 {% block extra_css %}
 <meta name="description" content="Știri Brașov - cele mai recente știri locale din Brașov și județul Brașov. Politică, economie, sport, cultură, evenimente și editoriale din inima Transilvaniei.">
@@ -58,6 +62,7 @@
 
 {% block content %}
 
+<h1 class="sr-only">Știri Brașov azi</h1>
 <div class="main-container">
   <!-- Main Content -->
   <div>
@@ -72,7 +77,7 @@
           {% if featured.category %}
           <span class="category-tag {{ featured.category }}">{{ featured.category }}</span>
           {% endif %}
-          <h1>{{ featured.title }}</h1>
+          <h2 class="featured-title">{{ featured.title }}</h2>
           <p class="excerpt">{{ featured.excerpt or featured.content[:150] + '...' }}</p>
           <div class="featured-meta">
             <span class="featured-meta-item">📅 {{ featured.date }}</span>
