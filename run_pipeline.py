@@ -38,6 +38,8 @@ import re
 from datetime import datetime, timedelta
 from collections import defaultdict
 from pathlib import Path
+
+from editorial.geo_scope import scope as geo_scope
 from threading import Thread, Event
 from collections import defaultdict
 
@@ -456,7 +458,13 @@ def run_ai_processing():
                         # Verifică dacă e internațional
                         is_intl = any(kw in title_lower for kw in intl_keywords)
 
-                        if source_cat in ('local',) or 'brașov' in title_lower or 'brasov' in title_lower or 'covasna' in title_lower:
+                        # O sursă locală care scrie despre alt județ („Accident grav în Teleorman”) nu dă o știre locală.
+                        # Pentru sursele naționale rămâne regula veche (Brașov/Covasna în titlu sau la început).
+                        if source_cat == 'local':
+                            is_local = geo_scope(art) != 'alta_zona'
+                        else:
+                            is_local = 'brașov' in title_lower or 'brasov' in title_lower or 'covasna' in title_lower
+                        if is_local:
                             local_articles.append(art)
                         elif is_intl:
                             intl_articles.append(art)
