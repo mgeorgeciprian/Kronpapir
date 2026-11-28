@@ -247,7 +247,7 @@
       <p class="pb-side-sub">Ce se decide acum, explicat din documentele oficiale.</p>
       {% for d in primaria.docs %}
       <article class="sidebar-article">
-        <h4><a href="{{ primaria.path }}#{{ d.id }}">{{ d.exp.explicatie.titlu_simplu if d.exp else d.title[:110] ~ ('…' if d.title|length > 110 else '') }}</a></h4>
+        <h4><a href="{{ explanation_path(d.exp) if d.exp else primaria.path ~ '#' ~ d.id }}">{{ d.exp.explicatie.titlu_simplu if d.exp else d.title[:110] ~ ('…' if d.title|length > 110 else '') }}</a></h4>
         <span class="date">{% if d.days_left is defined and d.kind == 'hcl' %}propuneri încă {{ d.days_left }} {{ 'zi' if d.days_left == 1 else 'zile' }}{% elif d.days_left is defined %}licitație · {{ d.days_left }} {{ 'zi' if d.days_left == 1 else 'zile' }} rămase{% elif 'dezbatere' in (d.status or '')|lower %}urmează votul{% else %}{{ d.status }}{% endif %}</span>
       </article>
       {% endfor %}

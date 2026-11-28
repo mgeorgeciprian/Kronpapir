@@ -67,3 +67,33 @@ def test_favicon_and_unknown_category():
     assert c.get("/categorie/nu-exista").status_code == 404
     html = c.get("/categorie/sport").get_data(as_text=True)
     assert "Sport Brașov" in html and html.count('name="description"') == 1
+
+
+def test_hcl_explanation_page(tmp_path):
+    import json
+    from web.app import app
+    (tmp_path / "explicatii").mkdir()
+    store = {"items": {"hcl-X1": {"kind": "hcl", "title": "PROIECT DE HOTĂRÂRE privind taxele locale 2027",
+                                  "url": "https://www.brasovcity.ro/p/1", "status": "În dezbatere publică",
+                                  "published": "2026-11-20", "deadline": "2099-12-01", "files": []}}}
+    (tmp_path / "store.json").write_text(json.dumps(store))
+    exp = {"id": "hcl-X1", "status": "published", "created_at": "2026-11-27T10:00:00",
+           "label": "Explicație generată automat.", "explicatie": {"titlu_simplu": "Taxele locale din Brașov în 2027",
+                                                                  "pe_scurt": "Taxele rămân la fel.", "ce_se_schimba": ["nimic"]}}
+    (tmp_path / "explicatii" / "hcl-X1.json").write_text(json.dumps(exp))
+    app.config["BRASOVCITY_STORE"] = str(tmp_path / "store.json")
+    try:
+        c = app.test_client()
+        r = c.get("/afaceri-brasov/primaria-brasov/hcl/taxele-locale-din-brasov-in-2027")
+        html = r.get_data(as_text=True)
+        assert r.status_code == 200 and "Taxele rămân la fel." in html and "poți trimite propuneri" in html
+        r = c.get("/afaceri-brasov/primaria-brasov/hcl/hcl-X1")
+        assert r.status_code == 301
+        assert c.get("/afaceri-brasov/primaria-brasov/hcl/nu-exista").status_code == 404
+        exp["status"] = "draft"
+        (tmp_path / "explicatii" / "hcl-X1.json").write_text(json.dumps(exp))
+        import os, time
+        os.utime(tmp_path / "explicatii" / "hcl-X1.json", (time.time() + 5, time.time() + 5))
+        assert c.get("/afaceri-brasov/primaria-brasov/hcl/taxele-locale-din-brasov-in-2027").status_code == 404
+    finally:
+        app.config.pop("BRASOVCITY_STORE")

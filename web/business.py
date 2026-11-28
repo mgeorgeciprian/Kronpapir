@@ -716,6 +716,75 @@ def primaria():
                            categories=current_app.config.get("KP_CATEGORIES", {}))
 
 
+HCL_PATH = PRIMARIA_PATH + "/hcl"
+
+
+def explanation_slug(exp):
+    """Adresa paginii unei explicații: din titlul simplu („reguli-noi-pentru-reclame-…”)."""
+    title = ((exp or {}).get("explicatie") or {}).get("titlu_simplu") or ""
+    return place_slug(title)[:90].rstrip("-") or str(exp.get("id") or "")
+
+
+def explanation_path(exp):
+    return f"{HCL_PATH}/{explanation_slug(exp)}"
+
+
+def published_explanations():
+    """[(document, explicație)] pentru explicațiile publicate, cele mai noi întâi."""
+    store = load_brasovcity()
+    items = store.get("items") or {}
+    out = []
+    for doc_id, exp in load_explanations().items():
+        if exp.get("status") != "published" or doc_id not in items:
+            continue
+        doc = dict(items[doc_id], id=doc_id, title=clean_doc_title(items[doc_id].get("title")),
+                   files=public_files(items[doc_id].get("files")))
+        out.append((doc, exp))
+    out.sort(key=lambda de: de[1].get("created_at") or "", reverse=True)
+    return out
+
+
+def explanation_sitemap_entries():
+    return [{"loc": SITE_URL + explanation_path(e), "lastmod": (e.get("reviewed_at") or e.get("created_at") or "")[:10] or None}
+            for _, e in published_explanations()]
+
+
+@bp.route(HCL_PATH + "/<slug>")
+def hcl_explanation(slug):
+    pairs = published_explanations()
+    found = next(((d, e) for d, e in pairs if explanation_slug(e) == slug), None)
+    if not found:
+        by_id = next(((d, e) for d, e in pairs if d["id"] == slug), None)
+        if by_id:
+            return redirect(explanation_path(by_id[1]), code=301)
+        abort(404)
+    doc, exp = found
+    e = exp.get("explicatie") or {}
+    url = SITE_URL + explanation_path(exp)
+    crumbs = breadcrumbs()
+    crumbs["itemListElement"] += [
+        {"@type": "ListItem", "position": 3, "name": "Primăria Brașov", "item": SITE_URL + PRIMARIA_PATH},
+        {"@type": "ListItem", "position": 4, "name": e.get("titlu_simplu", "")[:110], "item": url}]
+    published = exp.get("created_at") or ""
+    article = {
+        "@context": "https://schema.org", "@type": "Article", "headline": e.get("titlu_simplu", "")[:110],
+        "description": (e.get("pe_scurt") or "")[:300], "url": url, "mainEntityOfPage": url, "inLanguage": "ro-RO",
+        "datePublished": published, "dateModified": exp.get("reviewed_at") or published,
+        "author": {"@type": "Organization", "name": "Redacția AI KronPapir", "url": SITE_URL + "/despre"},
+        "publisher": {"@type": "Organization", "name": "KronPapir", "url": SITE_URL,
+                      "logo": {"@type": "ImageObject", "url": SITE_URL + "/static/images/favicon-192.png"}},
+        "isBasedOn": doc.get("url"),
+        "about": {"@type": "Legislation", "name": doc.get("title", "")[:200], "url": doc.get("url"),
+                  "legislationJurisdiction": "Municipiul Brașov"},
+    }
+    others = [(d, x) for d, x in pairs if d["id"] != doc["id"]][:8]
+    status = (doc.get("status") or "").lower()
+    return render_template("hcl_explicatie.html", doc=doc, exp=exp, e=e, url=url, jsonld=[crumbs, article],
+                           others=others, explanation_path=explanation_path, in_debate="dezbatere" in status,
+                           page_path=PRIMARIA_PATH, today=date.today().isoformat(),
+                           categories=current_app.config.get("KP_CATEGORIES", {}))
+
+
 @bp.route(CSV_PATH)
 def onrc_csv():
     """Seria lunară ONRC pentru Brașov și România, ca CSV (sursa: fișierele ONRC)."""
@@ -796,6 +865,7 @@ def locality_link(article):
 
 def register(app, categories, load_articles):
     app.jinja_env.globals["locality_link"] = locality_link
+    app.jinja_env.globals["explanation_path"] = explanation_path
     app.config.setdefault("KP_CATEGORIES", categories)
     app.config["KP_LOAD_ARTICLES"] = load_articles
     app.register_blueprint(bp)

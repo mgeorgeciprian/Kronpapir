@@ -96,7 +96,7 @@ def test_page_shows_only_published_explanations(tmp_path):
         assert "Pe înțelesul tuturor" in html and "Taxa de promovare turistică: 7 lei pe noapte" in html
         assert "CIORNA ASCUNSA" not in html and "NISTOR" not in html
         home = app.test_client().get("/").get_data(as_text=True)
-        assert "Consiliul Local Brașov" in home and "#hcl-1" in home
+        assert "Consiliul Local Brașov" in home and "/afaceri-brasov/primaria-brasov/hcl/" in home
         assert app.test_client().get("/admin/explicatii-hcl").status_code == 302  # doar cu login
     finally:
         app.config.pop("BRASOVCITY_STORE")

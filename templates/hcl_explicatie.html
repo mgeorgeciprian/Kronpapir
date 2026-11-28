@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+{% macro dmy(iso) %}{% if iso %}{{ iso[8:10] }}.{{ iso[5:7] }}.{{ iso[:4] }}{% endif %}{% endmacro %}
+
+{% block title %}{{ e.titlu_simplu }}: proiectul HCL explicat | KronPapir{% endblock %}
+
+{% block meta_description %}<meta name="description" content="{{ (e.pe_scurt or '')|truncate(155, True, '…') }}">{% endblock %}
+
+{% block canonical %}<link rel="canonical" href="{{ url }}">{% endblock %}
+
+{% block og_type %}<meta property="og:type" content="article">{% endblock %}
+{% block og_tags %}
+<meta property="og:title" content="{{ e.titlu_simplu }}">
+<meta property="og:description" content="{{ (e.pe_scurt or '')|truncate(200, True, '…') }}">
+<meta property="og:image" content="https://kronpapir.ro{{ url_for('static', filename='images/og-image.png') }}">
+<meta property="og:url" content="{{ url }}">
+{% endblock %}
+{% block twitter_tags %}
+<meta name="twitter:title" content="{{ e.titlu_simplu }}">
+<meta name="twitter:description" content="{{ (e.pe_scurt or '')|truncate(200, True, '…') }}">
+{% endblock %}
+
+{% block json_ld %}
+{% for block in jsonld %}<script type="application/ld+json">{{ block|tojson }}</script>
+{% endfor %}
+{% endblock %}
+
+{% block extra_css %}
+<style>
+  .hx { max-width: 760px; }
+  .hx-crumbs { font-size: .9rem; color: var(--text-secondary); margin-bottom: var(--space-sm); }
+  .hx-crumbs a, .hx a { color: var(--primary); }
+  .hx-kicker { margin: 0; font-size: .75rem; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--primary); }
+  .hx h1 { margin: 4px 0 var(--space-sm); line-height: 1.25; }
+  .hx-lead { font-size: 1.1rem; line-height: 1.6; }
+  .hx-facts { display: flex; flex-wrap: wrap; gap: 8px 16px; font-size: .9rem; color: var(--text-secondary); margin: var(--space-sm) 0 var(--space-md); }
+  .hx-open { padding: 10px 14px; border-left: 3px solid var(--primary); background: var(--surface); margin: var(--space-md) 0; }
+  .hx h2 { font-size: 1.2rem; margin: var(--space-lg) 0 var(--space-sm); }
+  .hx ul { margin: 0 0 var(--space-sm) 20px; }
+  .hx li { margin: 4px 0; line-height: 1.55; }
+  .hx dl { display: grid; grid-template-columns: minmax(120px, max-content) 1fr; gap: 6px 14px; }
+  .hx dt { font-weight: 700; }
+  .hx dd { margin: 0; }
+  .hx-official { font-size: .9rem; color: var(--text-secondary); border-top: 1px solid var(--border); margin-top: var(--space-lg); padding-top: var(--space-md); }
+  .hx-label { font-size: .85rem; color: var(--text-secondary); font-style: italic; }
+  .hx-more li { margin: 6px 0; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="main-container">
+  <div>
+    <article class="section hx">
+      <nav class="hx-crumbs" aria-label="Navigare"><a href="/afaceri-brasov">Afaceri în Brașov</a> › <a href="{{ page_path }}">Primăria Brașov</a> › Proiect explicat</nav>
+      <p class="hx-kicker">Consiliul Local Brașov · pe înțelesul tuturor</p>
+      <h1>{{ e.titlu_simplu }}</h1>
+      <p class="hx-lead">{{ e.pe_scurt }}</p>
+      <div class="hx-facts">
+        {% if doc.status %}<span>Stadiu: <strong>{{ doc.status }}</strong></span>{% endif %}
+        {% if doc.published %}<span>Proiect publicat pe {{ dmy(doc.published) }}</span>{% endif %}
+        {% if exp.created_at %}<span>Explicație din {{ dmy(exp.created_at) }}</span>{% endif %}
+      </div>
+      {% if in_debate and doc.deadline and doc.deadline >= today %}
+      <p class="hx-open">Proiectul e în dezbatere publică: poți trimite propuneri până pe <strong>{{ dmy(doc.deadline) }}</strong>. Cum și unde scrie în anunțul de pe <a href="{{ doc.url }}" rel="noopener" target="_blank">brasovcity.ro</a>.</p>
+      {% endif %}
+
+      {% if e.ce_se_schimba %}<h2>Ce se schimbă</h2><ul>{% for x in e.ce_se_schimba %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if e.pe_cine_afecteaza %}<h2>Pe cine afectează</h2><ul>{% for x in e.pe_cine_afecteaza %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}
+      {% if e.cifre_cheie %}<h2>Cifrele din documente</h2><dl>{% for c in e.cifre_cheie %}<dt>{{ c.cifra }}</dt><dd>{{ c.ce_inseamna }}</dd>{% endfor %}</dl>{% endif %}
+      {% if e.ce_poti_face %}<h2>Ce poți face</h2><p>{{ e.ce_poti_face }}</p>{% endif %}
+      {% if e.ce_nu_stim %}<h2>Ce nu reiese din documente</h2><p>{{ e.ce_nu_stim }}</p>{% endif %}
+
+      <div class="hx-official">
+        <p><strong>Documentul oficial:</strong> <a href="{{ doc.url }}" rel="noopener" target="_blank">{{ doc.title }}</a></p>
+        {% if doc.files %}<ul>{% for f in doc.files[:6] %}<li><a href="{{ f.url }}" rel="noopener nofollow" target="_blank">{{ f.name[:80] }}</a></li>{% endfor %}</ul>{% endif %}
+        <p class="hx-label">{% if exp.reviewed_at %}Explicație generată automat din documentele oficiale, cu verificare umană.{% else %}{{ exp.label }}{% endif %} Textul care contează juridic e cel din documentele Primăriei.</p>
+      </div>
+    </article>
+  </div>
+
+  <aside class="sidebar">
+    {% if others %}
+    <div class="sidebar-box hx-more">
+      <h3 class="sidebar-title">🏛️ Alte proiecte explicate</h3>
+      <ul style="list-style: none; margin: 0; padding: 0;">
+        {% for d, x in others %}<li><a href="{{ explanation_path(x) }}" style="color: var(--primary);">{{ x.explicatie.titlu_simplu }}</a></li>{% endfor %}
+      </ul>
+      <a href="{{ page_path }}" style="display: inline-block; margin-top: 8px; font-weight: 600; color: var(--primary);">Toate hotărârile și licitațiile →</a>
+    </div>
+    {% endif %}
+  </aside>
+</div>
+{% endblock %}

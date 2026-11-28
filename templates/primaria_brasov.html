@@ -89,7 +89,7 @@
 {% if d.exp %}{% set e = d.exp.explicatie %}
 <div class="pb-exp">
   <p class="pb-exp-kicker">Pe înțelesul tuturor</p>
-  <p class="pb-exp-title">{{ e.titlu_simplu }}</p>
+  <p class="pb-exp-title"><a href="{{ explanation_path(d.exp) }}" style="color: inherit;">{{ e.titlu_simplu }}</a></p>
   <p class="pb-exp-lead">{{ e.pe_scurt }}</p>
   <details{% if open %} open{% endif %}><summary>Ce se schimbă, pe cine afectează, ce poți face</summary>
     {% if e.ce_se_schimba %}<h4>Ce se schimbă</h4><ul>{% for x in e.ce_se_schimba %}<li>{{ x }}</li>{% endfor %}</ul>{% endif %}

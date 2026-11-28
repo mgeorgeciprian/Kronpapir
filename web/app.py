@@ -2490,6 +2490,10 @@ def _sitemap_page_entries():
     except Exception as e:
         app.logger.warning('Sitemap: paginile de localitate nu s-au putut adăuga: %s', e)
     try:
+        entries += business_web.explanation_sitemap_entries()
+    except Exception as e:
+        app.logger.warning('Sitemap: explicațiile HCL nu s-au putut adăuga: %s', e)
+    try:
         entries += business_web.locality_sitemap_entries()
     except Exception:
         pass
